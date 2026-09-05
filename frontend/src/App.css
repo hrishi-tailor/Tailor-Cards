@@ -1,79 +1,326 @@
-.app-layout {
+/* ==========================================================================
+   Tailor Cards — Boutique TCG Aesthetic
+   Palette: Deep Midnight Navy (#0A1128), Dark Royal Purple (#240046),
+   Rich Indigo/Purple (#5A189A), Vibrant Purple Hover (#7B2CBF),
+   Cool Light Gray Background (#F3F4F6).
+   ========================================================================== */
+
+:root {
+  --tc-navy: #0A1128;
+  --tc-navy-light: #121F45;
+  --tc-purple-dark: #240046;
+  --tc-purple-royal: #3C096C;
+  --tc-purple-primary: #5A189A;
+  --tc-purple-hover: #7B2CBF;
+  --tc-purple-accent: #9D4EDD;
+  --tc-purple-glow: #C77DFF;
+  --tc-purple-soft: #F3E8FF;
+  
+  --tc-bg: #F3F4F6;
+  --tc-card: #FFFFFF;
+  
+  --tc-text-primary: #0F172A;
+  --tc-text-secondary: #64748B;
+  --tc-text-muted: #94A3B8;
+  
+  --tc-border: #E2E8F0;
+  --tc-border-subtle: #EDF2F7;
+  --tc-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --tc-shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --tc-shadow-hover: 0 10px 15px -3px rgba(90, 24, 154, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+
+  --tc-green: #10B981;
+  --tc-red: #EF4444;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--tc-bg) !important;
+  color: var(--tc-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-inline: none !important;
+  background-color: var(--tc-bg) !important;
+  min-height: 100vh;
+  text-align: left !important;
+}
+
+.tc-app-layout {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  width: 100%;
+  background-color: var(--tc-bg);
 }
 
-.navbar {
+/* ==================== Header Navigation ==================== */
+.tc-header {
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  box-shadow: 0 4px 12px rgba(10, 17, 40, 0.12);
 }
 
-.navbar-container {
-  max-width: 1200px;
+.tc-nav-container {
+  max-width: 1380px;
   margin: 0 auto;
-  padding: 16px 24px;
+  padding: 0 24px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
 }
 
-.navbar-brand {
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: #1e293b;
-  text-decoration: none;
+/* Primary Nav (#0A1128) */
+.tc-nav-primary {
+  background-color: var(--tc-navy);
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tc-nav-primary .tc-nav-container {
+  justify-content: space-between;
+  gap: 32px;
+}
+
+/* Logo */
+.tc-logo {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.navbar-nav {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.nav-link {
-  color: #64748b;
   text-decoration: none;
-  font-weight: 500;
-  font-size: 1rem;
-  padding: 6px 12px;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.tc-logo-img {
+  height: 36px;
+  width: 36px;
+  object-fit: cover;
   border-radius: 6px;
+  display: block;
+}
+
+.tc-logo-tailor {
+  color: #FFFFFF;
+}
+
+.tc-logo-cards {
+  color: var(--tc-purple-accent);
+  margin-left: 4px;
+}
+
+/* Sleek Minimal Search Bar */
+.tc-search-form {
   display: flex;
   align-items: center;
-  gap: 6px;
-  transition: color 0.2s, background-color 0.2s;
+  flex: 1;
+  max-width: 620px;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0 14px;
+  height: 42px;
+  transition: all 0.2s ease;
 }
 
-.nav-link:hover {
-  color: #1e293b;
-  background: #f1f5f9;
+.tc-search-form:focus-within {
+  background-color: #FFFFFF;
+  border-color: var(--tc-purple-accent);
+  box-shadow: 0 0 0 3px rgba(157, 78, 221, 0.25);
 }
 
-.nav-link.active {
-  color: #4f46e5;
-  background: #eef2ff;
-  font-weight: 600;
+.tc-search-icon {
+  width: 18px;
+  height: 18px;
+  color: #94A3B8;
+  margin-right: 10px;
+  flex-shrink: 0;
+  transition: color 0.2s;
 }
 
-.cart-counter-badge {
-  background: #4f46e5;
-  color: #ffffff;
-  font-size: 0.75rem;
+.tc-search-form:focus-within .tc-search-icon {
+  color: var(--tc-purple-primary);
+}
+
+.tc-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-size: 0.92rem;
+  color: #FFFFFF;
+  outline: none;
+}
+
+.tc-search-form:focus-within .tc-search-input {
+  color: var(--tc-text-primary);
+}
+
+.tc-search-input::placeholder {
+  color: #94A3B8;
+}
+
+/* Right Nav Cart Action */
+.tc-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.tc-cart-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: all 0.2s ease;
+}
+
+.tc-cart-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--tc-purple-accent);
+}
+
+.tc-cart-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tc-cart-svg {
+  width: 22px;
+  height: 22px;
+  color: #FFFFFF;
+}
+
+.tc-cart-badge {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  background: linear-gradient(135deg, var(--tc-purple-accent), var(--tc-purple-primary));
+  color: #FFFFFF;
+  font-size: 0.72rem;
   font-weight: 700;
-  padding: 2px 7px;
+  padding: 2px 6px;
   border-radius: 999px;
+  min-width: 14px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-.app-main {
-  flex-grow: 1;
-  width: 100%;
-  box-sizing: border-box;
+.tc-cart-text {
+  color: #FFFFFF;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Secondary Nav (#240046) */
+.tc-nav-secondary {
+  background-color: var(--tc-purple-dark);
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.secondary-container {
+  gap: 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.tc-menu-link {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #E2E8F0;
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tc-menu-link:hover {
+  color: #FFFFFF;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.tc-menu-link.active {
+  background-color: var(--tc-purple-primary);
+  color: #FFFFFF;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.tc-nav-guarantee {
+  margin-left: auto;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--tc-purple-glow);
+  letter-spacing: 0.02em;
+}
+
+/* ==================== Main Body Content ==================== */
+.tc-main-content {
+  flex: 1;
+  background-color: var(--tc-bg);
+  min-height: calc(100vh - 180px);
+}
+
+/* ==================== Footer ==================== */
+.tc-footer {
+  margin-top: auto;
+  background-color: var(--tc-navy);
+  color: #94A3B8;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 36px 0 28px;
+}
+
+.tc-footer-container {
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.tc-footer-brand {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.tc-footer-brand p {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: #64748B;
+}
+
+.tc-footer-copy {
+  font-size: 0.85rem;
+  color: #64748B;
+}
+
+@media (max-width: 800px) {
+  .tc-nav-guarantee {
+    display: none;
+  }
+  .tc-nav-primary .tc-nav-container {
+    gap: 16px;
+  }
 }

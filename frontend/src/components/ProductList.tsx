@@ -3,7 +3,11 @@ import { useCart } from '../context/CartContext'
 import type { PageResponse, Product } from '../types'
 import './ProductList.css'
 
-export function ProductList() {
+interface ProductListProps {
+  selectedCategory?: string
+}
+
+export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
@@ -50,84 +54,138 @@ export function ProductList() {
     }
   }
 
+  // Filter products by selected category
+  const filteredProducts = products.filter((product) => {
+    if (selectedCategory === 'All') return true
+    if (selectedCategory === 'Singles') {
+      return (
+        product.category?.name.toLowerCase().includes('trading') ||
+        product.name.toLowerCase().includes('card')
+      )
+    }
+    if (selectedCategory === 'Slabs') {
+      return (
+        product.category?.name.toLowerCase().includes('graded') ||
+        product.name.toLowerCase().includes('psa') ||
+        product.name.toLowerCase().includes('bgs')
+      )
+    }
+    if (selectedCategory === 'Accessories') {
+      return (
+        product.category?.name.toLowerCase().includes('accessories') ||
+        product.name.toLowerCase().includes('sleeves') ||
+        product.name.toLowerCase().includes('box') ||
+        product.name.toLowerCase().includes('binder')
+      )
+    }
+    return product.category?.name.toLowerCase().includes(selectedCategory.toLowerCase())
+  })
+
   if (loading) {
     return (
-      <div className="status-container">
-        <p>Loading products...</p>
+      <div className="tc-catalog-wrapper">
+        <div className="tc-status-box">
+          <div className="tc-spinner" />
+          <p>Loading curated trading cards & collectibles...</p>
+        </div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="status-container error">
-        <h2>Unable to load products</h2>
-        <p>{error}</p>
-        <button type="button" onClick={() => window.location.reload()} className="retry-btn">
-          Retry
-        </button>
-      </div>
-    )
-  }
-
-  if (products.length === 0) {
-    return (
-      <div className="status-container">
-        <p>No products available.</p>
+      <div className="tc-catalog-wrapper">
+        <div className="tc-status-box">
+          <h2>Unable to load catalog</h2>
+          <p>{error}</p>
+          <button type="button" onClick={() => window.location.reload()} className="tc-retry-btn">
+            Try Again
+          </button>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="product-list-container">
-      <header className="product-list-header">
-        <h1>Tailor Cards Catalog</h1>
-        <p>Browse our collection of trading cards, accessories, and graded items.</p>
-      </header>
+    <div className="tc-catalog-wrapper">
+      {/* Boutique Hero Header */}
+      <section className="tc-hero-header">
+        <div className="tc-hero-title-group">
+          <h1>Curated Trading Cards & Graded Slabs</h1>
+          <p>Authentic singles, certified collectibles, and archival-grade protection supplies.</p>
+        </div>
+        <div className="tc-hero-pill">
+          ✦ Guaranteed Authenticity
+        </div>
+      </section>
+
+      {/* Catalog Meta / Filter Bar */}
+      <div className="tc-catalog-meta-bar">
+        <div className="tc-catalog-count">
+          Showing <strong>{filteredProducts.length}</strong> of <strong>{products.length}</strong> items
+          {selectedCategory !== 'All' && (
+            <span> in <span className="tc-category-active-tag">{selectedCategory}</span></span>
+          )}
+        </div>
+      </div>
 
       {cartError && (
-        <div style={{ color: '#dc2626', background: '#fef2f2', padding: 12, borderRadius: 8, marginBottom: 20 }}>
+        <div className="tc-error-banner">
           {cartError}
         </div>
       )}
 
-      <div className="product-grid">
-        {products.map((product) => {
+      {/* Responsive CSS Grid (repeat auto-fill, minmax 250px) */}
+      <div className="tc-product-grid">
+        {filteredProducts.map((product) => {
           const isOutOfStock = product.stock <= 0
           const isAdding = addingId === product.id
           const isJustAdded = addedId === product.id
 
           return (
-            <article key={product.id} className="product-card">
-              {product.imageUrl && (
-                <div className="product-image-wrapper">
+            <article key={product.id} className="tc-product-card">
+              {/* Image taking up top 50% */}
+              <div className="tc-card-image-wrap">
+                {product.category && (
+                  <span className="tc-card-category-tag">{product.category.name}</span>
+                )}
+                {product.imageUrl ? (
                   <img
                     src={product.imageUrl}
                     alt={product.name}
-                    className="product-image"
+                    className="tc-card-image"
                     loading="lazy"
                   />
-                </div>
-              )}
-              <div className="product-content">
-                {product.category && (
-                  <span className="category-tag">{product.category.name}</span>
+                ) : (
+                  <div className="tc-card-placeholder-img">No Image Available</div>
                 )}
-                <h2 className="product-title">{product.name}</h2>
-                <p className="product-description">{product.description}</p>
-                <div className="product-footer">
-                  <span className="product-price">
+              </div>
+
+              {/* Product Content */}
+              <div className="tc-card-content">
+                {/* Clean Title Clamped to 2 lines */}
+                <h2 className="tc-card-title" title={product.name}>
+                  {product.name}
+                </h2>
+
+                {/* Bold Price in Dark Slate */}
+                <div className="tc-card-price-row">
+                  <span className="tc-card-price">
                     ${typeof product.price === 'number' ? product.price.toFixed(2) : product.price}
                   </span>
-                  <span className={`stock-badge ${!isOutOfStock ? 'in-stock' : 'out-of-stock'}`}>
-                    {!isOutOfStock ? `${product.stock} in stock` : 'Out of stock'}
-                  </span>
                 </div>
+
+                {/* Clean In Stock Status */}
+                <div className={`tc-card-stock ${!isOutOfStock ? 'in-stock' : 'out-of-stock'}`}>
+                  {!isOutOfStock ? 'In Stock' : 'Out of Stock'}
+                </div>
+
+                {/* Modern Indigo/Purple Add to Cart Button */}
                 <button
                   type="button"
                   onClick={() => handleAddToCart(product)}
                   disabled={isOutOfStock || isAdding}
-                  className={`add-to-cart-btn ${isJustAdded ? 'added' : ''}`}
+                  className={`tc-add-to-cart-btn ${isJustAdded ? 'added' : ''}`}
                 >
                   {isOutOfStock
                     ? 'Out of Stock'
