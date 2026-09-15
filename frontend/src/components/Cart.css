@@ -381,3 +381,108 @@
     position: static;
   }
 }
+
+/* ==================== Error & Alert Styling ==================== */
+.tc-cart-error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background-color: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--tc-radius);
+  padding: 14px 18px;
+  margin-bottom: 24px;
+  color: #fca5a5;
+  animation: fadeIn 0.2s ease-in;
+}
+
+.tc-cart-alert-svg {
+  width: 20px;
+  height: 20px;
+  color: #ef4444;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.tc-cart-alert-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tc-cart-alert-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fca5a5;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tc-cart-alert-msg {
+  font-size: 13px;
+  line-height: 18px;
+  color: #fecaca;
+}
+
+.tc-cart-alert-close {
+  background: transparent;
+  border: none;
+  color: #fca5a5;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  opacity: 0.8;
+  transition: opacity 0.15s ease;
+}
+
+.tc-cart-alert-close:hover {
+  opacity: 1;
+  color: #ffffff;
+}
+
+/* In-Summary Card Error Notice */
+.tc-summary-error-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background-color: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: var(--tc-radius);
+  padding: 10px 12px;
+  margin-top: 16px;
+  color: #fca5a5;
+  font-size: 12px;
+  line-height: 16px;
+  animation: fadeIn 0.2s ease-in;
+}
+
+.tc-summary-alert-svg {
+  width: 15px;
+  height: 15px;
+  color: #ef4444;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.tc-summary-alert-text {
+  flex: 1;
+  color: #fecaca;
+}
+
+.tc-summary-alert-text strong {
+  color: #ef4444;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

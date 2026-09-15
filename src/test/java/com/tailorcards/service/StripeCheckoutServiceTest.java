@@ -131,13 +131,65 @@ class StripeCheckoutServiceTest {
         when(cartItemRepository.findByCartSessionId("valid-cart")).thenReturn(List.of(cartItem));
         when(productRepository.findById(3L)).thenReturn(Optional.of(product));
 
-        CheckoutSessionRequest request = new CheckoutSessionRequest("valid-cart", null);
-        CheckoutSessionResponse response = stripeCheckoutService.createCheckoutSession(request);
+        Session mockSession = mock(Session.class);
+        when(mockSession.getUrl()).thenReturn("https://checkout.stripe.com/pay/cs_test_real_123");
+        when(mockSession.getId()).thenReturn("cs_test_real_123");
 
-        assertNotNull(response);
-        assertNotNull(response.sessionId());
-        assertNotNull(response.url());
-        assertTrue(response.url().contains(response.sessionId()));
+        try (var mockedStatic = mockStatic(Session.class)) {
+            mockedStatic.when(() -> Session.create(any(com.stripe.param.checkout.SessionCreateParams.class)))
+                    .thenAnswer(invocation -> {
+                        com.stripe.param.checkout.SessionCreateParams params = invocation.getArgument(0);
+                        assertEquals(com.stripe.param.checkout.SessionCreateParams.BillingAddressCollection.REQUIRED, params.getBillingAddressCollection());
+                        assertNotNull(params.getShippingAddressCollection());
+                        assertTrue(params.getShippingAddressCollection().getAllowedCountries().contains(
+                                com.stripe.param.checkout.SessionCreateParams.ShippingAddressCollection.AllowedCountry.CA
+                        ));
+                        assertTrue(params.getShippingAddressCollection().getAllowedCountries().contains(
+                                com.stripe.param.checkout.SessionCreateParams.ShippingAddressCollection.AllowedCountry.US
+                        ));
+                        return mockSession;
+                    });
+
+            CheckoutSessionRequest request = new CheckoutSessionRequest("valid-cart", null);
+            CheckoutSessionResponse response = stripeCheckoutService.createCheckoutSession(request);
+
+            assertNotNull(response);
+            assertEquals("cs_test_real_123", response.sessionId());
+            assertEquals("https://checkout.stripe.com/pay/cs_test_real_123", response.url());
+            mockedStatic.verify(() -> Session.create(any(com.stripe.param.checkout.SessionCreateParams.class)));
+        }
+    }
+
+    @Test
+    void createCheckoutSession_stripeException_throwsRuntimeException() {
+        Category category = Category.builder().id(1L).name("Singles").build();
+        Product product = Product.builder()
+                .id(4L)
+                .name("Charizard Base Set")
+                .price(new BigDecimal("100.00"))
+                .stock(1)
+                .status("AVAILABLE")
+                .category(category)
+                .build();
+
+        CartItem cartItem = CartItem.builder()
+                .id(13L)
+                .cartSessionId("fail-cart")
+                .product(product)
+                .quantity(1)
+                .build();
+
+        when(cartItemRepository.findByCartSessionId("fail-cart")).thenReturn(List.of(cartItem));
+        when(productRepository.findById(4L)).thenReturn(Optional.of(product));
+
+        try (var mockedStatic = mockStatic(Session.class)) {
+            mockedStatic.when(() -> Session.create(any(com.stripe.param.checkout.SessionCreateParams.class)))
+                    .thenThrow(new com.stripe.exception.AuthenticationException("Invalid API Key", null, null, 401));
+
+            CheckoutSessionRequest request = new CheckoutSessionRequest("fail-cart", null);
+            RuntimeException ex = assertThrows(RuntimeException.class, () -> stripeCheckoutService.createCheckoutSession(request));
+            assertTrue(ex.getMessage().contains("Failed to initiate Stripe Checkout"));
+        }
     }
 
     @Test

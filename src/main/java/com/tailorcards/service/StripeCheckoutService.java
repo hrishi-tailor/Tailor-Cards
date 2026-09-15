@@ -160,21 +160,23 @@ public class StripeCheckoutService {
                 .setCancelUrl(finalCancelUrl)
                 .putMetadata("cartId", cartId != null ? cartId : "")
                 .putMetadata("productIds", productIdsJoined)
-                .addAllLineItem(lineItems);
+                .addAllLineItem(lineItems)
+                .setShippingAddressCollection(
+                        SessionCreateParams.ShippingAddressCollection.builder()
+                                .addAllowedCountry(SessionCreateParams.ShippingAddressCollection.AllowedCountry.CA)
+                                .addAllowedCountry(SessionCreateParams.ShippingAddressCollection.AllowedCountry.US)
+                                .build()
+                )
+                .setBillingAddressCollection(SessionCreateParams.BillingAddressCollection.REQUIRED);
 
         SessionCreateParams params = paramsBuilder.build();
 
-        // Handle unconfigured/placeholder keys for local development & automated test suites
-        if (secretKey == null || secretKey.isBlank() || "sk_test_placeholder".equals(secretKey)) {
-            String mockSessionId = "cs_test_" + UUID.randomUUID().toString().replace("-", "");
-            String mockUrl = finalSuccessUrl.replace("{CHECKOUT_SESSION_ID}", mockSessionId);
-            log.info("Stripe secret key not set. Generated simulated checkout session {} redirecting to {}", mockSessionId, mockUrl);
-            return new CheckoutSessionResponse(mockUrl, mockSessionId);
-        }
-
+        Stripe.apiKey = secretKey;
         try {
-            Stripe.apiKey = secretKey;
             Session session = Session.create(params);
+            if (session == null || session.getUrl() == null || session.getUrl().isBlank()) {
+                throw new IllegalStateException("Stripe session was created without a checkout URL.");
+            }
             return new CheckoutSessionResponse(session.getUrl(), session.getId());
         } catch (StripeException e) {
             log.error("Stripe API error creating checkout session: {}", e.getMessage(), e);

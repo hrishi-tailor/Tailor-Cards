@@ -22,9 +22,18 @@ export async function createCheckoutSession(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null)
-    const message = errorData?.message || `Checkout failed with status ${response.status}`
+    const message =
+      errorData?.message ||
+      errorData?.error ||
+      `Checkout failed with status ${response.status}`
     throw new Error(message)
   }
 
-  return response.json()
+  const data: CheckoutSessionResponse = await response.json()
+  if (!data || !data.url || typeof data.url !== 'string' || data.url.trim() === '') {
+    throw new Error('No checkout URL returned from payment server.')
+  }
+
+  return data
 }
+

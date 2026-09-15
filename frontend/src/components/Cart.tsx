@@ -23,18 +23,24 @@ export function Cart() {
   }
 
   const handleCheckout = async () => {
-    if (!cart?.cartSessionId) return
+    if (!cart?.cartSessionId || items.length === 0) {
+      setActionError('Cannot proceed to checkout: Your cart is empty or session is invalid.')
+      return
+    }
     try {
       setIsCheckingOut(true)
       setActionError(null)
       const session = await createCheckoutSession(cart.cartSessionId)
-      if (session.url) {
+      if (session && session.url && session.url.trim().length > 0) {
         window.location.href = session.url
       } else {
         throw new Error('No checkout URL returned from payment server.')
       }
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Unable to initiate checkout.')
+      const errorMessage = err instanceof Error ? err.message : 'Unable to initiate checkout.'
+      console.error('Checkout error:', errorMessage)
+      setActionError(errorMessage)
+    } finally {
       setIsCheckingOut(false)
     }
   }
@@ -92,8 +98,31 @@ export function Cart() {
   return (
     <div className="tc-cart-wrapper">
       {actionError && (
-        <div className="tc-error-banner">
-          {actionError}
+        <div className="tc-cart-error-banner" role="alert">
+          <svg
+            className="tc-cart-alert-svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <div className="tc-cart-alert-content">
+            <span className="tc-cart-alert-title">Checkout Error</span>
+            <span className="tc-cart-alert-msg">{actionError}</span>
+          </div>
+          <button
+            type="button"
+            className="tc-cart-alert-close"
+            onClick={() => setActionError(null)}
+            aria-label="Dismiss error"
+          >
+            &times;
+          </button>
         </div>
       )}
 
@@ -187,6 +216,26 @@ export function Cart() {
               ${typeof totalPrice === 'number' ? totalPrice.toFixed(2) : totalPrice}
             </span>
           </div>
+
+          {actionError && (
+            <div className="tc-summary-error-alert" role="alert">
+              <svg
+                className="tc-summary-alert-svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <div className="tc-summary-alert-text">
+                <strong>Error:</strong> {actionError}
+              </div>
+            </div>
+          )}
 
           <button
             type="button"
