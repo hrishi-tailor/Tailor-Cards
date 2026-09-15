@@ -226,6 +226,52 @@ body {
   letter-spacing: 0.02em;
 }
 
+/* Sell to Us Header Button */
+.tc-sell-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(157, 78, 221, 0.18), rgba(90, 24, 154, 0.28));
+  border: 1px solid rgba(157, 78, 221, 0.45);
+  transition: all 0.2s ease;
+  color: #FFFFFF;
+  white-space: nowrap;
+}
+
+.tc-sell-btn:hover {
+  background: linear-gradient(135deg, rgba(157, 78, 221, 0.35), rgba(90, 24, 154, 0.45));
+  border-color: var(--tc-purple-accent);
+  box-shadow: 0 0 12px rgba(157, 78, 221, 0.35);
+  transform: translateY(-1px);
+}
+
+.tc-sell-btn.active {
+  background: var(--tc-purple-primary);
+  border-color: var(--tc-purple-accent);
+  box-shadow: 0 0 10px rgba(157, 78, 221, 0.4);
+}
+
+.tc-sell-icon-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.tc-sell-svg {
+  width: 18px;
+  height: 18px;
+  color: var(--tc-purple-glow);
+}
+
+.tc-sell-text {
+  color: #FFFFFF;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 /* Secondary Nav (#240046) */
 .tc-nav-secondary {
   background-color: var(--tc-purple-dark);

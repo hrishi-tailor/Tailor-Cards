@@ -43,3 +43,43 @@ export interface CartResponse {
   totalPrice: number;
   totalItems: number;
 }
+
+export type BuylistStatus = 'PENDING' | 'UNDER_REVIEW' | 'OFFERED' | 'ACCEPTED' | 'REJECTED';
+
+export interface BuylistMessage {
+  id: number;
+  senderRole: 'CUSTOMER' | 'ADMIN' | string;
+  senderEmail: string;
+  message: string;
+  createdAt: string;
+}
+
+export interface BuylistSubmission {
+  id: number;
+  trackingToken: string;
+  customerEmail: string;
+  customerName?: string;
+  cardName: string;
+  cardSet?: string;
+  askingPrice?: number;
+  additionalComments?: string;
+  imageUrls: string[];
+  status: BuylistStatus;
+  createdAt: string;
+  messages: BuylistMessage[];
+}
+
+export interface BuylistSubmissionPayload {
+  customerEmail: string;
+  customerName?: string;
+  cardName: string;
+  cardSet?: string;
+  askingPrice?: number;
+  additionalComments?: string;
+  imageUrls: string[];
+}
+
+export interface BuylistUploadResponse {
+  url: string;
+}
+

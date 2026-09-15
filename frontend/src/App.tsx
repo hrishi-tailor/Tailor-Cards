@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Routes, Route, NavLink, Link, useNavigate } from 'react-router-dom'
 import { ProductList } from './components/ProductList'
 import { Cart } from './components/Cart'
+import { SellBuylist } from './components/SellBuylist'
+import { TrackBuylist } from './components/TrackBuylist'
 import { CartProvider, useCart } from './context/CartContext'
 import logoImg from './assets/logo.jpg'
 import './App.css'
@@ -48,8 +50,20 @@ function BoutiqueTopNav({ onCategorySelect, selectedCategory }: { onCategorySele
             />
           </form>
 
-          {/* Cart on Right */}
+          {/* Actions on Right: Sell to Us & Cart */}
           <div className="tc-nav-actions">
+            <NavLink
+              to="/sell"
+              className={({ isActive }) => `tc-sell-btn ${isActive ? 'active' : ''}`}
+            >
+              <div className="tc-sell-icon-wrap">
+                <svg className="tc-sell-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+              </div>
+              <span className="tc-sell-text">Sell to Us</span>
+            </NavLink>
+
             <NavLink to="/cart" className="tc-cart-btn">
               <div className="tc-cart-icon-wrap">
                 <svg className="tc-cart-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -96,13 +110,12 @@ function BoutiqueTopNav({ onCategorySelect, selectedCategory }: { onCategorySele
           >
             Slabs
           </button>
-          <button
-            type="button"
-            className={`tc-menu-link ${selectedCategory === 'Buying Requests' ? 'active' : ''}`}
-            onClick={() => handleNavCategoryClick('Buying Requests')}
+          <NavLink
+            to="/sell"
+            className={({ isActive }) => `tc-menu-link ${isActive ? 'active' : ''}`}
           >
-            Buying Requests
-          </button>
+            Sell to Us
+          </NavLink>
           <span className="tc-nav-guarantee">✨ Verified Authenticity & Insured Shipping</span>
         </div>
       </nav>
@@ -120,6 +133,8 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<ProductList selectedCategory={selectedCategory} />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/sell" element={<SellBuylist />} />
+          <Route path="/sell/track/:token" element={<TrackBuylist />} />
         </Routes>
       </main>
       <footer className="tc-footer">
