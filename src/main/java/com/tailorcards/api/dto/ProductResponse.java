@@ -9,5 +9,10 @@ public record ProductResponse(
     BigDecimal price,
     String imageUrl,
     Integer stock,
-    CategoryResponse category
+    CategoryResponse category,
+    String cardNumber,
+    String set,
+    String condition,
+    String grading,
+    String status
 ) {}

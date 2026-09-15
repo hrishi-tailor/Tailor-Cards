@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
@@ -29,5 +30,16 @@ public record ProductRequest(
     Integer stock,
 
     @NotNull(message = "Category ID is required")
-    Long categoryId
+    Long categoryId,
+
+    String cardNumber,
+
+    String set,
+
+    String condition,
+
+    String grading,
+
+    @Pattern(regexp = "^(AVAILABLE|SOLD)$", message = "Status must be either AVAILABLE or SOLD")
+    String status
 ) {}

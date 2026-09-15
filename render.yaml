@@ -1,0 +1,64 @@
+services:
+  # ---------------------------------------------------------
+  # 1. Tailor Cards Backend API (Spring Boot Docker Service)
+  # ---------------------------------------------------------
+  - type: web
+    name: tailorcards-api
+    runtime: docker
+    region: oregon
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/products
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: DB_HOST
+        fromDatabase:
+          name: tailorcards-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: tailorcards-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: tailorcards-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: tailorcards-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: tailorcards-db
+          property: password
+
+  # ---------------------------------------------------------
+  # 2. Tailor Cards Frontend (React + Vite Static Site)
+  # ---------------------------------------------------------
+  - type: web
+    name: tailorcards-frontend
+    runtime: static
+    region: oregon
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
+
+# ---------------------------------------------------------
+# 3. PostgreSQL Database (Render Managed PostgreSQL)
+# ---------------------------------------------------------
+databases:
+  - name: tailorcards-db
+    databaseName: tailorcards
+    user: tailorcards_user
+    plan: free
+    region: oregon

@@ -8,6 +8,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -50,4 +52,41 @@ public class Product {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
+
+    @Column(name = "card_number")
+    private String cardNumber;
+
+    @Column(name = "card_set")
+    private String set;
+
+    @Column(name = "condition")
+    private String condition;
+
+    @Column(name = "grading")
+    private String grading;
+
+    @Builder.Default
+    @Column(name = "status")
+    private String status = "AVAILABLE";
+
+    @PrePersist
+    @PreUpdate
+    public void validateStatus() {
+        if (this.status == null || this.status.isBlank()) {
+            this.status = "AVAILABLE";
+        } else if (!"AVAILABLE".equals(this.status) && !"SOLD".equals(this.status)) {
+            throw new IllegalArgumentException("Status must be either AVAILABLE or SOLD");
+        }
+    }
+
+    public void setStatus(String status) {
+        if (status != null && !status.isBlank()) {
+            if (!"AVAILABLE".equals(status) && !"SOLD".equals(status)) {
+                throw new IllegalArgumentException("Status must be either AVAILABLE or SOLD");
+            }
+            this.status = status;
+        } else {
+            this.status = "AVAILABLE";
+        }
+    }
 }

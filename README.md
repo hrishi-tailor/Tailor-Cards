@@ -158,6 +158,94 @@ TC/
 
 ---
 
+## Deployment on Render
+
+The repository is pre-configured for seamless deployment on [Render](https://render.com) using containerized Spring Boot, managed PostgreSQL, and a Vite Static Site.
+
+### Architecture Overview
+
+```text
+┌─────────────────────────┐               ┌─────────────────────────┐
+│     React Frontend      │  HTTP/JSON    │   Spring Boot REST API  │
+│      (Static Site)      ├──────────────►│      (Docker Service)   │
+│  tailorcards-frontend   │ (CORS Enabled)│      tailorcards-api    │
+└─────────────────────────┘               └────────────┬────────────┘
+                                                       │ JDBC
+                                                       ▼
+                                          ┌─────────────────────────┐
+                                          │   PostgreSQL Database   │
+                                          │     tailorcards-db      │
+                                          └─────────────────────────┘
+```
+
+### Option A: Automated Deployment via Render Blueprint (`render.yaml`)
+
+The project includes an infrastructure-as-code [`render.yaml`](render.yaml) file defining the backend Docker service, the PostgreSQL database, and the frontend static site.
+
+1. Push your code to your GitHub / GitLab repository.
+2. Log in to the [Render Dashboard](https://dashboard.render.com).
+3. Click **New +** $\rightarrow$ **Blueprint**.
+4. Connect your Git repository. Render will automatically parse [`render.yaml`](render.yaml) and display the three resources:
+   - `tailorcards-db` (PostgreSQL Database)
+   - `tailorcards-api` (Docker Web Service)
+   - `tailorcards-frontend` (Static Site)
+5. Click **Apply**.
+6. Once the backend service deploys and receives its public URL (e.g., `https://tailorcards-api.onrender.com`):
+   - Go to your `tailorcards-frontend` static site in Render.
+   - Under **Environment**, set `VITE_API_BASE_URL` to your backend URL:
+     ```bash
+     VITE_API_BASE_URL=https://tailorcards-api.onrender.com
+     ```
+   - Trigger a manual deploy of the frontend (or let the next commit build it) so Vite bakes the API URL into production assets.
+
+---
+
+### Option B: Manual Service Configuration
+
+If you prefer to configure each service manually in the Render dashboard:
+
+#### 1. Create a PostgreSQL Database
+* **Name**: `tailorcards-db`
+* **Database**: `tailorcards`
+* **User**: `tailorcards_user`
+* Copy the connection details from the Render dashboard (Host, Port, Database, User, Password).
+
+#### 2. Create the Backend Web Service
+* Click **New +** $\rightarrow$ **Web Service** $\rightarrow$ connect your repository.
+* **Name**: `tailorcards-api`
+* **Runtime**: `Docker`
+* **Dockerfile Path**: `./Dockerfile`
+* **Docker Context**: `.`
+* **Health Check Path**: `/api/products`
+* Under **Environment Variables**, add:
+  | Key | Value / Source |
+  | :--- | :--- |
+  | `PORT` | `8080` (or Render default) |
+  | `DB_HOST` | Hostname from Render PostgreSQL (e.g., `dpg-xxxx.render.com`) |
+  | `DB_PORT` | `5432` |
+  | `DB_NAME` | `tailorcards` |
+  | `DB_USERNAME` | Your database username |
+  | `DB_PASSWORD` | Your database password |
+
+> [!NOTE]
+> If using `SPRING_DATASOURCE_URL` or `DB_URL` instead of individual host/credentials, ensure the URL uses the `jdbc:postgresql://` protocol (e.g. `jdbc:postgresql://dpg-xxxx.render.com:5432/tailorcards`), as standard PostgreSQL JDBC drivers require the `jdbc:` prefix.
+
+#### 3. Create the Frontend Static Site
+* Click **New +** $\rightarrow$ **Static Site** $\rightarrow$ connect your repository.
+* **Name**: `tailorcards-frontend`
+* **Root Directory**: `frontend`
+* **Build Command**: `npm install && npm run build`
+* **Publish Directory**: `dist`
+* Under **Environment Variables**, add:
+  | Key | Value |
+  | :--- | :--- |
+  | `VITE_API_BASE_URL` | Your live backend URL, e.g. `https://tailorcards-api.onrender.com` |
+
+> [!TIP]
+> **Client-Side Routing Support**: Client-side routes (like `/cart`) work seamlessly on page refresh because the repository includes [`frontend/public/_redirects`](frontend/public/_redirects) (`/* /index.html 200`), routing all URL paths through React Router.
+
+---
+
 ## Future Roadmap
 
 - [ ] **Checkout & Order Management**: Order processing service, order status tracking (Pending, Paid, Shipped, Delivered), and historical order lookups.

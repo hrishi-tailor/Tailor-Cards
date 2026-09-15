@@ -31,7 +31,12 @@ public class ProductMapper {
                 product.getPrice(),
                 product.getImageUrl(),
                 product.getStock(),
-                categoryResponse
+                categoryResponse,
+                product.getCardNumber(),
+                product.getSet(),
+                product.getCondition(),
+                product.getGrading(),
+                product.getStatus() != null ? product.getStatus() : "AVAILABLE"
         );
     }
 
@@ -39,6 +44,10 @@ public class ProductMapper {
         if (request == null) {
             return null;
         }
+        String status = request.status() != null && !request.status().isBlank()
+                ? request.status()
+                : "AVAILABLE";
+
         return Product.builder()
                 .name(request.name())
                 .description(request.description())
@@ -46,6 +55,11 @@ public class ProductMapper {
                 .imageUrl(request.imageUrl())
                 .stock(request.stock())
                 .category(category)
+                .cardNumber(request.cardNumber())
+                .set(request.set())
+                .condition(request.condition())
+                .grading(request.grading())
+                .status(status)
                 .build();
     }
 
@@ -60,6 +74,13 @@ public class ProductMapper {
         product.setStock(request.stock());
         if (category != null) {
             product.setCategory(category);
+        }
+        product.setCardNumber(request.cardNumber());
+        product.setSet(request.set());
+        product.setCondition(request.condition());
+        product.setGrading(request.grading());
+        if (request.status() != null && !request.status().isBlank()) {
+            product.setStatus(request.status());
         }
     }
 }

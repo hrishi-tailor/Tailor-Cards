@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { API_BASE_URL } from '../api/config'
 import type { CartResponse } from '../types'
 import { getCartSessionId } from '../utils/cartSession'
 
@@ -26,7 +27,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true)
       setError(null)
-      const response = await fetch(`/api/cart/${cartSessionId}`)
+      const response = await fetch(`${API_BASE_URL}/api/cart/${cartSessionId}`)
       if (!response.ok) {
         throw new Error(`Failed to fetch cart: ${response.statusText}`)
       }
@@ -46,7 +47,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addToCart = async (productId: number, quantity = 1) => {
     try {
       setError(null)
-      const response = await fetch(`/api/cart/${cartSessionId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/cart/${cartSessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId, quantity }),
@@ -69,7 +70,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const removeFromCart = async (itemId: number) => {
     try {
       setError(null)
-      const response = await fetch(`/api/cart/${cartSessionId}/items/${itemId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/cart/${cartSessionId}/items/${itemId}`, {
         method: 'DELETE',
       })
 
