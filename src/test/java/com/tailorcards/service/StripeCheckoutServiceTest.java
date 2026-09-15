@@ -45,8 +45,9 @@ class StripeCheckoutServiceTest {
         stripeCheckoutService = new StripeCheckoutService(productRepository, cartItemRepository, orderRepository);
         ReflectionTestUtils.setField(stripeCheckoutService, "secretKey", "");
         ReflectionTestUtils.setField(stripeCheckoutService, "webhookSecret", "");
-        ReflectionTestUtils.setField(stripeCheckoutService, "successUrl", "http://localhost:5173/checkout/success?session_id={CHECKOUT_SESSION_ID}");
-        ReflectionTestUtils.setField(stripeCheckoutService, "cancelUrl", "http://localhost:5173/cart");
+        ReflectionTestUtils.setField(stripeCheckoutService, "frontendUrl", "https://tailorcards.com");
+        ReflectionTestUtils.setField(stripeCheckoutService, "successUrl", "https://tailorcards.com/checkout/success?session_id={CHECKOUT_SESSION_ID}");
+        ReflectionTestUtils.setField(stripeCheckoutService, "cancelUrl", "https://tailorcards.com/cart");
     }
 
     @Test
@@ -180,4 +181,25 @@ class StripeCheckoutServiceTest {
         verify(cartItemRepository, never()).deleteByCartSessionId(any());
         verify(orderRepository, never()).save(any());
     }
+
+    @Test
+    void resolveUrls_usesFrontendUrlWhenConfigured() {
+        ReflectionTestUtils.setField(stripeCheckoutService, "frontendUrl", "https://tailorcards.com");
+        ReflectionTestUtils.setField(stripeCheckoutService, "successUrl", "");
+        ReflectionTestUtils.setField(stripeCheckoutService, "cancelUrl", "");
+
+        assertEquals("https://tailorcards.com/checkout/success?session_id={CHECKOUT_SESSION_ID}", stripeCheckoutService.resolveSuccessUrl());
+        assertEquals("https://tailorcards.com/cart", stripeCheckoutService.resolveCancelUrl());
+    }
+
+    @Test
+    void resolveUrls_stripsTrailingSlashFromFrontendUrl() {
+        ReflectionTestUtils.setField(stripeCheckoutService, "frontendUrl", "https://tailorcards.com/");
+        ReflectionTestUtils.setField(stripeCheckoutService, "successUrl", "");
+        ReflectionTestUtils.setField(stripeCheckoutService, "cancelUrl", "");
+
+        assertEquals("https://tailorcards.com/checkout/success?session_id={CHECKOUT_SESSION_ID}", stripeCheckoutService.resolveSuccessUrl());
+        assertEquals("https://tailorcards.com/cart", stripeCheckoutService.resolveCancelUrl());
+    }
 }
+

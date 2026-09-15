@@ -43,10 +43,13 @@ public class StripeCheckoutService {
     @Value("${stripe.webhook-secret:}")
     private String webhookSecret;
 
-    @Value("${stripe.success-url:http://localhost:5173/checkout/success?session_id={CHECKOUT_SESSION_ID}}")
+    @Value("${frontend.url:https://tailorcards.com}")
+    private String frontendUrl;
+
+    @Value("${stripe.success-url:}")
     private String successUrl;
 
-    @Value("${stripe.cancel-url:http://localhost:5173/cart}")
+    @Value("${stripe.cancel-url:}")
     private String cancelUrl;
 
     private final ProductRepository productRepository;
@@ -147,11 +150,14 @@ public class StripeCheckoutService {
                 .map(String::valueOf)
                 .collect(Collectors.joining(","));
 
+        String finalSuccessUrl = resolveSuccessUrl();
+        String finalCancelUrl = resolveCancelUrl();
+
         // Build SessionCreateParams
         SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl(successUrl)
-                .setCancelUrl(cancelUrl)
+                .setSuccessUrl(finalSuccessUrl)
+                .setCancelUrl(finalCancelUrl)
                 .putMetadata("cartId", cartId != null ? cartId : "")
                 .putMetadata("productIds", productIdsJoined)
                 .addAllLineItem(lineItems);
@@ -161,7 +167,7 @@ public class StripeCheckoutService {
         // Handle unconfigured/placeholder keys for local development & automated test suites
         if (secretKey == null || secretKey.isBlank() || "sk_test_placeholder".equals(secretKey)) {
             String mockSessionId = "cs_test_" + UUID.randomUUID().toString().replace("-", "");
-            String mockUrl = successUrl.replace("{CHECKOUT_SESSION_ID}", mockSessionId);
+            String mockUrl = finalSuccessUrl.replace("{CHECKOUT_SESSION_ID}", mockSessionId);
             log.info("Stripe secret key not set. Generated simulated checkout session {} redirecting to {}", mockSessionId, mockUrl);
             return new CheckoutSessionResponse(mockUrl, mockSessionId);
         }
@@ -291,5 +297,22 @@ public class StripeCheckoutService {
         log.info("Recorded sale in Order #{} for Stripe session {}", order.getId(), sessionId);
     }
 
+    public String resolveSuccessUrl() {
+        if (successUrl != null && !successUrl.isBlank() && !successUrl.contains("localhost:5173")) {
+            return successUrl;
+        }
+        String base = (frontendUrl != null && !frontendUrl.isBlank()) ? frontendUrl : "https://tailorcards.com";
+        return base.replaceAll("/+$", "") + "/checkout/success?session_id={CHECKOUT_SESSION_ID}";
+    }
+
+    public String resolveCancelUrl() {
+        if (cancelUrl != null && !cancelUrl.isBlank() && !cancelUrl.contains("localhost:5173")) {
+            return cancelUrl;
+        }
+        String base = (frontendUrl != null && !frontendUrl.isBlank()) ? frontendUrl : "https://tailorcards.com";
+        return base.replaceAll("/+$", "") + "/cart";
+    }
+
     private record CartItemSnapshot(Long productId, int quantity) {}
 }
+

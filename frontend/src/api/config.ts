@@ -1,9 +1,12 @@
 /**
  * API configuration for Tailor Cards.
- * In production (e.g. deployed on Render), set VITE_API_BASE_URL to your backend URL
- * (e.g. https://tailor-cards-api.onrender.com).
- * In development, leaving it unset defaults to '' (empty string), allowing Vite's dev proxy
- * to route `/api` calls directly to http://localhost:8080.
+ * Uses VITE_API_URL (or VITE_API_BASE_URL) from environment variables,
+ * falling back to the Render production URL if undefined.
  */
-const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || ''
+const rawBaseUrl =
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  'https://tailor-cards-api.onrender.com'
+
 export const API_BASE_URL = rawBaseUrl.replace(/\/+$/, '')
+
