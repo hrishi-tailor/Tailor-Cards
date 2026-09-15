@@ -12,6 +12,11 @@ export interface Product {
   imageUrl?: string;
   stock: number;
   category?: Category;
+  cardNumber?: string;
+  set?: string;
+  condition?: string;
+  grading?: string;
+  status?: 'AVAILABLE' | 'SOLD';
 }
 
 export interface PageResponse<T> {
