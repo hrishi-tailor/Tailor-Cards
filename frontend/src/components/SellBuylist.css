@@ -81,63 +81,77 @@
   color: var(--tc-text-muted);
 }
 
-/* ==================== Guidelines Banner ==================== */
-.tc-guidelines-banner {
-  background-color: var(--tc-surface);
-  border: 1px solid var(--tc-border);
-  border-left: 3px solid var(--tc-accent);
-  border-radius: var(--tc-radius);
-  padding: 20px 24px;
-  margin-bottom: 24px;
+/* ==================== Embedded Photo Guidelines Box (Gen 5) ==================== */
+.tc-photo-guidelines-box {
+  background-color: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--tc-radius-sm);
+  padding: 16px 18px;
+  margin-bottom: 18px;
 }
 
-.tc-guidelines-header {
+.tc-photo-guidelines-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.tc-guidelines-icon-badge {
-  color: var(--tc-accent);
-  display: flex;
-  align-items: center;
+.tc-photo-guidelines-icon {
+  width: 18px;
+  height: 18px;
+  color: #e4e4e7;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
-.tc-camera-svg {
-  width: 20px;
-  height: 20px;
-}
-
-.tc-guidelines-title {
-  font-size: 15px;
-  line-height: 20px;
+.tc-photo-guidelines-title {
+  font-family: var(--tc-font-display);
+  font-size: 13px;
   font-weight: 700;
   color: var(--tc-text-primary);
+  margin: 0 0 2px;
+  letter-spacing: -0.01em;
+}
+
+.tc-photo-guidelines-sub {
+  font-family: var(--tc-font-body);
+  font-size: 11px;
+  color: var(--tc-text-secondary);
   margin: 0;
+  line-height: 1.4;
 }
 
-.tc-guidelines-subtitle {
-  font-size: 13px;
-  color: var(--tc-text-muted);
-  margin: 2px 0 0;
+.tc-photo-guidelines-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.tc-tips-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 12px;
-}
-
-.tc-tip-item {
+.tc-photo-guideline-item {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  background-color: var(--tc-bg);
-  border: 1px solid var(--tc-border);
-  border-radius: var(--tc-radius-sm);
-  padding: 10px 12px;
+  font-family: var(--tc-font-body);
+  font-size: 12px;
+  line-height: 1.5;
+  color: #a1a1aa;
 }
+
+.tc-photo-guideline-item strong {
+  color: #f4f4f5;
+}
+
+.tc-photo-guideline-item .tc-tip-check-svg {
+  width: 13px;
+  height: 13px;
+  color: #10b981;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
 
 .tc-tip-check-svg {
   color: var(--tc-status-green);
@@ -166,7 +180,6 @@
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 0 20px rgba(212, 175, 55, 0.1);
 }
 
 .tc-locked-rate-info {
@@ -461,14 +474,13 @@
 .tc-dropzone:hover {
   border-color: rgba(212, 175, 55, 0.5);
   background-color: rgba(212, 175, 55, 0.03);
-  box-shadow: 0 0 20px rgba(212, 175, 55, 0.08);
 }
 
 /* Distinct Drop-Target Dragging State */
 .tc-dropzone.dragging {
   border: 2px dashed var(--tc-accent);
   background-color: rgba(212, 175, 55, 0.09);
-  box-shadow: 0 0 32px rgba(212, 175, 55, 0.25), inset 0 0 24px rgba(212, 175, 55, 0.06);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   transform: scale(1.01);
 }
 

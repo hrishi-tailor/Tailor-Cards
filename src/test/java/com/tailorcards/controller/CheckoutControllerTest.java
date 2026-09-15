@@ -32,17 +32,17 @@ class CheckoutControllerTest {
 
     @Test
     void createSession_callsServiceAndReturnsUrl() {
-        Map<String, Object> body = Map.of("cartId", "cart-123", "productIds", List.of(1, 2));
+        CheckoutSessionRequest request = new CheckoutSessionRequest("cart-123", List.of(1L, 2L));
         CheckoutSessionResponse mockResponse = new CheckoutSessionResponse("https://checkout.stripe.com/pay/cs_test_abc", "cs_test_abc");
 
         when(stripeCheckoutService.createCheckoutSession(any(CheckoutSessionRequest.class))).thenReturn(mockResponse);
 
-        ResponseEntity<Map<String, String>> response = checkoutController.createSession(body);
+        ResponseEntity<CheckoutSessionResponse> response = checkoutController.createSession(request);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("https://checkout.stripe.com/pay/cs_test_abc", response.getBody().get("url"));
-        assertEquals("cs_test_abc", response.getBody().get("sessionId"));
+        assertEquals("https://checkout.stripe.com/pay/cs_test_abc", response.getBody().url());
+        assertEquals("cs_test_abc", response.getBody().sessionId());
         verify(stripeCheckoutService).createCheckoutSession(any(CheckoutSessionRequest.class));
     }
 

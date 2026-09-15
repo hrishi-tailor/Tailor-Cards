@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../api/config'
 import { useCart } from '../context/CartContext'
 import type { PageResponse, Product } from '../types'
+import { WhySellDirectly } from './WhySellDirectly'
 import './ProductList.css'
 
 interface ProductListProps {
@@ -340,7 +341,7 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
 
           {isSold && (
             <div className="tc-sold-stamp">
-              <span className="tc-mono">[SOLD ARCHIVE]</span>
+              <span className="tc-pixel">[SOLD ARCHIVE]</span>
             </div>
           )}
 
@@ -396,13 +397,13 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
 
           <div className="tc-price-row">
             <div className="tc-price-group">
-              <span className="tc-price-val tc-mono">
+              <span className="tc-price-val tc-pixel">
                 ${product.price ? product.price.toFixed(2) : '0.00'}
               </span>
-              <span className="tc-price-cur tc-mono">CAD</span>
+              <span className="tc-price-cur tc-pixel">CAD</span>
             </div>
 
-            <span className={`tc-stock-tag tc-mono ${isSold ? 'tag-sold' : isOutOfStock ? 'tag-out' : 'tag-available'}`}>
+            <span className={`tc-stock-tag ${isSold ? 'tc-pixel tag-sold' : 'tc-mono'} ${isOutOfStock ? 'tag-out' : 'tag-available'}`}>
               {isSold ? '[ARCHIVE]' : isOutOfStock ? '[OUT OF STOCK]' : '[IN STOCK]'}
             </span>
           </div>
@@ -559,7 +560,9 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
                 className={`tc-teaser-pill ${teaserTierId === tier.id ? 'active' : ''}`}
                 onClick={() => setTeaserTierId(tier.id)}
               >
-                <span className="tc-mono">{tier.label}</span>
+                <span>{tier.label.split(' · ')[0]}</span>
+                <span className="tc-pill-separator" aria-hidden="true"> · </span>
+                <span className="tc-pixel">{(tier.rate * 100).toFixed(0)}%</span>
               </button>
             ))}
           </div>
@@ -569,7 +572,7 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
             <div className="tc-teaser-slider-col">
               <div className="tc-teaser-slider-header">
                 <span className="tc-teaser-label">Card Market Price (CAD):</span>
-                <span className="tc-teaser-slider-val tc-mono">${teaserMarketPrice} CAD</span>
+                <span className="tc-teaser-slider-val tc-pixel">${teaserMarketPrice} CAD</span>
               </div>
               <input
                 type="range"
@@ -590,7 +593,7 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
                   <button
                     key={val}
                     type="button"
-                    className={`tc-teaser-quick-btn tc-mono ${teaserMarketPrice === val ? 'active' : ''}`}
+                    className={`tc-teaser-quick-btn tc-pixel ${teaserMarketPrice === val ? 'active' : ''}`}
                     onClick={() => setTeaserMarketPrice(val)}
                   >
                     ${val}
@@ -604,7 +607,7 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
           <div className="tc-teaser-results-bar">
             <div className="tc-teaser-metric">
               <span className="tc-metric-label">Your Market Value</span>
-              <span className="tc-metric-value tc-mono">${teaserMarketPrice.toFixed(2)} CAD</span>
+              <span className="tc-metric-value tc-pixel">${teaserMarketPrice.toFixed(2)} CAD</span>
             </div>
 
             <div className="tc-teaser-metric-arrow" aria-hidden="true">→</div>
@@ -612,15 +615,15 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
             <div className="tc-teaser-metric highlight">
               <div className="tc-metric-label-row">
                 <span className="tc-metric-label gold">TailorCards Instant Cash</span>
-                <span className="tc-rate-tag tc-mono">{(activeTeaserTier.rate * 100).toFixed(0)}% RATE</span>
+                <span className="tc-rate-tag tc-pixel">{(activeTeaserTier.rate * 100).toFixed(0)}% RATE</span>
               </div>
-              <span className="tc-metric-value gold tc-mono">${teaserPayoutAmount.toFixed(2)} CAD</span>
+              <span className="tc-metric-value gold tc-pixel">${teaserPayoutAmount.toFixed(2)} CAD</span>
               <span className="tc-metric-sub">Direct Interac e-Transfer</span>
             </div>
 
             <div className="tc-teaser-metric fee-col">
               <span className="tc-metric-label">Marketplace Fee Savings</span>
-              <span className="tc-metric-value green tc-mono">+${teaserMarketplaceSavings.toFixed(2)} CAD</span>
+              <span className="tc-metric-value green tc-pixel">+${teaserMarketplaceSavings.toFixed(2)} CAD</span>
               <span className="tc-metric-sub">Saved vs. eBay (~13.25%) + Zero Fraud Risk</span>
             </div>
 
@@ -637,6 +640,14 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
           </div>
         </section>
       )}
+
+      {/* =========================================================================
+          Progressive Disclosure: Why Sell Directly Tabbed Reading Pane
+          ========================================================================= */}
+      {!isFilteredCategory && !isViewingFullCatalog && (
+        <WhySellDirectly />
+      )}
+
 
       {/* =========================================================================
           4. CURATED "VAULT SHOWCASE" ROW
@@ -891,7 +902,7 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
                     )}
 
                     {inspectProduct.status === 'SOLD' && (
-                      <div className="tc-modal-sold-tag tc-mono">[SOLD ARCHIVE]</div>
+                      <div className="tc-modal-sold-tag tc-pixel">[SOLD ARCHIVE]</div>
                     )}
                   </div>
 
@@ -960,9 +971,9 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
                   <div className="tc-dossier-header">
                     <div className="tc-dossier-price-wrap">
                       <span className="tc-dossier-label tc-mono">ACQUISITION PRICE</span>
-                      <span className="tc-dossier-price tc-mono">
+                      <span className="tc-dossier-price tc-pixel">
                         ${inspectProduct.price ? inspectProduct.price.toFixed(2) : '0.00'}
-                        <span className="tc-dossier-cur">CAD</span>
+                        <span className="tc-dossier-cur tc-pixel">CAD</span>
                       </span>
                     </div>
 
@@ -1023,7 +1034,7 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
                   <div className="tc-dossier-footer">
                     {inspectProduct.status === 'SOLD' ? (
                       <div className="tc-sold-notice">
-                        <span className="tc-sold-badge tc-mono">[ARCHIVED]</span>
+                        <span className="tc-sold-badge tc-pixel">[ARCHIVE]</span>
                         <span>This verified card has been sold to a private collector. Recorded in permanent ledger.</span>
                       </div>
                     ) : inspectProduct.stock <= 0 ? (

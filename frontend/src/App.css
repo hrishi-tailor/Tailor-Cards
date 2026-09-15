@@ -62,8 +62,60 @@
 }
 
 .tc-logo-cards {
-  color: var(--tc-accent);
+  color: var(--tc-text-primary);
   margin-left: 2px;
+}
+
+/* ==================== Gen 5 Shiny Star Easter Egg ==================== */
+.tc-shiny-sparkle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 5px;
+  pointer-events: none;
+}
+
+.tc-sparkle-star {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: radial-gradient(circle, #ffffff 20%, #facc15 65%, #ca8a04 100%);
+  clip-path: polygon(50% 0%, 63% 37%, 100% 50%, 63% 63%, 50% 100%, 37% 63%, 0% 50%, 37% 37%);
+  opacity: 0;
+  transform: scale(0) rotate(0deg);
+  animation: gen5ShinySparkle 9s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  filter: drop-shadow(0 0 3px #ffffff) drop-shadow(0 0 8px #facc15);
+}
+
+@keyframes gen5ShinySparkle {
+  0% {
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+  2% {
+    opacity: 1;
+    transform: scale(0.6) rotate(20deg);
+  }
+  6% {
+    opacity: 1;
+    transform: scale(1.35) rotate(60deg);
+    filter: drop-shadow(0 0 6px #ffffff) drop-shadow(0 0 12px #facc15);
+  }
+  10% {
+    opacity: 0.9;
+    transform: scale(1) rotate(90deg);
+  }
+  13% {
+    opacity: 0;
+    transform: scale(0.1) rotate(105deg);
+  }
+  14%, 100% {
+    opacity: 0;
+    transform: scale(0) rotate(90deg);
+  }
 }
 
 /* Nav Links */

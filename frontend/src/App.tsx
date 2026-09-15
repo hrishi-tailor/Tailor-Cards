@@ -40,6 +40,9 @@ function MainNavigation({ onCategorySelect, selectedCategory }: NavigationProps)
           <img src={logoImg} alt="Tailor Cards Logo" className="tc-logo-img" />
           <span className="tc-logo-tailor">TAILOR</span>
           <span className="tc-logo-cards">CARDS</span>
+          <span className="tc-shiny-sparkle" aria-hidden="true" title="Shiny Easter Egg">
+            <span className="tc-sparkle-star" />
+          </span>
         </Link>
 
         {/* Primary Navigation Links */}

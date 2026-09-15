@@ -1,36 +1,36 @@
 /* ==========================================================================
-   Tailor Cards — Japanese Boutique Collector Foundation (Akihabara/Shibuya Vault)
-   Palette: Matte ink black (#0c0d10), Charcoal slate (#13151a),
-   Uniform 1px hairlines (rgba(255, 255, 255, 0.08)),
-   High-contrast chalk white (#f4f4f5), Muted stone (#a1a1aa).
-   Accent: Pale Champagne / Antique Gold (#d4af37, #e2b774).
+   Tailor Cards — Pokemon Gen 5 Black & White Sleek Aesthetic
+   Main Background: Rich dark slate (#161618)
+   Panels & Containers: Sleek translucent Gen 5 panels (rgba(0, 0, 0, 0.4))
+   Borders: Sharp, faint 1px hairlines (rgba(255, 255, 255, 0.1) / #1f2937)
+   Typography: Inter for paragraphs; Press Start 2P strictly for prices, percentages, [ARCHIVE]
    ========================================================================== */
 
 :root {
   /* Surfaces */
-  --tc-bg: #0c0d10;
-  --tc-surface: #13151a;
-  --tc-card: #13151a;
-  --tc-card-hover: #191c22;
-  --tc-card-active: #21252d;
+  --tc-bg: #161618;
+  --tc-surface: rgba(0, 0, 0, 0.4);
+  --tc-card: rgba(0, 0, 0, 0.4);
+  --tc-card-hover: rgba(0, 0, 0, 0.6);
+  --tc-card-active: rgba(0, 0, 0, 0.75);
 
   /* Hairlines & Borders */
-  --tc-border: rgba(255, 255, 255, 0.08);
-  --tc-border-subtle: rgba(255, 255, 255, 0.04);
-  --tc-border-strong: rgba(255, 255, 255, 0.16);
-  --tc-border-highlight: rgba(212, 175, 55, 0.35);
+  --tc-border: rgba(255, 255, 255, 0.1);
+  --tc-border-subtle: rgba(255, 255, 255, 0.05);
+  --tc-border-strong: rgba(255, 255, 255, 0.2);
+  --tc-border-highlight: rgba(255, 255, 255, 0.25);
 
   /* Typography Colors */
   --tc-text-primary: #f4f4f5;
   --tc-text-secondary: #a1a1aa;
   --tc-text-muted: #71717a;
 
-  /* Pale Champagne / Antique Gold Accent */
-  --tc-accent: #d4af37;
-  --tc-accent-hover: #e2b774;
-  --tc-accent-subtle: rgba(212, 175, 55, 0.08);
-  --tc-accent-border: rgba(212, 175, 55, 0.28);
-  --tc-accent-strong: rgba(212, 175, 55, 0.45);
+  /* Minimalist Accents */
+  --tc-accent: #e4e4e7;
+  --tc-accent-hover: #ffffff;
+  --tc-accent-subtle: rgba(255, 255, 255, 0.06);
+  --tc-accent-border: rgba(255, 255, 255, 0.2);
+  --tc-accent-strong: rgba(255, 255, 255, 0.35);
 
   /* Functional Status (Strictly for grading/orders, never decoration) */
   --tc-status-green: #10b981;
@@ -45,9 +45,10 @@
   --tc-status-red-subtle: rgba(239, 68, 68, 0.1);
   --tc-status-red-border: rgba(239, 68, 68, 0.35);
 
-  /* Typography System: Display & Body (Plus Jakarta Sans), Rates & Data (Space Mono) */
-  --tc-font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --tc-font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Typography System: Display & Body (Inter), Pixel (Press Start 2P), Data (Space Mono) */
+  --tc-font-display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --tc-font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --tc-font-pixel: 'Press Start 2P', monospace;
   --tc-font-mono: 'Space Mono', ui-monospace, SFMono-Regular, monospace;
   --tc-font-sans: var(--tc-font-body);
 
@@ -82,11 +83,7 @@ html, body {
   padding: 0;
   width: 100%;
   min-height: 100%;
-  background-color: var(--tc-bg);
-  background-image: 
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(212, 175, 55, 0.07), transparent 70%),
-    radial-gradient(ellipse 60% 35% at 100% 0%, rgba(212, 175, 55, 0.03), transparent 60%);
-  background-attachment: fixed;
+  background-color: #161618;
   color: var(--tc-text-primary);
   font-family: var(--tc-font-body);
   line-height: 1.6;
@@ -102,7 +99,7 @@ html, body {
   background-color: transparent;
 }
 
-/* Typographic Rhythm — Plus Jakarta Sans for Display & Headings */
+/* Typographic Rhythm — Modern Inter Sans for Display & Headings */
 h1, h2, h3, h4, .tc-display-heading {
   font-family: var(--tc-font-display);
   letter-spacing: -0.025em;
@@ -168,9 +165,19 @@ code, pre, .tc-mono {
   line-height: 1.5;
 }
 
+/* Pokemon Gen 5 Retro Pixel Typography (strictly prices, percentages, [ARCHIVE] tags) */
+.tc-pixel {
+  font-family: var(--tc-font-pixel), monospace !important;
+  letter-spacing: -0.04em;
+  font-size: 0.72em;
+  line-height: 1.2;
+  text-rendering: pixelated;
+  -webkit-font-smoothing: none;
+}
+
 /* Focus State */
 :focus-visible {
-  outline: 1px solid var(--tc-accent);
+  outline: 1px solid var(--tc-border-highlight);
   outline-offset: 2px;
 }
 
@@ -181,7 +188,7 @@ code, pre, .tc-mono {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0c0d10;
+  background: #161618;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -195,11 +202,11 @@ code, pre, .tc-mono {
 
 /* Selection */
 ::selection {
-  background-color: rgba(212, 175, 55, 0.25);
+  background-color: rgba(255, 255, 255, 0.15);
   color: #ffffff;
 }
 
-/* ==================== Tactile Atmosphere & Accent Notches ==================== */
+/* Subtle 1px Gen 5 Panel Edge Accent (no thick colored glows) */
 .tc-corner-accent {
   position: relative;
 }
@@ -209,13 +216,12 @@ code, pre, .tc-mono {
   position: absolute;
   top: -1px;
   left: -1px;
-  width: 10px;
-  height: 10px;
-  border-top: 2px solid var(--tc-accent);
-  border-left: 2px solid var(--tc-accent);
+  width: 8px;
+  height: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+  border-left: 1px solid rgba(255, 255, 255, 0.25);
   border-top-left-radius: var(--tc-radius);
   pointer-events: none;
-  opacity: 0.7;
 }
 
 .tc-corner-accent::after {
@@ -223,14 +229,14 @@ code, pre, .tc-mono {
   position: absolute;
   bottom: -1px;
   right: -1px;
-  width: 10px;
-  height: 10px;
-  border-bottom: 2px solid var(--tc-accent);
-  border-right: 2px solid var(--tc-accent);
+  width: 8px;
+  height: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  border-right: 1px solid rgba(255, 255, 255, 0.25);
   border-bottom-right-radius: var(--tc-radius);
   pointer-events: none;
-  opacity: 0.7;
 }
+
 
 /* Metallic Shimmer for Active/Featured Cards */
 .tc-shimmer-card {

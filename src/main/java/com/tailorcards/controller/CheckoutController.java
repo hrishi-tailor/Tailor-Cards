@@ -24,30 +24,10 @@ public class CheckoutController {
     }
 
     @PostMapping("/create-session")
-    public ResponseEntity<Map<String, String>> createSession(@RequestBody(required = false) Map<String, Object> body) {
-        String cartId = null;
-        List<Long> productIds = null;
-
-        if (body != null) {
-            if (body.get("cartId") != null) {
-                cartId = body.get("cartId").toString();
-            }
-            if (body.get("productIds") instanceof List<?> list) {
-                productIds = list.stream()
-                        .map(Object::toString)
-                        .map(Long::valueOf)
-                        .toList();
-            }
-        }
-
-        CheckoutSessionResponse session = stripeCheckoutService.createCheckoutSession(
-                new CheckoutSessionRequest(cartId, productIds)
-        );
-
-        return ResponseEntity.ok(Map.of(
-                "url", session.url(),
-                "sessionId", session.sessionId()
-        ));
+    public ResponseEntity<CheckoutSessionResponse> createSession(@RequestBody(required = false) CheckoutSessionRequest request) {
+        CheckoutSessionRequest effectiveRequest = request != null ? request : new CheckoutSessionRequest(null, null);
+        CheckoutSessionResponse session = stripeCheckoutService.createCheckoutSession(effectiveRequest);
+        return ResponseEntity.ok(session);
     }
 
     @PostMapping("/webhook")

@@ -1,25 +1,24 @@
 /* ==========================================================================
-   BuylistPayoutMatrix — Japanese Boutique Vault Styling & Dynamic Estimator
-   Fonts: Display & Body (Plus Jakarta Sans), Data (Space Mono)
-   Palette: Matte ink black (#0c0d10), Charcoal slate (#13151a),
-   Accents: Pale Champagne / Antique Gold (#d4af37, #e2b774)
+   BuylistPayoutMatrix — Pokemon Gen 5 Black & White Sleek Aesthetic
+   Translucent panels: rgba(0, 0, 0, 0.4) with sharp 1px border rgba(255, 255, 255, 0.1)
+   Horizontal Scrolling Pill Navigation + Single Details Panel
    ========================================================================== */
 
 .tc-matrix-section {
-  background-color: var(--tc-surface);
-  border: 1px solid var(--tc-border);
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--tc-radius);
   padding: 32px;
   margin-top: 48px;
   margin-bottom: 24px;
   position: relative;
   overflow: hidden;
-  background-image: radial-gradient(ellipse 70% 40% at 50% 0%, rgba(212, 175, 55, 0.05), transparent 70%);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
 }
 
 /* ==================== Header ==================== */
 .tc-matrix-header {
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .tc-matrix-eyebrow {
@@ -29,18 +28,17 @@
   font-family: var(--tc-font-mono);
   font-size: 11px;
   line-height: 14px;
-  color: var(--tc-accent);
+  color: var(--tc-text-secondary);
   font-weight: 700;
   letter-spacing: 0.06em;
   margin-bottom: 8px;
 }
 
 .tc-matrix-bullet {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background-color: var(--tc-accent);
-  box-shadow: 0 0 8px rgba(212, 175, 55, 0.4);
+  background-color: rgba(255, 255, 255, 0.6);
 }
 
 .tc-matrix-title-row {
@@ -70,195 +68,192 @@
   max-width: 720px;
 }
 
-/* Framed Top CTA Button */
+/* Minimalist Top CTA Button */
 .tc-matrix-cta-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   height: 38px;
   padding: 0 18px;
-  background-color: rgba(212, 175, 55, 0.08);
-  border: 1px solid rgba(212, 175, 55, 0.4);
-  border-radius: var(--tc-radius);
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--tc-radius-sm);
   color: var(--tc-text-primary);
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   white-space: nowrap;
 }
 
 .tc-matrix-cta-btn:hover {
-  background-color: rgba(212, 175, 55, 0.18);
-  border-color: var(--tc-accent);
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
   color: #ffffff;
-  box-shadow: 0 0 16px rgba(212, 175, 55, 0.2);
 }
 
-/* ==================== 5 Payout Tier Cards ==================== */
-.tc-matrix-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 14px;
+/* =========================================================================
+   Horizontal Scrolling Pill Navigation (Requirement 3)
+   ========================================================================= */
+.tc-matrix-pills-container {
   margin-bottom: 28px;
 }
 
-.tc-matrix-card {
-  background-color: #0c0d10;
-  border: 1px solid var(--tc-border);
-  border-radius: var(--tc-radius);
-  padding: 18px 16px;
+.tc-matrix-pills-scroll {
   display: flex;
-  flex-direction: column;
-  text-align: left;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tc-matrix-pills-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tc-matrix-pills-scroll::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.tc-matrix-pills-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+
+.tc-matrix-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--tc-text-secondary);
+  font-family: var(--tc-font-display);
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-  font-family: inherit;
-  color: inherit;
-  width: 100%;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-/* Active Hover Lighting & Depth */
-.tc-matrix-card:hover {
-  border-color: rgba(212, 175, 55, 0.5);
-  background-color: #121318;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 18px rgba(212, 175, 55, 0.12);
+.tc-matrix-pill-btn:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--tc-text-primary);
 }
 
-.tc-matrix-card.tier-highlight {
-  border-color: rgba(212, 175, 55, 0.35);
-  background: linear-gradient(180deg, rgba(212, 175, 55, 0.06) 0%, #0c0d10 100%);
+.tc-matrix-pill-btn.active {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
 }
 
-.tc-matrix-card.tier-selected {
-  border-color: var(--tc-accent);
-  background: linear-gradient(180deg, rgba(212, 175, 55, 0.12) 0%, #11141b 100%);
-  box-shadow: 0 0 24px rgba(212, 175, 55, 0.2), inset 0 0 12px rgba(212, 175, 55, 0.05);
+.tc-pill-separator {
+  opacity: 0.35;
+  font-size: 11px;
 }
 
-.tc-matrix-card-top {
+.tc-pill-rate {
+  font-size: 11px !important;
+  color: #ffffff;
+}
+
+/* ==================== Single Details Panel ==================== */
+.tc-tier-details-panel {
+  margin-top: 12px;
+  background-color: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--tc-radius-sm);
+  padding: 20px 24px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.tc-tier-details-header {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: baseline;
+  gap: 16px;
   margin-bottom: 12px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--tc-border);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.tc-matrix-badge {
-  font-family: var(--tc-font-mono);
+.tc-tier-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tc-tier-badge {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.05em;
   padding: 2px 6px;
   border-radius: var(--tc-radius-sm);
-  background-color: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--tc-border);
-  color: var(--tc-text-secondary);
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--tc-text-primary);
 }
 
-.tc-matrix-card.tier-highlight .tc-matrix-badge,
-.tc-matrix-card.tier-selected .tc-matrix-badge {
-  border-color: rgba(212, 175, 55, 0.45);
-  color: var(--tc-accent);
-  background-color: rgba(212, 175, 55, 0.12);
-}
-
-.tc-matrix-percent-wrap {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.tc-matrix-percent {
-  font-size: 22px;
+.tc-tier-title {
+  font-family: var(--tc-font-display);
+  font-size: 16px;
   font-weight: 700;
   color: var(--tc-text-primary);
-  line-height: 1;
+  margin: 0;
+  letter-spacing: -0.02em;
 }
 
-.tc-matrix-card.tier-highlight .tc-matrix-percent,
-.tc-matrix-card.tier-selected .tc-matrix-percent {
-  color: var(--tc-accent);
+.tc-tier-rate-tag {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
 }
 
-.tc-matrix-label {
+.tc-tier-rate-num {
+  font-size: 14px !important;
+  color: #ffffff;
+}
+
+.tc-tier-rate-sub {
   font-size: 11px;
   color: var(--tc-text-muted);
   text-transform: uppercase;
-  font-weight: 600;
 }
 
-.tc-matrix-tier-name {
-  font-family: var(--tc-font-display);
+.tc-tier-description-paragraph {
+  font-family: var(--tc-font-body);
   font-size: 14px;
-  line-height: 18px;
-  font-weight: 700;
-  color: var(--tc-text-primary);
-  margin: 0 0 6px;
-  letter-spacing: -0.025em;
-  font-stretch: normal;
-}
-
-.tc-matrix-tier-desc {
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--tc-text-secondary);
+  line-height: 1.65;
+  color: #d4d4d8;
   margin: 0;
-  flex: 1;
-}
-
-.tc-tier-card-footer {
-  margin-top: 14px;
-  padding-top: 8px;
-  border-top: 1px solid var(--tc-border-subtle);
-  display: flex;
-  justify-content: flex-end;
-}
-
-.tc-tier-select-indicator {
-  font-family: var(--tc-font-mono);
-  font-size: 11px;
-  color: var(--tc-text-muted);
-  transition: color 0.15s ease;
-}
-
-.tc-tier-select-indicator.selected {
-  color: var(--tc-accent);
-  font-weight: 700;
 }
 
 /* ==================== Dynamic Cash Offer Calculator ==================== */
 .tc-calculator-card {
-  background-color: #0c0d10;
-  border: 1px solid rgba(212, 175, 55, 0.28);
-  border-radius: var(--tc-radius);
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--tc-radius-sm);
   padding: 24px 28px;
   margin-bottom: 32px;
   position: relative;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(212, 175, 55, 0.15);
-}
-
-.tc-calculator-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 10%;
-  right: 10%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--tc-accent), transparent);
-  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .tc-calculator-top {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: baseline;
   margin-bottom: 20px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--tc-border);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   flex-wrap: wrap;
   gap: 12px;
 }
@@ -266,96 +261,43 @@
 .tc-calculator-badge-wrap {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .tc-calc-badge {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  color: var(--tc-accent);
-  background: rgba(212, 175, 55, 0.1);
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  padding: 3px 8px;
-  border-radius: var(--tc-radius-sm);
+  color: var(--tc-text-secondary);
   letter-spacing: 0.05em;
 }
 
 .tc-calculator-heading {
   font-family: var(--tc-font-display);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--tc-text-primary);
   margin: 0;
-  letter-spacing: -0.025em;
-  font-stretch: normal;
+  letter-spacing: -0.02em;
 }
 
 .tc-calc-selected-tier {
-  color: var(--tc-accent);
+  color: #ffffff;
 }
 
 .tc-calc-note {
   font-size: 11px;
-  color: var(--tc-text-muted);
-}
-
-/* Segmented Pill Selector */
-.tc-pill-selector-wrap {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  margin-bottom: 24px;
-  scrollbar-width: thin;
-}
-
-.tc-tier-pill {
-  flex: 1;
-  min-width: 140px;
-  background-color: var(--tc-surface);
-  border: 1px solid var(--tc-border);
-  border-radius: var(--tc-radius-sm);
-  padding: 10px 14px;
   color: var(--tc-text-secondary);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  font-family: inherit;
-  text-align: center;
-  white-space: nowrap;
 }
 
-.tc-tier-pill:hover {
-  border-color: rgba(212, 175, 55, 0.4);
-  color: var(--tc-text-primary);
-}
-
-.tc-tier-pill.active {
-  background-color: rgba(212, 175, 55, 0.12);
-  border-color: var(--tc-accent);
-  color: var(--tc-accent);
-  box-shadow: 0 0 12px rgba(212, 175, 55, 0.15);
-}
-
-.tc-pill-name {
-  font-family: var(--tc-font-mono);
-  font-size: 11px;
-  letter-spacing: -0.01em;
-}
-
-/* Controls Row */
 .tc-calc-controls-row {
   display: flex;
-  gap: 28px;
-  align-items: flex-end;
+  gap: 24px;
   margin-bottom: 24px;
-  flex-wrap: wrap;
+  align-items: flex-end;
 }
 
 .tc-calc-input-group {
   flex: 1;
-  min-width: 260px;
 }
 
 .tc-calc-label {
@@ -369,23 +311,21 @@
 .tc-calc-input-wrapper {
   display: flex;
   align-items: center;
-  background-color: var(--tc-surface);
-  border: 1px solid var(--tc-border);
-  border-radius: var(--tc-radius);
-  padding: 0 14px;
   height: 44px;
-  transition: all 0.2s ease;
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--tc-radius-sm);
+  padding: 0 12px;
+  transition: border-color 0.15s ease;
 }
 
 .tc-calc-input-wrapper:focus-within {
-  border-color: var(--tc-accent);
-  box-shadow: 0 0 0 1px var(--tc-accent), 0 0 14px rgba(212, 175, 55, 0.2);
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .tc-calc-currency {
-  color: var(--tc-accent);
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 14px;
+  color: var(--tc-text-muted);
   margin-right: 6px;
 }
 
@@ -393,44 +333,42 @@
   flex: 1;
   background: transparent;
   border: none;
+  outline: none;
   color: var(--tc-text-primary);
   font-size: 16px;
   font-weight: 700;
-  outline: none;
   width: 100%;
 }
 
 .tc-calc-currency-code {
+  font-size: 11px;
   color: var(--tc-text-muted);
-  font-size: 12px;
-  font-weight: 600;
-  margin-left: 8px;
+  margin-left: 6px;
 }
 
 .tc-calc-presets-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-shrink: 0;
 }
 
 .tc-calc-presets-label {
+  display: block;
   font-size: 12px;
   font-weight: 600;
   color: var(--tc-text-secondary);
+  margin-bottom: 8px;
 }
 
 .tc-calc-presets-buttons {
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
 }
 
 .tc-preset-btn {
   height: 44px;
   padding: 0 16px;
-  background-color: var(--tc-surface);
-  border: 1px solid var(--tc-border);
-  border-radius: var(--tc-radius);
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--tc-radius-sm);
   color: var(--tc-text-secondary);
   font-size: 13px;
   font-weight: 600;
@@ -439,17 +377,18 @@
 }
 
 .tc-preset-btn:hover {
-  border-color: var(--tc-border-strong);
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
   color: var(--tc-text-primary);
 }
 
 .tc-preset-btn.active {
-  border-color: var(--tc-accent);
-  background-color: rgba(212, 175, 55, 0.1);
-  color: var(--tc-accent);
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
 }
 
-/* Results Grid */
+/* Live Calculated Output Grid */
 .tc-calc-results-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -458,19 +397,30 @@
 }
 
 .tc-calc-result-box {
-  background-color: #101217;
-  border: 1px solid var(--tc-border);
-  border-radius: var(--tc-radius);
-  padding: 18px 20px;
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--tc-radius-sm);
+  padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
 .tc-calc-result-box.tc-result-payout-box {
-  border-color: rgba(212, 175, 55, 0.45);
-  background: linear-gradient(180deg, rgba(212, 175, 55, 0.08) 0%, #101217 100%);
-  box-shadow: 0 0 20px rgba(212, 175, 55, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.tc-result-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tc-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tc-result-label.highlight {
+  color: #ffffff;
 }
 
 .tc-result-badge-row {
@@ -479,49 +429,33 @@
   align-items: center;
 }
 
-.tc-result-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-weight: 600;
-  color: var(--tc-text-muted);
-}
-
-.tc-result-label.highlight {
-  color: var(--tc-accent);
-}
-
 .tc-payout-rate-badge {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--tc-accent);
-  background: rgba(212, 175, 55, 0.12);
-  border: 1px solid rgba(212, 175, 55, 0.35);
+  font-size: 10px !important;
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 2px 6px;
-  border-radius: var(--tc-radius-sm);
+  border-radius: 2px;
 }
 
 .tc-result-value {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 15px !important;
   color: var(--tc-text-primary);
-  line-height: 1.2;
 }
 
 .tc-result-value.payout {
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--tc-accent);
+  font-size: 18px !important;
+  color: #ffffff;
 }
 
 .tc-result-value.savings {
-  color: var(--tc-status-green);
+  color: #10b981;
 }
 
 .tc-result-sub {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--tc-text-muted);
-  line-height: 16px;
+  line-height: 1.4;
 }
 
 .tc-result-sub.highlight {
@@ -534,7 +468,6 @@
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-  padding-top: 8px;
 }
 
 .tc-calc-lock-btn {
@@ -543,23 +476,20 @@
   gap: 10px;
   height: 44px;
   padding: 0 24px;
-  background-color: rgba(212, 175, 55, 0.1);
-  border: 1px solid var(--tc-accent);
-  border-radius: var(--tc-radius);
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--tc-radius-sm);
   color: #ffffff;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 0 16px rgba(212, 175, 55, 0.15);
+  transition: all 0.15s ease;
 }
 
 .tc-calc-lock-btn:hover {
-  background-color: rgba(212, 175, 55, 0.22);
-  border-color: var(--tc-accent-hover);
-  box-shadow: 0 0 24px rgba(212, 175, 55, 0.3);
-  transform: translateY(-1px);
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .tc-lock-notice {
@@ -575,107 +505,10 @@
   border-radius: var(--tc-radius-sm);
 }
 
-/* ==================== Why Sell Callout Box ==================== */
-.tc-matrix-why-box {
-  background-color: #0c0d10;
-  border: 1px solid var(--tc-border);
-  border-radius: var(--tc-radius);
-  padding: 24px 28px;
-}
-
-.tc-matrix-why-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--tc-border);
-}
-
-.tc-matrix-why-eyebrow {
-  font-size: 11px;
-  color: var(--tc-accent);
-  font-weight: 700;
-}
-
-.tc-matrix-why-title {
-  font-family: var(--tc-font-display);
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--tc-text-primary);
-  margin: 0;
-  letter-spacing: -0.025em;
-  font-stretch: normal;
-}
-
-.tc-matrix-benefits-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-}
-
-.tc-matrix-benefit-item {
-  display: flex;
-  gap: 12px;
-}
-
-.tc-benefit-icon-wrap {
-  width: 34px;
-  height: 34px;
-  border-radius: var(--tc-radius-sm);
-  background-color: rgba(212, 175, 55, 0.08);
-  border: 1px solid rgba(212, 175, 55, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--tc-accent);
-  flex-shrink: 0;
-}
-
-.tc-matrix-benefit-svg {
-  width: 17px;
-  height: 17px;
-}
-
-.tc-benefit-text-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.tc-benefit-title {
-  font-family: var(--tc-font-display);
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--tc-text-primary);
-  margin: 0;
-  letter-spacing: -0.025em;
-  font-stretch: normal;
-}
-
-.tc-benefit-sub {
-  font-size: 11px;
-  color: var(--tc-accent);
-  font-weight: 600;
-}
-
-.tc-benefit-desc {
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--tc-text-secondary);
-  margin: 2px 0 0;
-}
-
-/* ==================== Responsive ==================== */
-@media (max-width: 1100px) {
-  .tc-matrix-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+/* Responsive */
+@media (max-width: 900px) {
   .tc-calc-results-grid {
     grid-template-columns: 1fr;
-  }
-  .tc-matrix-benefits-grid {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -684,17 +517,11 @@
     padding: 20px;
   }
   .tc-calculator-card {
-    padding: 16px;
-  }
-  .tc-matrix-grid {
-    grid-template-columns: 1fr;
+    padding: 18px;
   }
   .tc-calc-controls-row {
     flex-direction: column;
     align-items: stretch;
-  }
-  .tc-matrix-benefits-grid {
-    grid-template-columns: 1fr;
   }
   .tc-matrix-title-row {
     flex-direction: column;

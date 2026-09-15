@@ -1,0 +1,231 @@
+/* ==========================================================================
+   WhySellDirectly — Pokemon Gen 5 Black & White Sleek Tabbed Reading Pane
+   Progressive Disclosure: 2-column layout (Menu on Left, Single Display on Right)
+   Translucent panels: rgba(0, 0, 0, 0.4) with sharp 1px hairline rgba(255, 255, 255, 0.1)
+   ========================================================================== */
+
+.tc-why-pane-section {
+  margin-top: 36px;
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--tc-radius);
+  padding: 32px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.tc-why-pane-header {
+  margin-bottom: 24px;
+}
+
+.tc-why-pane-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tc-text-secondary);
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+.tc-why-bullet {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.tc-why-pane-title {
+  font-family: var(--tc-font-display);
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 800;
+  color: var(--tc-text-primary);
+  margin: 0 0 6px;
+  letter-spacing: -0.025em;
+}
+
+.tc-why-pane-subtitle {
+  font-family: var(--tc-font-body);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--tc-text-secondary);
+  margin: 0;
+  max-width: 680px;
+}
+
+/* ==================== 2-Column Tabbed Container ==================== */
+.tc-why-tabbed-container {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+/* Left Column: The Menu */
+.tc-why-menu-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tc-why-menu-tab {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--tc-radius-sm);
+  color: var(--tc-text-secondary);
+  font-family: var(--tc-font-display);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  position: relative;
+  width: 100%;
+}
+
+.tc-why-menu-tab:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--tc-text-primary);
+}
+
+.tc-why-menu-tab.active {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.tc-why-tab-indicator {
+  width: 4px;
+  height: 16px;
+  background-color: transparent;
+  border-radius: 2px;
+  transition: background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.tc-why-menu-tab.active .tc-why-tab-indicator {
+  background-color: #ffffff;
+}
+
+.tc-why-tab-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tc-why-tab-chevron {
+  font-size: 12px;
+  opacity: 0.3;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.tc-why-menu-tab.active .tc-why-tab-chevron {
+  opacity: 0.9;
+  transform: translateX(2px);
+  color: #ffffff;
+}
+
+/* Right Column: The Display */
+.tc-why-display-col {
+  display: flex;
+}
+
+.tc-why-display-box {
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--tc-radius-sm);
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.tc-why-display-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.tc-why-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #e4e4e7;
+  letter-spacing: 0.06em;
+}
+
+.tc-why-step-indicator {
+  font-size: 11px;
+  color: var(--tc-text-muted);
+}
+
+.tc-why-display-title {
+  font-family: var(--tc-font-display);
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 800;
+  color: var(--tc-text-primary);
+  margin: 0 0 6px;
+  letter-spacing: -0.02em;
+}
+
+.tc-why-display-sub {
+  display: block;
+  font-family: var(--tc-font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tc-text-secondary);
+  margin-bottom: 16px;
+  letter-spacing: -0.01em;
+}
+
+.tc-why-display-copy {
+  font-family: var(--tc-font-body);
+  font-size: 15px;
+  line-height: 1.7;
+  color: #d4d4d8;
+  margin: 0;
+  max-width: 640px;
+}
+
+/* ==================== Mobile Responsiveness ==================== */
+@media (max-width: 768px) {
+  .tc-why-pane-section {
+    padding: 20px;
+  }
+
+  .tc-why-tabbed-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .tc-why-menu-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .tc-why-display-box {
+    padding: 20px;
+  }
+
+  .tc-why-display-copy {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tc-why-menu-col {
+    grid-template-columns: 1fr;
+  }
+}

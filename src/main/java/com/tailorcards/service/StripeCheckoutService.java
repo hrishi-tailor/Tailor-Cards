@@ -171,7 +171,7 @@ public class StripeCheckoutService {
 
         SessionCreateParams params = paramsBuilder.build();
 
-        Stripe.apiKey = secretKey;
+        Stripe.apiKey = resolveStripeApiKey();
         try {
             Session session = Session.create(params);
             if (session == null || session.getUrl() == null || session.getUrl().isBlank()) {
@@ -313,6 +313,17 @@ public class StripeCheckoutService {
         }
         String base = (frontendUrl != null && !frontendUrl.isBlank()) ? frontendUrl : "https://tailorcards.com";
         return base.replaceAll("/+$", "") + "/cart";
+    }
+
+    public String resolveStripeApiKey() {
+        if (secretKey != null && !secretKey.isBlank() && !"sk_test_placeholder".equalsIgnoreCase(secretKey)) {
+            return secretKey;
+        }
+        String envKey = System.getenv("STRIPE_SECRET_KEY");
+        if (envKey != null && !envKey.isBlank()) {
+            return envKey;
+        }
+        return secretKey != null ? secretKey : "";
     }
 
     private record CartItemSnapshot(Long productId, int quantity) {}
