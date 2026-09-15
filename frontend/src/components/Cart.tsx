@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
+import { createCheckoutSession } from '../api/cartApi'
 import './Cart.css'
 
 export function Cart() {
   const { cart, loading, error, removeFromCart } = useCart()
   const [removingId, setRemovingId] = useState<number | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [isCheckingOut, setIsCheckingOut] = useState<boolean>(false)
 
   const handleRemove = async (itemId: number) => {
     try {
@@ -17,6 +19,23 @@ export function Cart() {
       setActionError(err instanceof Error ? err.message : 'Failed to remove item')
     } finally {
       setRemovingId(null)
+    }
+  }
+
+  const handleCheckout = async () => {
+    if (!cart?.cartSessionId) return
+    try {
+      setIsCheckingOut(true)
+      setActionError(null)
+      const session = await createCheckoutSession(cart.cartSessionId)
+      if (session.url) {
+        window.location.href = session.url
+      } else {
+        throw new Error('No checkout URL returned from payment server.')
+      }
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Unable to initiate checkout.')
+      setIsCheckingOut(false)
     }
   }
 
@@ -172,9 +191,23 @@ export function Cart() {
           <button
             type="button"
             className="tc-checkout-btn"
-            onClick={() => alert('Proceeding to Secure Checkout...')}
+            onClick={handleCheckout}
+            disabled={isCheckingOut || removingId !== null}
           >
-            Proceed to Checkout
+            {isCheckingOut ? (
+              <span className="tc-checkout-loading-wrap">
+                <span className="tc-spinner sm" aria-hidden="true" />
+                <span>Connecting to Stripe...</span>
+              </span>
+            ) : (
+              <span className="tc-checkout-btn-content">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" aria-hidden="true" className="tc-stripe-lock-icon">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                <span>Checkout via Stripe</span>
+              </span>
+            )}
           </button>
 
           <div className="tc-security-note">

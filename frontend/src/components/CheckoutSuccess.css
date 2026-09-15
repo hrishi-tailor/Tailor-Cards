@@ -1,0 +1,196 @@
+/* ==========================================================================
+   CheckoutSuccess — High-Trust Boutique Order Confirmation
+   Palette: Matte ink black (#0c0d10), Charcoal slate (#13151a),
+   Accents: Pale Champagne / Antique Gold (#d4af37, #e2b774)
+   ========================================================================== */
+
+.tc-success-page {
+  max-width: 720px;
+  margin: 48px auto 80px;
+  padding: 0 24px;
+}
+
+.tc-success-card {
+  background-color: var(--tc-surface);
+  border: 1px solid var(--tc-border);
+  border-radius: var(--tc-radius);
+  padding: 48px 40px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  background-image: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(212, 175, 55, 0.08), transparent 70%);
+}
+
+.tc-success-icon-wrap {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tc-status-green);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+}
+
+.tc-success-check-svg {
+  width: 28px;
+  height: 28px;
+}
+
+.tc-success-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tc-accent);
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  padding: 3px 10px;
+  border-radius: var(--tc-radius-sm);
+  letter-spacing: 0.06em;
+  margin-bottom: 14px;
+}
+
+.tc-success-title {
+  font-family: var(--tc-font-display);
+  font-size: 26px;
+  line-height: 34px;
+  font-weight: 800;
+  color: var(--tc-text-primary);
+  margin: 0 0 12px;
+  letter-spacing: -0.025em;
+  font-stretch: normal;
+}
+
+.tc-success-subtitle {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tc-text-secondary);
+  margin: 0 auto 32px;
+  max-width: 520px;
+}
+
+.tc-success-subtitle strong {
+  color: var(--tc-text-primary);
+}
+
+/* Dossier Box */
+.tc-success-dossier {
+  background-color: #0c0d10;
+  border: 1px solid var(--tc-border);
+  border-radius: var(--tc-radius);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tc-dossier-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--tc-border-subtle);
+}
+
+.tc-dossier-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.tc-dossier-label {
+  font-size: 12px;
+  color: var(--tc-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.tc-dossier-value {
+  font-size: 13px;
+  color: var(--tc-text-primary);
+  font-weight: 500;
+  text-align: right;
+  word-break: break-all;
+}
+
+.tc-dossier-value.status-paid {
+  color: var(--tc-status-green);
+  font-weight: 700;
+}
+
+/* Trust note */
+.tc-success-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--tc-text-muted);
+  margin-bottom: 32px;
+}
+
+.tc-note-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--tc-accent);
+  flex-shrink: 0;
+}
+
+/* Buttons */
+.tc-success-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.tc-success-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  padding: 0 24px;
+  background-color: rgba(212, 175, 55, 0.12);
+  border: 1px solid var(--tc-accent);
+  border-radius: var(--tc-radius);
+  color: var(--tc-accent);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.tc-success-primary-btn:hover {
+  background-color: var(--tc-accent);
+  color: #0c0d10;
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.3);
+}
+
+.tc-success-secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  padding: 0 20px;
+  background-color: transparent;
+  border: 1px solid var(--tc-border);
+  border-radius: var(--tc-radius);
+  color: var(--tc-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.tc-success-secondary-btn:hover {
+  border-color: var(--tc-border-strong);
+  color: var(--tc-text-primary);
+  background-color: rgba(255, 255, 255, 0.04);
+}

@@ -273,10 +273,35 @@
   font-family: inherit;
 }
 
-.tc-checkout-btn:hover {
+.tc-checkout-btn:hover:not(:disabled) {
   background: rgba(212, 175, 55, 0.16);
   border-color: var(--tc-accent);
   color: #ffffff;
+}
+
+.tc-checkout-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.tc-checkout-loading-wrap,
+.tc-checkout-btn-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.tc-stripe-lock-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--tc-accent);
+}
+
+.tc-spinner.sm {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
 }
 
 .tc-security-note {

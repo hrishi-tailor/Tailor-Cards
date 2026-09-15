@@ -13,6 +13,7 @@ interface CartContextType {
   addToCart: (productId: number, quantity?: number) => Promise<void>
   removeFromCart: (itemId: number) => Promise<void>
   refreshCart: () => Promise<void>
+  clearCart: () => void
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -86,6 +87,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const clearCart = () => {
+    setCart(null)
+  }
+
   const totalItems = cart?.totalItems ?? 0
   const totalPrice = cart?.totalPrice ?? 0
 
@@ -101,6 +106,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         addToCart,
         removeFromCart,
         refreshCart: fetchCart,
+        clearCart,
       }}
     >
       {children}

@@ -7,6 +7,7 @@ import { TrackBuylist } from './components/TrackBuylist'
 import { AdminBuylist } from './components/AdminBuylist'
 import { AdminLoginPage } from './components/AdminLoginPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { CheckoutSuccess } from './components/CheckoutSuccess'
 import { CartProvider, useCart } from './context/CartContext'
 import logoImg from './assets/logo.jpg'
 import './App.css'
@@ -138,6 +139,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<ProductList selectedCategory={selectedCategory} />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/sell" element={<SellBuylist />} />
           <Route path="/sell/track/:token" element={<TrackBuylist />} />
           <Route path="/admin/login" element={<AdminLoginPage />} />

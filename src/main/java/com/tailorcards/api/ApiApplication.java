@@ -3,7 +3,7 @@ package com.tailorcards.api;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"com.tailorcards.api", "com.tailorcards"})
 public class ApiApplication {
 
 	public static void main(String[] args) {

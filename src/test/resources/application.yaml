@@ -18,3 +18,10 @@ spring:
   sql:
     init:
       mode: never
+
+stripe:
+  secret-key: sk_test_placeholder
+  webhook-secret: whsec_placeholder
+  success-url: http://localhost:5173/checkout/success?session_id={CHECKOUT_SESSION_ID}
+  cancel-url: http://localhost:5173/cart
+

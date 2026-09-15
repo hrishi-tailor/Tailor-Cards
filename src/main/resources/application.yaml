@@ -57,3 +57,10 @@ supabase:
 buylist:
   upload-base-dir: uploads
   upload-dir: uploads/buylist
+
+stripe:
+  secret-key: ${STRIPE_SECRET_KEY:}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  success-url: ${FRONTEND_URL:http://localhost:5173}/checkout/success?session_id={CHECKOUT_SESSION_ID}
+  cancel-url: ${FRONTEND_URL:http://localhost:5173}/cart
+
