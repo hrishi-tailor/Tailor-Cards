@@ -5,6 +5,12 @@ spring:
   application:
     name: api
 
+  data:
+    web:
+      pageable:
+        default-page-size: 100
+        max-page-size: 500
+
   datasource:
     url: ${DB_URL:${SPRING_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:tailorcards}?prepareThreshold=0}}
     username: ${DB_USERNAME:${SPRING_DATASOURCE_USERNAME:postgres}}

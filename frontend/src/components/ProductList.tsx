@@ -15,6 +15,7 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
   const [addingId, setAddingId] = useState<number | null>(null)
   const [addedId, setAddedId] = useState<number | null>(null)
   const [cartError, setCartError] = useState<string | null>(null)
+  const [imgError, setImgError] = useState<Record<number, boolean>>({})
 
   const { addToCart } = useCart()
 
@@ -23,12 +24,33 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
       try {
         setLoading(true)
         setError(null)
-        const response = await fetch(`${API_BASE_URL}/api/products`)
+        // Request page 0 with size=100 so all seeded products load on a single page
+        const response = await fetch(`${API_BASE_URL}/api/products?page=0&size=100`)
         if (!response.ok) {
           throw new Error(`Failed to fetch products: ${response.status} ${response.statusText}`)
         }
         const data: PageResponse<Product> = await response.json()
-        setProducts(data.content || [])
+        let allProducts = data.content || []
+
+        // If totalPages > 1, fetch remaining pages to ensure all products are retrieved
+        if (data.totalPages > 1) {
+          const pagePromises = []
+          for (let p = 1; p < data.totalPages; p++) {
+            pagePromises.push(
+              fetch(`${API_BASE_URL}/api/products?page=${p}&size=100`)
+                .then((res) => {
+                  if (!res.ok) throw new Error(`Failed to fetch page ${p}`)
+                  return res.json()
+                })
+                .then((pageData: PageResponse<Product>) => pageData.content || [])
+            )
+          }
+          const remainingPages = await Promise.all(pagePromises)
+          for (const pageItems of remainingPages) {
+            allProducts = allProducts.concat(pageItems)
+          }
+        }
+        setProducts(allProducts)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unexpected error occurred')
       } finally {
@@ -58,28 +80,36 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
   // Filter products by selected category
   const filteredProducts = products.filter((product) => {
     if (selectedCategory === 'All') return true
+    const catName = product.category?.name?.toLowerCase() || ''
+
     if (selectedCategory === 'Singles') {
       return (
-        product.category?.name.toLowerCase().includes('trading') ||
+        catName === 'singles' ||
+        catName.includes('single') ||
+        catName.includes('trading') ||
         product.name.toLowerCase().includes('card')
+      )
+    }
+    if (selectedCategory === 'Sealed') {
+      return (
+        catName === 'sealed' ||
+        catName.includes('seal')
       )
     }
     if (selectedCategory === 'Slabs') {
       return (
-        product.category?.name.toLowerCase().includes('graded') ||
+        Boolean(product.grading) ||
+        catName.includes('graded') ||
+        catName.includes('slab') ||
         product.name.toLowerCase().includes('psa') ||
-        product.name.toLowerCase().includes('bgs')
+        product.name.toLowerCase().includes('bgs') ||
+        product.name.toLowerCase().includes('cgc')
       )
     }
-    if (selectedCategory === 'Accessories') {
-      return (
-        product.category?.name.toLowerCase().includes('accessories') ||
-        product.name.toLowerCase().includes('sleeves') ||
-        product.name.toLowerCase().includes('box') ||
-        product.name.toLowerCase().includes('binder')
-      )
+    if (selectedCategory === 'Buying Requests') {
+      return false
     }
-    return product.category?.name.toLowerCase().includes(selectedCategory.toLowerCase())
+    return catName.includes(selectedCategory.toLowerCase())
   })
 
   if (loading) {
@@ -139,7 +169,9 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
       {/* Responsive CSS Grid (repeat auto-fill, minmax 250px) */}
       <div className="tc-product-grid">
         {filteredProducts.map((product) => {
-          const isOutOfStock = product.stock <= 0
+          const isSold = product.status === 'SOLD'
+          const isOutOfStock = product.stock <= 0 && !isSold
+          const isUnavailable = isSold || isOutOfStock
           const isAdding = addingId === product.id
           const isJustAdded = addedId === product.id
 
@@ -150,12 +182,16 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
                 {product.category && (
                   <span className="tc-card-category-tag">{product.category.name}</span>
                 )}
-                {product.imageUrl ? (
+                {isSold && (
+                  <span className="tc-card-sold-tag">SOLD</span>
+                )}
+                {product.imageUrl && !imgError[product.id] ? (
                   <img
                     src={product.imageUrl}
                     alt={product.name}
-                    className="tc-card-image"
+                    className={`tc-card-image ${isSold ? 'sold-image' : ''}`}
                     loading="lazy"
+                    onError={() => setImgError((prev) => ({ ...prev, [product.id]: true }))}
                   />
                 ) : (
                   <div className="tc-card-placeholder-img">No Image Available</div>
@@ -164,6 +200,16 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
 
               {/* Product Content */}
               <div className="tc-card-content">
+                {/* Meta Chips: Set, Card #, Condition, Grading */}
+                {(product.set || product.cardNumber || product.condition || product.grading) && (
+                  <div className="tc-card-meta-row">
+                    {product.set && <span className="tc-meta-pill tc-meta-set" title={product.set}>{product.set}</span>}
+                    {product.cardNumber && <span className="tc-meta-pill tc-meta-num">#{product.cardNumber}</span>}
+                    {product.condition && <span className="tc-meta-pill tc-meta-condition">{product.condition}</span>}
+                    {product.grading && <span className="tc-meta-pill tc-meta-grading">{product.grading}</span>}
+                  </div>
+                )}
+
                 {/* Clean Title Clamped to 2 lines */}
                 <h2 className="tc-card-title" title={product.name}>
                   {product.name}
@@ -176,19 +222,21 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
                   </span>
                 </div>
 
-                {/* Clean In Stock Status */}
-                <div className={`tc-card-stock ${!isOutOfStock ? 'in-stock' : 'out-of-stock'}`}>
-                  {!isOutOfStock ? 'In Stock' : 'Out of Stock'}
+                {/* Status Indicator */}
+                <div className={`tc-card-stock ${isSold ? 'sold' : isOutOfStock ? 'out-of-stock' : 'in-stock'}`}>
+                  {isSold ? 'SOLD' : isOutOfStock ? 'Out of Stock' : 'In Stock'}
                 </div>
 
                 {/* Modern Indigo/Purple Add to Cart Button */}
                 <button
                   type="button"
                   onClick={() => handleAddToCart(product)}
-                  disabled={isOutOfStock || isAdding}
-                  className={`tc-add-to-cart-btn ${isJustAdded ? 'added' : ''}`}
+                  disabled={isUnavailable || isAdding}
+                  className={`tc-add-to-cart-btn ${isSold ? 'sold-btn' : ''} ${isJustAdded ? 'added' : ''}`}
                 >
-                  {isOutOfStock
+                  {isSold
+                    ? 'SOLD'
+                    : isOutOfStock
                     ? 'Out of Stock'
                     : isAdding
                     ? 'Adding...'
