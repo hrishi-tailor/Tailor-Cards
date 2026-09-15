@@ -1,0 +1,278 @@
+/* ==========================================================================
+   AdminLoginPage — Boutique TCG Store Admin Login Styling
+   ========================================================================== */
+
+.tc-login-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 200px);
+  padding: 40px 20px;
+}
+
+.tc-login-card {
+  width: 100%;
+  max-width: 460px;
+  background-color: var(--tc-card);
+  border: 1px solid var(--tc-border);
+  border-radius: 12px;
+  padding: 40px 36px;
+  box-shadow: 0 12px 30px -8px rgba(10, 17, 40, 0.12), 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
+/* ==================== Header ==================== */
+.tc-login-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.tc-login-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin-bottom: 16px;
+}
+
+.tc-login-logo-img {
+  height: 34px;
+  width: 34px;
+  border-radius: 6px;
+}
+
+.tc-login-logo .tc-logo-tailor {
+  color: var(--tc-navy);
+}
+
+.tc-login-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--tc-purple-soft);
+  border: 1px solid var(--tc-purple-accent);
+  color: var(--tc-purple-dark);
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 12px;
+}
+
+.tc-lock-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--tc-purple-primary);
+}
+
+.tc-login-title {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--tc-text-primary);
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.tc-login-subtitle {
+  font-size: 0.9rem;
+  color: var(--tc-text-secondary);
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* ==================== Error Banner ==================== */
+.tc-login-error {
+  background-color: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  color: #B91C1C;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.tc-alert-svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* ==================== Form Fields ==================== */
+.tc-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tc-login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tc-login-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--tc-text-primary);
+}
+
+.tc-login-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tc-field-icon {
+  position: absolute;
+  left: 12px;
+  width: 18px;
+  height: 18px;
+  color: var(--tc-text-muted);
+  pointer-events: none;
+}
+
+.tc-login-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 14px 11px 38px;
+  border: 1px solid var(--tc-border);
+  border-radius: 8px;
+  font-size: 0.92rem;
+  color: var(--tc-text-primary);
+  background-color: #FFFFFF;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.tc-login-input.password-input {
+  padding-right: 42px;
+}
+
+.tc-login-input:focus {
+  outline: none;
+  border-color: var(--tc-purple-accent);
+  box-shadow: 0 0 0 3px rgba(157, 78, 221, 0.18);
+}
+
+.tc-password-toggle-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--tc-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.tc-password-toggle-btn:hover {
+  color: var(--tc-text-primary);
+}
+
+.tc-eye-svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Remember Me Checkbox */
+.tc-login-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tc-remember-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--tc-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.tc-remember-label input[type="checkbox"] {
+  accent-color: var(--tc-purple-primary);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Submit Button */
+.tc-login-submit-btn {
+  width: 100%;
+  padding: 13px 20px;
+  background-color: var(--tc-purple-primary);
+  color: #FFFFFF;
+  border: 1px solid var(--tc-purple-primary);
+  border-radius: 8px;
+  font-size: 0.96rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(90, 24, 154, 0.25);
+  transition: all 0.2s ease;
+  margin-top: 6px;
+}
+
+.tc-login-submit-btn:hover:not(:disabled) {
+  background-color: var(--tc-purple-hover);
+  border-color: var(--tc-purple-hover);
+  box-shadow: 0 6px 16px rgba(123, 44, 191, 0.35);
+  transform: translateY(-1px);
+}
+
+.tc-login-submit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.tc-btn-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Footer Link */
+.tc-login-footer {
+  margin-top: 24px;
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid var(--tc-border-subtle);
+}
+
+.tc-login-back-link {
+  color: var(--tc-purple-primary);
+  text-decoration: none;
+  font-size: 0.86rem;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.tc-login-back-link:hover {
+  color: var(--tc-purple-hover);
+  text-decoration: underline;
+}
+
+@media (max-width: 500px) {
+  .tc-login-card {
+    padding: 30px 20px;
+  }
+  .tc-login-title {
+    font-size: 1.45rem;
+  }
+}

@@ -101,6 +101,25 @@ class BuylistIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"message\":\"Hello\"}"))
                 .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/api/auth/verify"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void authVerify_authenticated_shouldReturn200() throws Exception {
+        mockMvc.perform(get("/api/auth/verify"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.authenticated", is(true)))
+                .andExpect(jsonPath("$.role", is("ADMIN")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void authVerify_nonAdmin_shouldReturn403() throws Exception {
+        mockMvc.perform(get("/api/auth/verify"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

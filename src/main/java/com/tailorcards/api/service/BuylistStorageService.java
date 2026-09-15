@@ -74,18 +74,28 @@ public class BuylistStorageService {
         String extension = extractExtension(originalFilename);
         String uniqueFilename = UUID.randomUUID() + extension;
 
+        byte[] bytes;
+        try {
+            bytes = file.getBytes();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read uploaded file contents: " + e.getMessage(), e);
+        }
+
         if (isSupabaseConfigured()) {
             try {
-                String supabasePublicUrl = uploadToSupabase(file, uniqueFilename);
+                String supabasePublicUrl = uploadToSupabase(file.getContentType(), bytes, uniqueFilename);
                 if (supabasePublicUrl != null) {
+                    log.info("Successfully uploaded image to Supabase Storage: {}", supabasePublicUrl);
                     return supabasePublicUrl;
                 }
-            } catch (Exception e) {
-                log.warn("Supabase upload failed, falling back to local file storage: {}", e.getMessage());
+                log.warn("Supabase Storage did not return a valid URL, falling back to local storage");
+            } catch (Throwable t) {
+                log.warn("Supabase Storage upload failed ({}: {}), falling back to local storage",
+                        t.getClass().getSimpleName(), t.getMessage());
             }
         }
 
-        return storeLocally(file, uniqueFilename);
+        return storeLocally(bytes, uniqueFilename);
     }
 
     private void validateFile(MultipartFile file) {
@@ -113,20 +123,20 @@ public class BuylistStorageService {
         return supabaseUrl != null && !supabaseUrl.isBlank() && supabaseKey != null && !supabaseKey.isBlank();
     }
 
-    private String uploadToSupabase(MultipartFile file, String filename) throws IOException, InterruptedException {
+    private String uploadToSupabase(String contentType, byte[] bytes, String filename) throws Exception {
         String baseUrl = supabaseUrl.replaceAll("/+$", "");
         String uploadEndpoint = baseUrl + "/storage/v1/object/" + supabaseBucket + "/" + filename;
 
-        String contentType = file.getContentType() != null ? file.getContentType() : "image/jpeg";
+        String mimeType = (contentType != null && !contentType.isBlank()) ? contentType : "image/jpeg";
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(uploadEndpoint))
                 .timeout(Duration.ofSeconds(15))
                 .header("Authorization", "Bearer " + supabaseKey.trim())
                 .header("apikey", supabaseKey.trim())
-                .header("Content-Type", contentType)
+                .header("Content-Type", mimeType)
                 .header("x-upsert", "true")
-                .POST(HttpRequest.BodyPublishers.ofByteArray(file.getBytes()))
+                .POST(HttpRequest.BodyPublishers.ofByteArray(bytes))
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -139,16 +149,20 @@ public class BuylistStorageService {
         return null;
     }
 
-    private String storeLocally(MultipartFile file, String filename) {
+    private String storeLocally(byte[] bytes, String filename) {
         try {
             Path targetDirectory = Paths.get(uploadDir).toAbsolutePath().normalize();
-            Files.createDirectories(targetDirectory);
+            if (!Files.exists(targetDirectory)) {
+                Files.createDirectories(targetDirectory);
+            }
 
             Path targetPath = targetDirectory.resolve(filename).normalize();
-            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+            Files.write(targetPath, bytes);
 
+            log.info("Stored file locally at: {}", targetPath);
             return "/uploads/buylist/" + filename;
         } catch (IOException e) {
+            log.error("Failed to store file locally in {}: {}", uploadDir, e.getMessage(), e);
             throw new RuntimeException("Failed to store file locally: " + e.getMessage(), e);
         }
     }

@@ -135,25 +135,79 @@ export async function postBuylistMessage(
   return response.json();
 }
 
+const ADMIN_AUTH_KEY = 'tc_admin_auth';
+
 /**
- * Admin credentials helper for Basic Auth
+ * Admin credentials helper for Basic Auth.
+ * Reads dynamically from sessionStorage or localStorage without any hardcoded credentials.
  */
-export function getAdminAuthHeader(): string {
-  const stored = localStorage.getItem('tc_admin_auth');
-  if (stored) {
-    return stored;
-  }
-  // Default fallback to admin:admin
-  return btoa('admin:admin');
+export function getAdminAuthHeader(): string | null {
+  return sessionStorage.getItem(ADMIN_AUTH_KEY) || localStorage.getItem(ADMIN_AUTH_KEY) || null;
 }
 
-export function setAdminAuth(username: string, password: string): void {
+export function setAdminAuth(username: string, password: string, rememberMe = true): string {
   const encoded = btoa(`${username.trim()}:${password.trim()}`);
-  localStorage.setItem('tc_admin_auth', encoded);
+  if (rememberMe) {
+    localStorage.setItem(ADMIN_AUTH_KEY, encoded);
+    sessionStorage.removeItem(ADMIN_AUTH_KEY);
+  } else {
+    sessionStorage.setItem(ADMIN_AUTH_KEY, encoded);
+    localStorage.removeItem(ADMIN_AUTH_KEY);
+  }
+  return encoded;
+}
+
+export function setAdminAuthHeader(authHeader: string, rememberMe = true): void {
+  if (rememberMe) {
+    localStorage.setItem(ADMIN_AUTH_KEY, authHeader);
+    sessionStorage.removeItem(ADMIN_AUTH_KEY);
+  } else {
+    sessionStorage.setItem(ADMIN_AUTH_KEY, authHeader);
+    localStorage.removeItem(ADMIN_AUTH_KEY);
+  }
 }
 
 export function clearAdminAuth(): void {
-  localStorage.removeItem('tc_admin_auth');
+  localStorage.removeItem(ADMIN_AUTH_KEY);
+  sessionStorage.removeItem(ADMIN_AUTH_KEY);
+}
+
+export function isAdminAuthenticated(): boolean {
+  return Boolean(getAdminAuthHeader());
+}
+
+/**
+ * Verifies admin credentials against GET /api/auth/verify using Basic Auth.
+ */
+export async function verifyAdminAuth(
+  username?: string,
+  password?: string
+): Promise<{ authenticated: boolean; username: string; role?: string }> {
+  let authHeader: string | null = null;
+  if (username !== undefined && password !== undefined) {
+    authHeader = btoa(`${username.trim()}:${password.trim()}`);
+  } else {
+    authHeader = getAdminAuthHeader();
+  }
+
+  if (!authHeader) {
+    throw new Error('No admin credentials provided.');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
+    headers: {
+      'Authorization': `Basic ${authHeader}`,
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error('Invalid credentials');
+    }
+    throw new Error(`Authentication verification failed (${response.status})`);
+  }
+
+  return response.json();
 }
 
 /**
@@ -164,6 +218,11 @@ export async function getAdminBuylistSubmissions(
   page = 0,
   size = 100
 ): Promise<{ content: BuylistSubmission[]; totalElements: number; totalPages: number }> {
+  const auth = getAdminAuthHeader();
+  if (!auth) {
+    throw new Error('Unauthorized: Admin credentials required.');
+  }
+
   const params = new URLSearchParams();
   if (status && status !== 'ALL') {
     params.set('status', status);
@@ -172,7 +231,6 @@ export async function getAdminBuylistSubmissions(
   params.set('size', size.toString());
   params.set('sort', 'createdAt,desc');
 
-  const auth = getAdminAuthHeader();
   const response = await fetch(`${API_BASE_URL}/api/buylist/admin/submissions?${params.toString()}`, {
     headers: {
       'Authorization': `Basic ${auth}`,
@@ -180,7 +238,8 @@ export async function getAdminBuylistSubmissions(
   });
 
   if (!response.ok) {
-    if (response.status === 401) {
+    if (response.status === 401 || response.status === 403) {
+      clearAdminAuth();
       throw new Error('Unauthorized: Admin credentials required.');
     }
     let errorMsg = `Failed to fetch submissions (${response.status})`;
@@ -204,6 +263,10 @@ export async function updateBuylistStatus(
   status: BuylistStatus
 ): Promise<BuylistSubmission> {
   const auth = getAdminAuthHeader();
+  if (!auth) {
+    throw new Error('Unauthorized: Admin credentials required.');
+  }
+
   const response = await fetch(`${API_BASE_URL}/api/buylist/admin/submissions/${submissionId}/status`, {
     method: 'PATCH',
     headers: {
@@ -214,7 +277,8 @@ export async function updateBuylistStatus(
   });
 
   if (!response.ok) {
-    if (response.status === 401) {
+    if (response.status === 401 || response.status === 403) {
+      clearAdminAuth();
       throw new Error('Unauthorized: Admin credentials required.');
     }
     let errorMsg = `Failed to update status (${response.status})`;
@@ -239,6 +303,10 @@ export async function postAdminBuylistMessage(
   senderEmail = 'admin@tailorcards.com'
 ): Promise<BuylistMessage> {
   const auth = getAdminAuthHeader();
+  if (!auth) {
+    throw new Error('Unauthorized: Admin credentials required.');
+  }
+
   const response = await fetch(`${API_BASE_URL}/api/buylist/admin/submissions/${submissionId}/messages`, {
     method: 'POST',
     headers: {
@@ -253,7 +321,8 @@ export async function postAdminBuylistMessage(
   });
 
   if (!response.ok) {
-    if (response.status === 401) {
+    if (response.status === 401 || response.status === 403) {
+      clearAdminAuth();
       throw new Error('Unauthorized: Admin credentials required.');
     }
     let errorMsg = `Failed to post message (${response.status})`;
@@ -268,4 +337,5 @@ export async function postAdminBuylistMessage(
 
   return response.json();
 }
+
 

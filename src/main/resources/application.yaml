@@ -8,13 +8,14 @@ spring:
   security:
     user:
       name: ${ADMIN_USERNAME:admin}
-      password: ${ADMIN_PASSWORD:admin}
+      password: ${ADMIN_PASSWORD:TailorCardsAdmin2026!}
+      roles: ADMIN
 
   servlet:
     multipart:
       enabled: true
       max-file-size: 10MB
-      max-request-size: 15MB
+      max-request-size: 50MB
 
   data:
     web:

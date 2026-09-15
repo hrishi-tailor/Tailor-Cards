@@ -5,6 +5,8 @@ import { Cart } from './components/Cart'
 import { SellBuylist } from './components/SellBuylist'
 import { TrackBuylist } from './components/TrackBuylist'
 import { AdminBuylist } from './components/AdminBuylist'
+import { AdminLoginPage } from './components/AdminLoginPage'
+import { ProtectedRoute } from './components/ProtectedRoute'
 import { CartProvider, useCart } from './context/CartContext'
 import logoImg from './assets/logo.jpg'
 import './App.css'
@@ -142,7 +144,15 @@ function AppContent() {
           <Route path="/cart" element={<Cart />} />
           <Route path="/sell" element={<SellBuylist />} />
           <Route path="/sell/track/:token" element={<TrackBuylist />} />
-          <Route path="/admin/buylist" element={<AdminBuylist />} />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route
+            path="/admin/buylist"
+            element={
+              <ProtectedRoute>
+                <AdminBuylist />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </main>
       <footer className="tc-footer">

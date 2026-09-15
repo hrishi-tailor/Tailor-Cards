@@ -78,6 +78,28 @@
   background: var(--tc-purple-soft);
 }
 
+.tc-admin-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: #ffffff;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #b91c1c;
+  cursor: pointer;
+  box-shadow: var(--tc-shadow-sm);
+  transition: all 0.15s ease;
+}
+
+.tc-admin-logout-btn:hover {
+  border-color: #ef4444;
+  color: #ffffff;
+  background: #dc2626;
+}
+
 .tc-admin-icon {
   width: 15px;
   height: 15px;

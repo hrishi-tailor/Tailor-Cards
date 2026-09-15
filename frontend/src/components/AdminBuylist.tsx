@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   getAdminBuylistSubmissions,
   updateBuylistStatus,
   postAdminBuylistMessage,
   getBuylistSubmission,
   resolveImageUrl,
-  setAdminAuth,
   clearAdminAuth,
 } from '../api/buylistApi'
 import type { BuylistSubmission, BuylistStatus } from '../types'
@@ -35,6 +34,8 @@ const QUICK_TEMPLATES = [
 ]
 
 export function AdminBuylist() {
+  const navigate = useNavigate()
+
   // Data state
   const [submissions, setSubmissions] = useState<BuylistSubmission[]>([])
   const [loading, setLoading] = useState(true)
@@ -43,11 +44,6 @@ export function AdminBuylist() {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<SortOption>('newest')
   const [viewMode, setViewMode] = useState<ViewMode>('table')
-
-  // Auth modal state (in case 401 is received)
-  const [showAuthModal, setShowAuthModal] = useState(false)
-  const [authUsername, setAuthUsername] = useState('admin')
-  const [authPassword, setAuthPassword] = useState('admin')
 
   // Inspection Drawer state
   const [selectedSubmission, setSelectedSubmission] = useState<BuylistSubmission | null>(null)
@@ -79,12 +75,18 @@ export function AdminBuylist() {
       const msg = err instanceof Error ? err.message : 'Failed to fetch buylist submissions'
       setError(msg)
       if (msg.includes('Unauthorized')) {
-        setShowAuthModal(true)
+        clearAdminAuth()
+        navigate('/admin/login', { replace: true })
       }
     } finally {
       if (showSpinner) setLoading(false)
     }
-  }, [])
+  }, [navigate])
+
+  const handleLogout = () => {
+    clearAdminAuth()
+    navigate('/')
+  }
 
   useEffect(() => {
     fetchSubmissions(true)
@@ -272,22 +274,7 @@ export function AdminBuylist() {
     })
   }
 
-  // Save admin auth
-  const handleSaveAuth = (e: React.FormEvent) => {
-    e.preventDefault()
-    setAdminAuth(authUsername, authPassword)
-    setShowAuthModal(false)
-    fetchSubmissions(true)
-  }
 
-  const handleResetAuth = () => {
-    clearAdminAuth()
-    setAuthUsername('admin')
-    setAuthPassword('admin')
-    setAdminAuth('admin', 'admin')
-    setShowAuthModal(false)
-    fetchSubmissions(true)
-  }
 
   // Corner Zoom Preset helper
   const applyCornerZoom = (corner: 'TL' | 'TR' | 'BL' | 'BR' | 'CENTER' | 'RESET') => {
@@ -375,15 +362,16 @@ export function AdminBuylist() {
           </button>
           <button
             type="button"
-            className="tc-admin-auth-toggle-btn"
-            onClick={() => setShowAuthModal(true)}
-            title="Configure Admin Credentials"
+            className="tc-admin-logout-btn"
+            onClick={handleLogout}
+            title="Log out of Admin Portal"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="tc-admin-icon">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
-            <span>Admin Key</span>
+            <span>Log Out</span>
           </button>
         </div>
       </div>
@@ -1176,73 +1164,6 @@ export function AdminBuylist() {
                 Next ›
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          ADMIN AUTH MODAL (HTTP BASIC / KEY SETUP)
-          ========================================================================= */}
-      {showAuthModal && (
-        <div
-          className="tc-modal-backdrop"
-          onClick={() => setShowAuthModal(false)}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="tc-auth-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="tc-auth-modal-header">
-              <h3>Admin Credentials</h3>
-              <button
-                type="button"
-                className="tc-modal-close-btn"
-                onClick={() => setShowAuthModal(false)}
-              >
-                ✕
-              </button>
-            </div>
-            <p className="tc-auth-modal-desc">
-              Enter the administrator credentials configured on the Spring Boot backend to authenticate API requests to <code>/api/buylist/admin/**</code>.
-            </p>
-
-            <form onSubmit={handleSaveAuth} className="tc-auth-form">
-              <div className="tc-auth-field">
-                <label htmlFor="admin-user">Username</label>
-                <input
-                  id="admin-user"
-                  type="text"
-                  value={authUsername}
-                  onChange={(e) => setAuthUsername(e.target.value)}
-                  className="tc-auth-input"
-                  required
-                />
-              </div>
-
-              <div className="tc-auth-field">
-                <label htmlFor="admin-pass">Password</label>
-                <input
-                  id="admin-pass"
-                  type="password"
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  className="tc-auth-input"
-                  required
-                />
-              </div>
-
-              <div className="tc-auth-modal-actions">
-                <button
-                  type="button"
-                  className="tc-auth-reset-btn"
-                  onClick={handleResetAuth}
-                >
-                  Reset to Default (admin/admin)
-                </button>
-                <button type="submit" className="tc-auth-submit-btn">
-                  Save & Connect
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

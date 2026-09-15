@@ -6,10 +6,15 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class BuylistStorageServiceTest {
 
@@ -97,5 +102,63 @@ class BuylistStorageServiceTest {
         assertNotNull(result);
         assertTrue(result.startsWith("/uploads/buylist/"));
         assertTrue(result.endsWith(".png"));
+    }
+
+    @Test
+    void storeFile_whenSupabaseThrowsException_fallsBackToLocalStorage() throws Exception {
+        HttpClient failingHttpClient = mock(HttpClient.class);
+        when(failingHttpClient.send(any(HttpRequest.class), any()))
+                .thenThrow(new java.net.ConnectException("Connection refused to Supabase"));
+
+        BuylistStorageService serviceWithSupabase = new BuylistStorageService(
+                failingHttpClient,
+                "https://example.supabase.co",
+                "secret-api-key",
+                "buylist-images",
+                tempDir.resolve("fallback-test").toString()
+        );
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "charizard.jpg",
+                "image/jpeg",
+                "fake-card-bytes".getBytes()
+        );
+
+        String result = serviceWithSupabase.storeFile(file);
+
+        assertNotNull(result);
+        assertTrue(result.startsWith("/uploads/buylist/"));
+        assertTrue(result.endsWith(".jpg"));
+    }
+
+    @Test
+    void storeFile_whenSupabaseReturns502_fallsBackToLocalStorage() throws Exception {
+        HttpClient badGatewayHttpClient = mock(HttpClient.class);
+        @SuppressWarnings("unchecked")
+        HttpResponse<String> mockResponse = mock(HttpResponse.class);
+        when(mockResponse.statusCode()).thenReturn(502);
+        doReturn(mockResponse).when(badGatewayHttpClient).send(any(HttpRequest.class), any());
+
+        BuylistStorageService serviceWithSupabase = new BuylistStorageService(
+                badGatewayHttpClient,
+                "https://example.supabase.co",
+                "secret-api-key",
+                "buylist-images",
+                tempDir.resolve("fallback-502-test").toString()
+        );
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "pikachu.webp",
+                "image/webp",
+                "fake-pikachu-bytes".getBytes()
+        );
+
+        String result = serviceWithSupabase.storeFile(file);
+
+        assertNotNull(result);
+        assertTrue(result.startsWith("/uploads/buylist/"));
+        assertTrue(result.endsWith(".webp"));
     }
 }
