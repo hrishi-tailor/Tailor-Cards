@@ -5,6 +5,11 @@ spring:
   application:
     name: api
 
+  security:
+    user:
+      name: ${ADMIN_USERNAME:admin}
+      password: ${ADMIN_PASSWORD:admin}
+
   servlet:
     multipart:
       enabled: true

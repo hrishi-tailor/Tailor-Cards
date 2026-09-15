@@ -1,5 +1,5 @@
 import { API_BASE_URL } from './config';
-import type { BuylistSubmission, BuylistSubmissionPayload, BuylistMessage, BuylistUploadResponse } from '../types';
+import type { BuylistSubmission, BuylistSubmissionPayload, BuylistMessage, BuylistUploadResponse, BuylistStatus } from '../types';
 
 /**
  * Resolves an image URL to an absolute URL if needed (handles relative /uploads paths).
@@ -134,3 +134,138 @@ export async function postBuylistMessage(
 
   return response.json();
 }
+
+/**
+ * Admin credentials helper for Basic Auth
+ */
+export function getAdminAuthHeader(): string {
+  const stored = localStorage.getItem('tc_admin_auth');
+  if (stored) {
+    return stored;
+  }
+  // Default fallback to admin:admin
+  return btoa('admin:admin');
+}
+
+export function setAdminAuth(username: string, password: string): void {
+  const encoded = btoa(`${username.trim()}:${password.trim()}`);
+  localStorage.setItem('tc_admin_auth', encoded);
+}
+
+export function clearAdminAuth(): void {
+  localStorage.removeItem('tc_admin_auth');
+}
+
+/**
+ * Fetches buylist submissions for admin dashboard.
+ */
+export async function getAdminBuylistSubmissions(
+  status?: string,
+  page = 0,
+  size = 100
+): Promise<{ content: BuylistSubmission[]; totalElements: number; totalPages: number }> {
+  const params = new URLSearchParams();
+  if (status && status !== 'ALL') {
+    params.set('status', status);
+  }
+  params.set('page', page.toString());
+  params.set('size', size.toString());
+  params.set('sort', 'createdAt,desc');
+
+  const auth = getAdminAuthHeader();
+  const response = await fetch(`${API_BASE_URL}/api/buylist/admin/submissions?${params.toString()}`, {
+    headers: {
+      'Authorization': `Basic ${auth}`,
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('Unauthorized: Admin credentials required.');
+    }
+    let errorMsg = `Failed to fetch submissions (${response.status})`;
+    try {
+      const data = await response.json();
+      if (data && (data.message || data.error)) {
+        errorMsg = data.message || data.error;
+      }
+    } catch {}
+    throw new Error(errorMsg);
+  }
+
+  return response.json();
+}
+
+/**
+ * Updates submission status via PATCH /api/buylist/admin/submissions/{id}/status.
+ */
+export async function updateBuylistStatus(
+  submissionId: number,
+  status: BuylistStatus
+): Promise<BuylistSubmission> {
+  const auth = getAdminAuthHeader();
+  const response = await fetch(`${API_BASE_URL}/api/buylist/admin/submissions/${submissionId}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Basic ${auth}`,
+    },
+    body: JSON.stringify({ status }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('Unauthorized: Admin credentials required.');
+    }
+    let errorMsg = `Failed to update status (${response.status})`;
+    try {
+      const data = await response.json();
+      if (data && (data.message || data.error)) {
+        errorMsg = data.message || data.error;
+      }
+    } catch {}
+    throw new Error(errorMsg);
+  }
+
+  return response.json();
+}
+
+/**
+ * Posts an admin reply message to POST /api/buylist/admin/submissions/{id}/messages.
+ */
+export async function postAdminBuylistMessage(
+  submissionId: number,
+  message: string,
+  senderEmail = 'admin@tailorcards.com'
+): Promise<BuylistMessage> {
+  const auth = getAdminAuthHeader();
+  const response = await fetch(`${API_BASE_URL}/api/buylist/admin/submissions/${submissionId}/messages`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Basic ${auth}`,
+    },
+    body: JSON.stringify({
+      message: message.trim(),
+      senderEmail: senderEmail.trim(),
+      senderRole: 'ADMIN',
+    }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('Unauthorized: Admin credentials required.');
+    }
+    let errorMsg = `Failed to post message (${response.status})`;
+    try {
+      const data = await response.json();
+      if (data && (data.message || data.error)) {
+        errorMsg = data.message || data.error;
+      }
+    } catch {}
+    throw new Error(errorMsg);
+  }
+
+  return response.json();
+}
+

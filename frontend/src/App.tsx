@@ -4,6 +4,7 @@ import { ProductList } from './components/ProductList'
 import { Cart } from './components/Cart'
 import { SellBuylist } from './components/SellBuylist'
 import { TrackBuylist } from './components/TrackBuylist'
+import { AdminBuylist } from './components/AdminBuylist'
 import { CartProvider, useCart } from './context/CartContext'
 import logoImg from './assets/logo.jpg'
 import './App.css'
@@ -116,6 +117,12 @@ function BoutiqueTopNav({ onCategorySelect, selectedCategory }: { onCategorySele
           >
             Sell to Us
           </NavLink>
+          <NavLink
+            to="/admin/buylist"
+            className={({ isActive }) => `tc-menu-link tc-admin-nav-link ${isActive ? 'active' : ''}`}
+          >
+            🛡️ Buylist Admin
+          </NavLink>
           <span className="tc-nav-guarantee">✨ Verified Authenticity & Insured Shipping</span>
         </div>
       </nav>
@@ -135,6 +142,7 @@ function AppContent() {
           <Route path="/cart" element={<Cart />} />
           <Route path="/sell" element={<SellBuylist />} />
           <Route path="/sell/track/:token" element={<TrackBuylist />} />
+          <Route path="/admin/buylist" element={<AdminBuylist />} />
         </Routes>
       </main>
       <footer className="tc-footer">
@@ -143,6 +151,11 @@ function AppContent() {
             <span className="tc-logo-tailor">TAILOR</span>
             <span className="tc-logo-cards">CARDS</span>
             <p>Premium Trading Cards, Graded Slabs & Collector Supplies.</p>
+          </div>
+          <div className="tc-footer-links">
+            <Link to="/sell" className="tc-footer-link">Sell to Us</Link>
+            <span className="tc-footer-dot">•</span>
+            <Link to="/admin/buylist" className="tc-footer-link tc-footer-admin-link">Buylist Admin Portal</Link>
           </div>
           <div className="tc-footer-copy">
             © {new Date().getFullYear()} Tailor Cards. All rights reserved.
