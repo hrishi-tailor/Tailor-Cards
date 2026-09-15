@@ -6,10 +6,13 @@ spring:
     name: api
 
   datasource:
-    url: ${DB_URL:${SPRING_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:tailorcards}}}
+    url: ${DB_URL:${SPRING_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:tailorcards}?prepareThreshold=0}}
     username: ${DB_USERNAME:${SPRING_DATASOURCE_USERNAME:postgres}}
     password: ${DB_PASSWORD:${SPRING_DATASOURCE_PASSWORD:postgres}}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      data-source-properties:
+        prepareThreshold: 0
 
   jpa:
     hibernate:
