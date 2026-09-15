@@ -1,17 +1,20 @@
 /* ==========================================================================
-   Cart — Boutique TCG Store Styling
-   Two-column layout (75% items left, 25% order summary right)
+   Cart — Japanese Vault Collector Styling
+   Palette: Matte ink black (#0c0d10), Charcoal slate (#13151a),
+   Uniform 1px hairlines (rgba(255, 255, 255, 0.08)),
+   Chalk white (#f4f4f5), Muted stone (#a1a1aa).
+   Accent: Pale Champagne / Antique Gold (#d4af37).
    ========================================================================== */
 
 .tc-cart-wrapper {
-  max-width: 1380px;
+  max-width: 1360px;
   margin: 0 auto;
   padding: 32px 24px 64px;
 }
 
 .tc-cart-grid-layout {
   display: flex;
-  gap: 28px;
+  gap: 24px;
   align-items: flex-start;
 }
 
@@ -19,11 +22,10 @@
 .tc-cart-items-card {
   flex: 3;
   width: 75%;
-  background-color: var(--tc-card);
+  background-color: var(--tc-surface);
   border: 1px solid var(--tc-border);
-  border-radius: 8px;
-  padding: 28px;
-  box-shadow: var(--tc-shadow-card);
+  border-radius: var(--tc-radius);
+  padding: 24px;
   box-sizing: border-box;
 }
 
@@ -36,31 +38,33 @@
 }
 
 .tc-cart-card-header h1 {
-  font-size: 1.6rem;
+  font-size: 20px;
+  line-height: 28px;
   font-weight: 700;
   color: var(--tc-text-primary);
   margin: 0;
-  letter-spacing: -0.01em;
 }
 
 .tc-cart-session-info {
-  font-size: 0.8rem;
-  color: var(--tc-text-secondary);
+  font-family: var(--tc-font-mono);
+  font-size: 11px;
+  color: var(--tc-text-muted);
 }
 
 .tc-cart-session-info code {
-  background-color: #F1F5F9;
-  color: var(--tc-text-primary);
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--tc-border);
+  color: var(--tc-text-secondary);
   padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.76rem;
+  border-radius: var(--tc-radius-sm);
+  font-size: 11px;
 }
 
-/* Cart Items Rows */
+/* Cart Items List */
 .tc-cart-item-row {
   display: flex;
-  gap: 20px;
-  padding: 24px 0;
+  gap: 16px;
+  padding: 20px 0;
   border-bottom: 1px solid var(--tc-border-subtle);
   align-items: center;
 }
@@ -71,15 +75,15 @@
 
 /* Left Image */
 .tc-cart-item-img-wrap {
-  width: 100px;
-  height: 100px;
+  width: 80px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #F8FAFC;
-  border: 1px solid var(--tc-border-subtle);
-  border-radius: 8px;
-  padding: 8px;
+  background-color: #09090b;
+  border: 1px solid var(--tc-border);
+  border-radius: var(--tc-radius-sm);
+  padding: 6px;
   flex-shrink: 0;
 }
 
@@ -90,7 +94,8 @@
 }
 
 .tc-cart-no-img {
-  font-size: 0.75rem;
+  font-family: var(--tc-font-mono);
+  font-size: 11px;
   color: var(--tc-text-muted);
 }
 
@@ -103,66 +108,66 @@
 }
 
 .tc-cart-item-title {
-  font-size: 1.1rem;
+  font-size: 15px;
+  line-height: 20px;
   font-weight: 600;
   color: var(--tc-text-primary);
   margin: 0;
-  line-height: 1.35;
 }
 
 .tc-cart-item-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 0.85rem;
+  gap: 8px;
+  font-family: var(--tc-font-mono);
+  font-size: 12px;
 }
 
 .tc-cart-qty-pill {
-  background-color: #F1F5F9;
+  background-color: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--tc-border);
-  color: var(--tc-text-primary);
-  font-weight: 600;
-  padding: 2px 10px;
-  border-radius: 4px;
-  font-size: 0.82rem;
+  color: var(--tc-text-secondary);
+  padding: 2px 6px;
+  border-radius: var(--tc-radius-sm);
 }
 
 .tc-cart-unit-price {
-  color: var(--tc-text-secondary);
+  color: var(--tc-text-muted);
 }
 
 .tc-cart-remove-btn {
-  align-self: flex-start;
-  margin-top: 4px;
-  background: none;
+  background: transparent;
   border: none;
-  color: #DC2626;
-  font-size: 0.82rem;
-  font-weight: 500;
-  cursor: pointer;
+  color: var(--tc-text-muted);
+  font-size: 12px;
   padding: 0;
-  transition: color 0.15s;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.15s ease;
+  font-family: inherit;
+  align-self: flex-start;
 }
 
-.tc-cart-remove-btn:hover:not(:disabled) {
-  color: #B91C1C;
-  text-decoration: underline;
+.tc-cart-remove-btn:hover {
+  color: var(--tc-status-red);
 }
 
 .tc-cart-remove-btn:disabled {
-  color: var(--tc-text-muted);
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 /* Right Item Subtotal */
 .tc-cart-item-price-wrap {
   text-align: right;
-  min-width: 120px;
+  min-width: 110px;
   flex-shrink: 0;
 }
 
 .tc-cart-item-total {
-  font-size: 1.3rem;
+  font-family: var(--tc-font-mono);
+  font-size: 15px;
   font-weight: 700;
   color: var(--tc-text-primary);
   margin: 0;
@@ -177,46 +182,45 @@
 }
 
 .tc-continue-link {
-  color: var(--tc-purple-primary);
+  color: var(--tc-text-secondary);
   text-decoration: none;
-  font-size: 0.92rem;
-  font-weight: 600;
-  transition: color 0.2s;
+  font-size: 13px;
+  transition: color 0.15s ease;
 }
 
 .tc-continue-link:hover {
-  color: var(--tc-purple-hover);
-  text-decoration: underline;
+  color: var(--tc-text-primary);
 }
 
 .tc-cart-left-subtotal {
-  font-size: 1.15rem;
-  color: var(--tc-text-primary);
+  font-size: 14px;
+  color: var(--tc-text-secondary);
 }
 
 .tc-cart-left-subtotal strong {
-  font-size: 1.35rem;
-  font-weight: 800;
+  font-family: var(--tc-font-mono);
+  font-size: 16px;
+  font-weight: 700;
   color: var(--tc-text-primary);
-  margin-left: 6px;
+  margin-left: 8px;
 }
 
 /* ==================== Right Column (25%) ==================== */
 .tc-cart-summary-card {
   flex: 1;
   width: 25%;
-  background-color: var(--tc-card);
+  background-color: var(--tc-surface);
   border: 1px solid var(--tc-border);
-  border-radius: 8px;
+  border-radius: var(--tc-radius);
   padding: 24px;
-  box-shadow: var(--tc-shadow-card);
   position: sticky;
-  top: 100px;
+  top: 80px;
   box-sizing: border-box;
 }
 
 .tc-summary-title {
-  font-size: 1.25rem;
+  font-size: 16px;
+  line-height: 22px;
   font-weight: 700;
   color: var(--tc-text-primary);
   margin: 0 0 16px;
@@ -229,135 +233,126 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
-  font-size: 0.95rem;
+  font-size: 13px;
   color: var(--tc-text-secondary);
+}
+
+.tc-summary-row span:last-child {
+  font-family: var(--tc-font-mono);
+  color: var(--tc-text-primary);
 }
 
 .tc-summary-row.total-row {
   margin-top: 16px;
   padding-top: 14px;
   border-top: 1px solid var(--tc-border);
-  font-size: 1.1rem;
+  font-size: 14px;
   font-weight: 700;
   color: var(--tc-text-primary);
 }
 
 .tc-summary-total-amount {
-  font-size: 1.4rem;
-  font-weight: 800;
+  font-family: var(--tc-font-mono);
+  font-size: 18px;
+  font-weight: 700;
   color: var(--tc-text-primary);
 }
 
-/* Rich Indigo/Purple Proceed to Checkout Button */
 .tc-checkout-btn {
   width: 100%;
-  margin-top: 20px;
-  padding: 12px 16px;
-  background-color: var(--tc-purple-primary);
-  color: #FFFFFF;
-  border: 1px solid var(--tc-purple-primary);
-  border-radius: 6px;
-  font-size: 0.95rem;
+  height: 40px;
+  background: var(--tc-accent-subtle);
+  color: var(--tc-text-primary);
+  border: 1px solid var(--tc-accent-border);
+  border-radius: var(--tc-radius);
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.01em;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(90, 24, 154, 0.2);
+  margin-top: 20px;
   transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  font-family: inherit;
 }
 
 .tc-checkout-btn:hover {
-  background-color: var(--tc-purple-hover);
-  border-color: var(--tc-purple-hover);
-  box-shadow: 0 4px 12px rgba(123, 44, 191, 0.3);
-  transform: translateY(-1px);
-}
-
-.tc-checkout-btn:active {
-  transform: translateY(0);
+  background: rgba(212, 175, 55, 0.16);
+  border-color: var(--tc-accent);
+  color: #ffffff;
 }
 
 .tc-security-note {
-  margin-top: 14px;
-  font-size: 0.8rem;
+  margin-top: 12px;
+  font-size: 11px;
+  line-height: 15px;
   color: var(--tc-text-muted);
   text-align: center;
 }
 
-/* Empty Cart State */
+/* ==================== Empty State ==================== */
 .tc-empty-cart-card {
-  background-color: var(--tc-card);
+  background-color: var(--tc-surface);
   border: 1px solid var(--tc-border);
-  border-radius: 12px;
-  padding: 56px 32px;
+  border-radius: var(--tc-radius);
+  padding: 48px 24px;
   text-align: center;
-  box-shadow: var(--tc-shadow-card);
-  max-width: 600px;
-  margin: 20px auto 0;
+  max-width: 480px;
+  margin: 40px auto;
 }
 
 .tc-empty-icon-wrap {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background-color: var(--tc-purple-soft);
-  color: var(--tc-purple-primary);
   display: flex;
-  align-items: center;
   justify-content: center;
-  margin: 0 auto 20px;
+  margin-bottom: 16px;
 }
 
 .tc-empty-icon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
+  color: var(--tc-text-muted);
 }
 
 .tc-empty-cart-card h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 20px;
   color: var(--tc-text-primary);
-  margin: 0 0 8px;
+  margin-bottom: 8px;
 }
 
 .tc-empty-cart-card p {
+  font-size: 14px;
   color: var(--tc-text-secondary);
-  font-size: 0.95rem;
-  margin: 0 0 24px;
-  line-height: 1.5;
+  margin-bottom: 20px;
 }
 
 .tc-browse-btn {
-  display: inline-block;
-  padding: 10px 24px;
-  background-color: var(--tc-purple-primary);
-  color: #FFFFFF;
-  border-radius: 6px;
-  font-size: 0.92rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 18px;
+  background: var(--tc-accent-subtle);
+  color: var(--tc-text-primary);
+  border: 1px solid var(--tc-accent-border);
+  border-radius: var(--tc-radius);
+  font-size: 13px;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(90, 24, 154, 0.2);
 }
 
 .tc-browse-btn:hover {
-  background-color: var(--tc-purple-hover);
-  box-shadow: 0 4px 10px rgba(123, 44, 191, 0.3);
-  transform: translateY(-1px);
+  background: rgba(212, 175, 55, 0.16);
+  border-color: var(--tc-accent);
+  color: #ffffff;
 }
 
-/* Responsive Media Queries */
-@media (max-width: 900px) {
+@media (max-width: 860px) {
   .tc-cart-grid-layout {
     flex-direction: column;
   }
   .tc-cart-items-card,
   .tc-cart-summary-card {
     width: 100%;
-    flex: none;
+  }
+  .tc-cart-summary-card {
     position: static;
   }
 }

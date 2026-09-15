@@ -169,7 +169,6 @@ export function Cart() {
             </span>
           </div>
 
-          {/* Indigo/Purple Proceed to Checkout button */}
           <button
             type="button"
             className="tc-checkout-btn"
@@ -179,7 +178,7 @@ export function Cart() {
           </button>
 
           <div className="tc-security-note">
-            🔒 Fully insured & tamper-evident packaging
+            Tracked &amp; insured shipping in protective sleeve + toploader
           </div>
         </aside>
       </div>

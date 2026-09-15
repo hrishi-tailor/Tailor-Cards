@@ -191,7 +191,10 @@ export function AdminLoginPage() {
         {/* Footer back link */}
         <div className="tc-login-footer">
           <Link to="/" className="tc-login-back-link">
-            ← Return to Public Storefront
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="tc-back-icon">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            <span>Return to Public Storefront</span>
           </Link>
         </div>
       </div>

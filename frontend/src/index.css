@@ -1,111 +1,247 @@
+/* ==========================================================================
+   Tailor Cards — Japanese Boutique Collector Foundation (Akihabara/Shibuya Vault)
+   Palette: Matte ink black (#0c0d10), Charcoal slate (#13151a),
+   Uniform 1px hairlines (rgba(255, 255, 255, 0.08)),
+   High-contrast chalk white (#f4f4f5), Muted stone (#a1a1aa).
+   Accent: Pale Champagne / Antique Gold (#d4af37, #e2b774).
+   ========================================================================== */
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* Surfaces */
+  --tc-bg: #0c0d10;
+  --tc-surface: #13151a;
+  --tc-card: #13151a;
+  --tc-card-hover: #191c22;
+  --tc-card-active: #21252d;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Hairlines & Borders */
+  --tc-border: rgba(255, 255, 255, 0.08);
+  --tc-border-subtle: rgba(255, 255, 255, 0.04);
+  --tc-border-strong: rgba(255, 255, 255, 0.16);
+  --tc-border-highlight: rgba(212, 175, 55, 0.35);
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
+  /* Typography Colors */
+  --tc-text-primary: #f4f4f5;
+  --tc-text-secondary: #a1a1aa;
+  --tc-text-muted: #71717a;
+
+  /* Pale Champagne / Antique Gold Accent */
+  --tc-accent: #d4af37;
+  --tc-accent-hover: #e2b774;
+  --tc-accent-subtle: rgba(212, 175, 55, 0.08);
+  --tc-accent-border: rgba(212, 175, 55, 0.28);
+  --tc-accent-strong: rgba(212, 175, 55, 0.45);
+
+  /* Functional Status (Strictly for grading/orders, never decoration) */
+  --tc-status-green: #10b981;
+  --tc-status-green-subtle: rgba(16, 185, 129, 0.1);
+  --tc-status-green-border: rgba(16, 185, 129, 0.35);
+
+  --tc-status-blue: #38bdf8;
+  --tc-status-blue-subtle: rgba(56, 189, 248, 0.1);
+  --tc-status-blue-border: rgba(56, 189, 248, 0.35);
+
+  --tc-status-red: #ef4444;
+  --tc-status-red-subtle: rgba(239, 68, 68, 0.1);
+  --tc-status-red-border: rgba(239, 68, 68, 0.35);
+
+  /* Typography System: Display & Body (Plus Jakarta Sans), Rates & Data (Space Mono) */
+  --tc-font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --tc-font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --tc-font-mono: 'Space Mono', ui-monospace, SFMono-Regular, monospace;
+  --tc-font-sans: var(--tc-font-body);
+
+  /* Standardized Border Radii */
+  --tc-radius-sm: 4px;
+  --tc-radius: 6px;
+
+  /* Strict 8-Point Spatial Grid */
+  --tc-space-1: 8px;
+  --tc-space-2: 16px;
+  --tc-space-3: 24px;
+  --tc-space-4: 32px;
+  --tc-space-6: 48px;
+  --tc-space-8: 64px;
+
+  font-family: var(--tc-font-body);
+  line-height: 1.6;
+  color-scheme: dark;
+  color: var(--tc-text-primary);
+  background-color: var(--tc-bg);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
-body {
+html, body {
   margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+  background-color: var(--tc-bg);
+  background-image: 
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(212, 175, 55, 0.07), transparent 70%),
+    radial-gradient(ellipse 60% 35% at 100% 0%, rgba(212, 175, 55, 0.03), transparent 60%);
+  background-attachment: fixed;
+  color: var(--tc-text-primary);
+  font-family: var(--tc-font-body);
+  line-height: 1.6;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+#root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: transparent;
+}
+
+/* Typographic Rhythm — Plus Jakarta Sans for Display & Headings */
+h1, h2, h3, h4, .tc-display-heading {
+  font-family: var(--tc-font-display);
+  letter-spacing: -0.025em;
+  font-stretch: normal;
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  font-stretch: normal;
+  margin: 0;
+  color: var(--tc-text-primary);
 }
+
 h2 {
   font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
+  line-height: 32px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  font-stretch: normal;
+  margin: 0;
+  color: var(--tc-text-primary);
 }
+
+h3 {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  font-stretch: normal;
+  margin: 0;
+  color: var(--tc-text-primary);
+}
+
+h4 {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  font-stretch: normal;
+  margin: 0;
+  color: var(--tc-text-primary);
+}
+
 p {
+  font-family: var(--tc-font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 400;
+  color: var(--tc-text-secondary);
   margin: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+/* Monospace & Tabular Data Elements */
+code, pre, .tc-mono {
+  font-family: var(--tc-font-mono);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+  letter-spacing: normal;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+/* Focus State */
+:focus-visible {
+  outline: 1px solid var(--tc-accent);
+  outline-offset: 2px;
+}
+
+/* Minimalist Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0c0d10;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: var(--tc-radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* Selection */
+::selection {
+  background-color: rgba(212, 175, 55, 0.25);
+  color: #ffffff;
+}
+
+/* ==================== Tactile Atmosphere & Accent Notches ==================== */
+.tc-corner-accent {
+  position: relative;
+}
+
+.tc-corner-accent::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 10px;
+  height: 10px;
+  border-top: 2px solid var(--tc-accent);
+  border-left: 2px solid var(--tc-accent);
+  border-top-left-radius: var(--tc-radius);
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.tc-corner-accent::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 10px;
+  height: 10px;
+  border-bottom: 2px solid var(--tc-accent);
+  border-right: 2px solid var(--tc-accent);
+  border-bottom-right-radius: var(--tc-radius);
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Metallic Shimmer for Active/Featured Cards */
+.tc-shimmer-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.tc-shimmer-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.08), transparent 70%);
+  pointer-events: none;
 }

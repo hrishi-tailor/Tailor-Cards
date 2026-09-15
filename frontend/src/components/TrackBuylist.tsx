@@ -171,15 +171,15 @@ export function TrackBuylist() {
   const getStatusBadge = (status: BuylistStatus) => {
     switch (status) {
       case 'PENDING':
-        return <span className="tc-status-badge badge-pending">⏳ Pending Review</span>
+        return <span className="tc-status-badge badge-pending">[PENDING REVIEW]</span>
       case 'UNDER_REVIEW':
-        return <span className="tc-status-badge badge-review">🔍 Under Review</span>
+        return <span className="tc-status-badge badge-review">[UNDER REVIEW]</span>
       case 'OFFERED':
-        return <span className="tc-status-badge badge-offered">💰 Offer Made</span>
+        return <span className="tc-status-badge badge-offered">[OFFER MADE]</span>
       case 'ACCEPTED':
-        return <span className="tc-status-badge badge-accepted">✅ Offer Accepted</span>
+        return <span className="tc-status-badge badge-accepted">[OFFER ACCEPTED]</span>
       case 'REJECTED':
-        return <span className="tc-status-badge badge-rejected">✕ Offer Declined</span>
+        return <span className="tc-status-badge badge-rejected">[OFFER DECLINED]</span>
       default:
         return <span className="tc-status-badge">{status}</span>
     }
@@ -238,7 +238,12 @@ export function TrackBuylist() {
     return (
       <div className="tc-track-wrapper">
         <div className="tc-track-error-card">
-          <div className="tc-track-error-icon">✕</div>
+          <div className="tc-track-error-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 24, height: 24 }}>
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </div>
           <h2>Submission Not Found</h2>
           <p>{error}</p>
           <div className="tc-track-error-actions">
@@ -264,7 +269,10 @@ export function TrackBuylist() {
       {/* Top Breadcrumb & Link Header */}
       <div className="tc-track-top-bar">
         <Link to="/sell" className="tc-track-breadcrumb">
-          ← Sell to Us
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="tc-back-icon">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          <span>Sell to Us</span>
         </Link>
         <div className="tc-token-pill-wrap">
           <span className="tc-token-pill-label">Tracking ID:</span>
@@ -275,7 +283,7 @@ export function TrackBuylist() {
             onClick={handleCopyLink}
             title="Copy tracking link"
           >
-            {copiedLink ? 'Link Copied! ✓' : 'Copy Tracking Link'}
+            {copiedLink ? 'Link Copied' : 'Copy Tracking Link'}
           </button>
         </div>
       </div>
@@ -415,7 +423,11 @@ export function TrackBuylist() {
             <div className="tc-chat-messages-container" aria-live="polite">
               {messages.length === 0 ? (
                 <div className="tc-chat-empty-state">
-                  <div className="tc-chat-empty-icon">💬</div>
+                  <div className="tc-chat-empty-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 28, height: 28, color: '#64748b' }}>
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                  </div>
                   <h3>No messages yet</h3>
                   <p>
                     Our appraisal specialists are reviewing your submission.
@@ -508,7 +520,10 @@ export function TrackBuylist() {
               onClick={() => setActivePhotoIndex(null)}
               aria-label="Close Lightbox"
             >
-              ✕
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
             </button>
 
             <div className="tc-lightbox-image-wrap">
@@ -531,7 +546,7 @@ export function TrackBuylist() {
                 }
                 aria-label="Previous Photo"
               >
-                ‹ Previous
+                Previous
               </button>
 
               <span className="tc-lightbox-counter">
@@ -548,7 +563,7 @@ export function TrackBuylist() {
                 }
                 aria-label="Next Photo"
               >
-                Next ›
+                Next
               </button>
             </div>
           </div>

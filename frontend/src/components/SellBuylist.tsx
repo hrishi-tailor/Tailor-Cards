@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { uploadBuylistImage, submitBuylist } from '../api/buylistApi'
 import type { BuylistSubmission } from '../types'
+import { BuylistPayoutMatrix } from './BuylistPayoutMatrix'
 import './SellBuylist.css'
 
 interface SelectedFile {
@@ -15,6 +16,7 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 export function SellBuylist() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Form Fields
@@ -24,6 +26,7 @@ export function SellBuylist() {
   const [customerName, setCustomerName] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [additionalComments, setAdditionalComments] = useState('')
+  const [lockedTierBadge, setLockedTierBadge] = useState<string | null>(null)
 
   // Files & Previews
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([])
@@ -34,8 +37,44 @@ export function SellBuylist() {
   const [generalError, setGeneralError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [uploadStatusText, setUploadStatusText] = useState('')
+  const [uploadPercent, setUploadPercent] = useState(0)
   const [submissionSuccess, setSubmissionSuccess] = useState<BuylistSubmission | null>(null)
   const [copiedLink, setCopiedLink] = useState(false)
+
+  // Read URL search params from Estimator on other pages
+  useEffect(() => {
+    const tierParam = searchParams.get('tier')
+    const payoutParam = searchParams.get('payout')
+    const marketParam = searchParams.get('market')
+
+    if (payoutParam) {
+      setAskingPrice(payoutParam)
+    }
+    if (tierParam && payoutParam) {
+      const badgeText = `${tierParam} · $${payoutParam} CAD Payout`
+      setLockedTierBadge(badgeText)
+      setAdditionalComments((prev) => {
+        const note = `[Buylist Locked Rate: ${tierParam} | Market: $${marketParam || ''} CAD | Cash Payout: $${payoutParam} CAD]`
+        return prev && prev.includes(tierParam) ? prev : prev ? `${prev}\n${note}` : note
+      })
+      setTimeout(() => {
+        document.getElementById('buylist-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 200)
+    }
+  }, [searchParams])
+
+  // In-page rate lock handler from BuylistPayoutMatrix
+  const handleLockRate = (tierName: string, rate: number, marketPrice: number, payoutAmount: number) => {
+    setAskingPrice(payoutAmount.toFixed(2))
+    setLockedTierBadge(`${tierName} (${(rate * 100).toFixed(0)}%) · $${payoutAmount.toFixed(2)} CAD Payout`)
+    setAdditionalComments((prev) => {
+      const note = `[Buylist Locked Rate: ${tierName} (${(rate * 100).toFixed(0)}%) | Market: $${marketPrice.toFixed(2)} CAD | Cash Payout: $${payoutAmount.toFixed(2)} CAD]`
+      return prev ? `${prev}\n${note}` : note
+    })
+    setTimeout(() => {
+      document.getElementById('buylist-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
 
   // Clean up object URLs on unmount
   useEffect(() => {
@@ -149,9 +188,10 @@ export function SellBuylist() {
 
     setIsSubmitting(true)
     setUploadStatusText('Preparing images...')
+    setUploadPercent(5)
 
     try {
-      // 1. Upload photos sequentially (or in parallel) to POST /api/buylist/upload
+      // 1. Upload photos sequentially to POST /api/buylist/upload
       const uploadedImageUrls: string[] = []
       const totalFiles = selectedFiles.length
 
@@ -159,10 +199,12 @@ export function SellBuylist() {
         setUploadStatusText(`Uploading photo ${i + 1} of ${totalFiles}...`)
         const uploadedUrl = await uploadBuylistImage(selectedFiles[i].file)
         uploadedImageUrls.push(uploadedUrl)
+        setUploadPercent(Math.round(((i + 1) / totalFiles) * 80))
       }
 
       // 2. Submit form to POST /api/buylist/submit
       setUploadStatusText('Submitting your card for valuation...')
+      setUploadPercent(90)
       const numericPrice = askingPrice.trim() ? parseFloat(askingPrice) : undefined
 
       const submissionResponse = await submitBuylist({
@@ -175,12 +217,14 @@ export function SellBuylist() {
         imageUrls: uploadedImageUrls,
       })
 
+      setUploadPercent(100)
       setSubmissionSuccess(submissionResponse)
     } catch (err) {
       setGeneralError(err instanceof Error ? err.message : 'An unexpected error occurred while submitting.')
     } finally {
       setIsSubmitting(false)
       setUploadStatusText('')
+      setUploadPercent(0)
     }
   }
 
@@ -234,7 +278,11 @@ export function SellBuylist() {
 
           {/* Bookmark Notice Callout */}
           <div className="tc-bookmark-notice">
-            <div className="tc-bookmark-icon">📌</div>
+            <div className="tc-bookmark-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 20, height: 20 }}>
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+              </svg>
+            </div>
             <div className="tc-bookmark-content">
               <strong>Important: Bookmark this page or save your tracking link!</strong>
               <p>
@@ -316,24 +364,27 @@ export function SellBuylist() {
       {/* Hero Header */}
       <section className="tc-sell-hero">
         <div className="tc-sell-hero-content">
-          <div className="tc-sell-badge">💎 Sell Directly to Tailor Cards</div>
+          <div className="tc-sell-badge">[BUYLIST] Tailor Cards Vault Acquisition</div>
           <h1 className="tc-sell-hero-title">Turn Your Cards into Instant Cash (CAD)</h1>
           <p className="tc-sell-hero-subtitle">
-            We purchase high-end Pokémon, Magic: The Gathering, Lorcana singles, vintage holos, and graded slabs.
-            Submit your photos for a fast, competitive valuation with insured shipping and zero hassle.
+            We acquire vintage holos, modern chase singles, factory-sealed boxes, and graded slabs (PSA, BGS, CGC).
+            Submit your photos for a fast, guaranteed valuation with zero seller fees and immediate payment.
           </p>
         </div>
         <div className="tc-sell-hero-stats">
           <div className="tc-stat-card">
-            <span className="tc-stat-number">24-48h</span>
+            <span className="tc-stat-number tc-mono">24-48h</span>
             <span className="tc-stat-label">Fast Offer Turnaround</span>
           </div>
           <div className="tc-stat-card">
-            <span className="tc-stat-number">100%</span>
-            <span className="tc-stat-label">CAD Cash or Credit</span>
+            <span className="tc-stat-number tc-mono">100%</span>
+            <span className="tc-stat-label">Interac e-Transfer or Cash</span>
           </div>
         </div>
       </section>
+
+      {/* Direct Payout Matrix & Interactive Estimator */}
+      <BuylistPayoutMatrix showCta={false} onLockRate={handleLockRate} />
 
       {/* Visual Guidelines & Tips Banner */}
       <section className="tc-guidelines-banner">
@@ -345,7 +396,7 @@ export function SellBuylist() {
             </svg>
           </div>
           <div>
-            <h2 className="tc-guidelines-title">Photo Requirements & Grading Tips</h2>
+            <h2 className="tc-guidelines-title">Photo Requirements &amp; Grading Tips</h2>
             <p className="tc-guidelines-subtitle">
               High-clarity photos enable our appraisal team to offer top dollar for your cards.
             </p>
@@ -354,22 +405,45 @@ export function SellBuylist() {
 
         <div className="tc-tips-grid">
           <div className="tc-tip-item">
-            <span className="tc-tip-check">✓</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14" className="tc-tip-check-svg">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
             <p><strong>Take clear, well-lit, close-up photos outside of binders/sleeves.</strong></p>
           </div>
           <div className="tc-tip-item">
-            <span className="tc-tip-check">✓</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14" className="tc-tip-check-svg">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
             <p><strong>Include front, back, all 4 corners, and any surface scratches, creases, or imperfections.</strong></p>
           </div>
           <div className="tc-tip-item">
-            <span className="tc-tip-check">✓</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14" className="tc-tip-check-svg">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
             <p>Use a clean, non-reflective dark background to highlight centering and edge whitening.</p>
           </div>
         </div>
       </section>
 
       {/* Main Form Container */}
-      <form className="tc-sell-form" onSubmit={handleSubmit} noValidate>
+      <form className="tc-sell-form" id="buylist-form" onSubmit={handleSubmit} noValidate>
+        {lockedTierBadge && (
+          <div className="tc-locked-rate-banner" role="status">
+            <div className="tc-locked-rate-info">
+              <span className="tc-locked-badge-pill tc-mono">[LOCKED BUYLIST RATE]</span>
+              <span className="tc-locked-text">{lockedTierBadge} — Pre-filled into Asking Price below.</span>
+            </div>
+            <button
+              type="button"
+              className="tc-locked-dismiss-btn"
+              onClick={() => setLockedTierBadge(null)}
+              title="Clear locked rate banner"
+            >
+              Dismiss ✕
+            </button>
+          </div>
+        )}
+
         {generalError && (
           <div className="tc-sell-error-banner" role="alert">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="tc-alert-svg">
@@ -384,7 +458,7 @@ export function SellBuylist() {
         <div className="tc-sell-form-grid">
           {/* Left Column: Card & Contact Details */}
           <div className="tc-form-column">
-            <div className="tc-form-section-card">
+            <div className="tc-form-section-card tc-corner-accent">
               <h2 className="tc-section-title">1. Card Information</h2>
 
               {/* Card Name */}
@@ -589,14 +663,17 @@ export function SellBuylist() {
                             title="Remove photo"
                             aria-label={`Remove photo ${item.file.name}`}
                           >
-                            ✕
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
+                              <line x1="18" y1="6" x2="6" y2="18" />
+                              <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
                           </button>
                         </div>
                         <div className="tc-thumbnail-info">
                           <span className="tc-thumbnail-filename" title={item.file.name}>
                             {item.file.name}
                           </span>
-                          <span className="tc-thumbnail-size">
+                          <span className="tc-thumbnail-size tc-mono">
                             {(item.file.size / (1024 * 1024)).toFixed(2)} MB
                           </span>
                         </div>
@@ -610,23 +687,26 @@ export function SellBuylist() {
               <div className="tc-submit-box">
                 {isSubmitting ? (
                   <div className="tc-upload-progress-box">
-                    <div className="tc-spinner" />
                     <div className="tc-progress-text-group">
-                      <span className="tc-progress-title">Uploading & Submitting</span>
-                      <span className="tc-progress-detail">{uploadStatusText}</span>
+                      <span className="tc-progress-title">Uploading &amp; Submitting</span>
+                      <span className="tc-progress-detail tc-mono">{uploadStatusText} ({uploadPercent}%)</span>
+                    </div>
+                    <div className="tc-progress-bar-track">
+                      <div className="tc-progress-bar-fill" style={{ width: `${uploadPercent}%` }} />
                     </div>
                   </div>
                 ) : (
                   <button type="submit" className="tc-submit-buylist-btn">
                     Submit Card for Valuation
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="tc-btn-icon">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="tc-btn-icon">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
                     </svg>
                   </button>
                 )}
 
                 <p className="tc-submit-note">
-                  🔒 No obligation to sell. All offers are valid for 7 days upon delivery of our appraisal.
+                  No obligation to sell. All cash offers are valid for 7 days upon delivery of our appraisal.
                 </p>
               </div>
             </div>
@@ -637,7 +717,11 @@ export function SellBuylist() {
       {/* Return to store footer link */}
       <div className="tc-sell-footer-nav">
         <Link to="/" className="tc-back-store-link">
-          ← Return to Cards Catalog
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14" aria-hidden="true">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          <span>Return to Catalog</span>
         </Link>
       </div>
     </div>

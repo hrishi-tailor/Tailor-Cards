@@ -379,7 +379,7 @@ export function AdminBuylist() {
       {/* Main Admin Header */}
       <header className="tc-admin-header-card">
         <div className="tc-admin-header-titles">
-          <div className="tc-admin-badge-pill">🔒 Appraisal Operations</div>
+          <div className="tc-admin-badge-pill">[STAFF] Appraisal Operations</div>
           <h1 className="tc-admin-main-title">Buylist Submissions Dashboard</h1>
           <p className="tc-admin-sub-title">
             Inspect card condition photos in high resolution, evaluate market comps, make cash offers, and manage seller conversations.
@@ -465,7 +465,10 @@ export function AdminBuylist() {
               onClick={() => setSearchQuery('')}
               title="Clear search"
             >
-              ✕
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
             </button>
           )}
         </div>
@@ -558,7 +561,12 @@ export function AdminBuylist() {
         </div>
       ) : filteredSubmissions.length === 0 ? (
         <div className="tc-admin-empty-card">
-          <div className="tc-admin-empty-icon">📭</div>
+          <div className="tc-admin-empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 32, height: 32, color: '#64748b' }}>
+              <circle cx="11" cy="11" r="7" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </div>
           <h3>No submissions found</h3>
           <p>
             {searchQuery || statusFilter !== 'ALL'
@@ -630,7 +638,7 @@ export function AdminBuylist() {
                           <span>Token: <code>{sub.trackingToken.slice(0, 8)}...</code></span>
                           {messageCount > 0 && (
                             <span className="tc-message-pill">
-                              💬 {messageCount} msg{messageCount > 1 ? 's' : ''}
+                              {messageCount} msg{messageCount > 1 ? 's' : ''}
                             </span>
                           )}
                         </div>
@@ -708,7 +716,7 @@ export function AdminBuylist() {
                   <div className="tc-grid-card-badges">
                     {renderStatusBadge(sub.status)}
                     {photoCount > 0 && (
-                      <span className="tc-grid-photo-badge">📸 {photoCount}</span>
+                      <span className="tc-grid-photo-badge">{photoCount} photos</span>
                     )}
                   </div>
                 </div>
@@ -739,7 +747,7 @@ export function AdminBuylist() {
                   <div className="tc-grid-card-footer">
                     {messageCount > 0 && (
                       <span className="tc-grid-msg-pill">
-                        💬 {messageCount} message{messageCount > 1 ? 's' : ''}
+                        {messageCount} message{messageCount > 1 ? 's' : ''}
                       </span>
                     )}
                     <button
@@ -750,7 +758,10 @@ export function AdminBuylist() {
                         setSelectedSubmission(sub)
                       }}
                     >
-                      Inspect & Manage →
+                      <span>Inspect & Manage</span>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+                      </svg>
                     </button>
                   </div>
                 </div>
@@ -788,7 +799,7 @@ export function AdminBuylist() {
                       onClick={() => handleCopyToken(selectedSubmission.trackingToken)}
                       title="Copy full tracking token"
                     >
-                      {copiedToken ? '✓ Copied' : 'Copy'}
+                      {copiedToken ? 'Copied' : 'Copy'}
                     </button>
                   </div>
                 </div>
@@ -804,7 +815,10 @@ export function AdminBuylist() {
                 onClick={() => setSelectedSubmission(null)}
                 aria-label="Close Drawer"
               >
-                ✕
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
               </button>
             </div>
 
@@ -853,7 +867,10 @@ export function AdminBuylist() {
                       rel="noopener noreferrer"
                       className="tc-public-view-link"
                     >
-                      Open Public Tracking Page ↗
+                      <span>Open Public Tracking Page</span>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 13, height: 13 }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" />
+                      </svg>
                     </Link>
                   </div>
                 </div>
@@ -884,11 +901,11 @@ export function AdminBuylist() {
                         onClick={() => handleStatusChange(statusVal)}
                         disabled={isUpdatingStatus}
                       >
-                        {statusVal === 'PENDING' && '⏳ Pending'}
-                        {statusVal === 'UNDER_REVIEW' && '🔍 Under Review'}
-                        {statusVal === 'OFFERED' && '💰 Offer Made'}
-                        {statusVal === 'ACCEPTED' && '✅ Accepted'}
-                        {statusVal === 'REJECTED' && '✕ Declined'}
+                        {statusVal === 'PENDING' && 'Pending'}
+                        {statusVal === 'UNDER_REVIEW' && 'Under Review'}
+                        {statusVal === 'OFFERED' && 'Offer Made'}
+                        {statusVal === 'ACCEPTED' && 'Accepted'}
+                        {statusVal === 'REJECTED' && 'Declined'}
                       </button>
                     )
                   })}
@@ -926,7 +943,7 @@ export function AdminBuylist() {
                         />
                         <div className="tc-photo-card-overlay">
                           <span className="tc-photo-idx-badge">Photo #{idx + 1}</span>
-                          <span className="tc-inspect-tag">🔍 Inspect</span>
+                          <span className="tc-inspect-tag">Inspect</span>
                         </div>
                       </div>
                     ))}
@@ -1078,7 +1095,7 @@ export function AdminBuylist() {
                   onClick={() => setZoomLevel((z) => Math.max(1, z - 0.5))}
                   title="Zoom Out (-)"
                 >
-                  −
+                  -
                 </button>
                 <button
                   type="button"
@@ -1086,7 +1103,10 @@ export function AdminBuylist() {
                   onClick={() => setActivePhotoIndex(null)}
                   aria-label="Close Lightbox"
                 >
-                  ✕
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -1126,7 +1146,7 @@ export function AdminBuylist() {
                   )
                 }}
               >
-                ‹ Previous
+                Previous
               </button>
 
               <div className="tc-lightbox-filmstrip">
@@ -1161,7 +1181,7 @@ export function AdminBuylist() {
                   )
                 }}
               >
-                Next ›
+                Next
               </button>
             </div>
           </div>
