@@ -71,4 +71,13 @@ public class ProductService {
         }
         productRepository.deleteById(id);
     }
+
+    public ProductResponse decrementStock(Long id, int quantity) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+
+        product.decrementStock(quantity);
+        Product updatedProduct = productRepository.save(product);
+        return productMapper.toResponse(updatedProduct);
+    }
 }

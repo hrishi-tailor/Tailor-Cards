@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -33,6 +34,9 @@ public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Version
+    private Long version;
 
     @Column(nullable = false)
     private String name;
@@ -87,6 +91,22 @@ public class Product {
             this.status = status;
         } else {
             this.status = "AVAILABLE";
+        }
+    }
+
+    public void decrementStock(int quantity) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity to decrement must be greater than zero");
+        }
+        if (this.stock == null || this.stock < quantity) {
+            throw new IllegalArgumentException(String.format(
+                    "Insufficient stock for product '%s'. Requested: %d, Available: %d",
+                    this.name, quantity, this.stock != null ? this.stock : 0
+            ));
+        }
+        this.stock -= quantity;
+        if (this.stock == 0) {
+            this.status = "SOLD";
         }
     }
 }
