@@ -18,9 +18,12 @@ import com.tailorcards.api.repository.CartItemRepository;
 import com.tailorcards.api.repository.OrderRepository;
 import com.tailorcards.api.repository.ProductRepository;
 import com.tailorcards.api.exception.StockConflictException;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.OptimisticLockException;
+import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
@@ -29,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -59,6 +63,10 @@ public class StripeCheckoutService {
     private final CartItemRepository cartItemRepository;
     private final OrderRepository orderRepository;
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    @Autowired
     public StripeCheckoutService(
             ProductRepository productRepository,
             CartItemRepository cartItemRepository,
@@ -67,6 +75,18 @@ public class StripeCheckoutService {
         this.productRepository = productRepository;
         this.cartItemRepository = cartItemRepository;
         this.orderRepository = orderRepository;
+    }
+
+    public StripeCheckoutService(
+            ProductRepository productRepository,
+            CartItemRepository cartItemRepository,
+            OrderRepository orderRepository,
+            EntityManager entityManager
+    ) {
+        this.productRepository = productRepository;
+        this.cartItemRepository = cartItemRepository;
+        this.orderRepository = orderRepository;
+        this.entityManager = entityManager;
     }
 
     public CheckoutSessionResponse createCheckoutSession(CheckoutSessionRequest request) {
@@ -173,6 +193,16 @@ public class StripeCheckoutService {
                 .setBillingAddressCollection(SessionCreateParams.BillingAddressCollection.REQUIRED);
 
         SessionCreateParams params = paramsBuilder.build();
+
+        // Final stock re-validation against current DB state right before calling Stripe
+        Map<Long, Integer> requiredQuantities = new LinkedHashMap<>();
+        for (CartItemSnapshot item : items) {
+            int qty = item.quantity() > 0 ? item.quantity() : 1;
+            requiredQuantities.merge(item.productId(), qty, Integer::sum);
+        }
+        for (Map.Entry<Long, Integer> entry : requiredQuantities.entrySet()) {
+            validateStock(entry.getKey(), entry.getValue());
+        }
 
         Stripe.apiKey = resolveStripeApiKey();
         try {
@@ -345,6 +375,30 @@ public class StripeCheckoutService {
         } catch (OptimisticLockException | OptimisticLockingFailureException e) {
             log.warn("Optimistic lock conflict when decrementing stock for product #{}: {}", product.getId(), e.getMessage());
             throw new StockConflictException("item no longer available at requested quantity", e);
+        }
+    }
+
+    public void validateStock(Long productId, int quantity) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new StockConflictException("item no longer available at requested quantity"));
+        validateStock(product, quantity);
+    }
+
+    public void validateStock(Product product, int quantity) {
+        if (entityManager != null && product != null && entityManager.contains(product)) {
+            entityManager.refresh(product);
+        }
+
+        if (product == null
+                || "SOLD".equalsIgnoreCase(product.getStatus())
+                || product.getStock() == null
+                || product.getStock() < quantity) {
+            log.warn("Stock insufficient for product #{} ({}) during pre-payment re-validation. Required: {}, Available: {}",
+                    product != null ? product.getId() : null,
+                    product != null ? product.getName() : null,
+                    quantity,
+                    product != null ? product.getStock() : null);
+            throw new StockConflictException("item no longer available at requested quantity");
         }
     }
 

@@ -323,5 +323,157 @@ class StripeCheckoutServiceTest {
 
         assertEquals("item no longer available at requested quantity", ex.getMessage());
     }
+
+    @Test
+    void createCheckoutSession_finalStockRevalidationFails_abortsStripeAndThrowsStockConflictException() {
+        Category category = Category.builder().id(1L).name("Singles").build();
+        Product productAvailable = Product.builder()
+                .id(3L)
+                .name("Pikachu Illustrator Promo")
+                .price(new BigDecimal("5000.00"))
+                .stock(1)
+                .status("AVAILABLE")
+                .category(category)
+                .build();
+
+        Product productOutOfStock = Product.builder()
+                .id(3L)
+                .name("Pikachu Illustrator Promo")
+                .price(new BigDecimal("5000.00"))
+                .stock(0)
+                .status("AVAILABLE")
+                .category(category)
+                .build();
+
+        CartItem cartItem = CartItem.builder()
+                .id(12L)
+                .cartSessionId("valid-cart")
+                .product(productAvailable)
+                .quantity(1)
+                .build();
+
+        when(cartItemRepository.findByCartSessionId("valid-cart")).thenReturn(List.of(cartItem));
+        when(productRepository.findById(3L)).thenReturn(Optional.of(productAvailable), Optional.of(productOutOfStock));
+
+        try (var mockedStatic = mockStatic(Session.class)) {
+            CheckoutSessionRequest request = new CheckoutSessionRequest("valid-cart", null);
+
+            StockConflictException ex = assertThrows(
+                    StockConflictException.class,
+                    () -> stripeCheckoutService.createCheckoutSession(request)
+            );
+
+            assertEquals("item no longer available at requested quantity", ex.getMessage());
+            mockedStatic.verifyNoInteractions();
+        }
+    }
+
+    @Test
+    void createCheckoutSession_productSoldRightBeforeStripeCall_abortsStripeAndThrowsStockConflictException() {
+        Category category = Category.builder().id(1L).name("Singles").build();
+        Product productAvailable = Product.builder()
+                .id(3L)
+                .name("Pikachu Illustrator Promo")
+                .price(new BigDecimal("5000.00"))
+                .stock(1)
+                .status("AVAILABLE")
+                .category(category)
+                .build();
+
+        Product productSold = Product.builder()
+                .id(3L)
+                .name("Pikachu Illustrator Promo")
+                .price(new BigDecimal("5000.00"))
+                .stock(0)
+                .status("SOLD")
+                .category(category)
+                .build();
+
+        CartItem cartItem = CartItem.builder()
+                .id(12L)
+                .cartSessionId("valid-cart")
+                .product(productAvailable)
+                .quantity(1)
+                .build();
+
+        when(cartItemRepository.findByCartSessionId("valid-cart")).thenReturn(List.of(cartItem));
+        when(productRepository.findById(3L)).thenReturn(Optional.of(productAvailable), Optional.of(productSold));
+
+        try (var mockedStatic = mockStatic(Session.class)) {
+            CheckoutSessionRequest request = new CheckoutSessionRequest("valid-cart", null);
+
+            StockConflictException ex = assertThrows(
+                    StockConflictException.class,
+                    () -> stripeCheckoutService.createCheckoutSession(request)
+            );
+
+            assertEquals("item no longer available at requested quantity", ex.getMessage());
+            mockedStatic.verifyNoInteractions();
+        }
+    }
+
+    @Test
+    void validateStock_productNotFound_throwsStockConflictException() {
+        when(productRepository.findById(999L)).thenReturn(Optional.empty());
+
+        StockConflictException ex = assertThrows(
+                StockConflictException.class,
+                () -> stripeCheckoutService.validateStock(999L, 1)
+        );
+
+        assertEquals("item no longer available at requested quantity", ex.getMessage());
+    }
+
+    @Test
+    void validateStock_insufficientStock_throwsStockConflictException() {
+        Product product = Product.builder()
+                .id(10L)
+                .name("Venusaur")
+                .stock(1)
+                .status("AVAILABLE")
+                .build();
+
+        when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+
+        StockConflictException ex = assertThrows(
+                StockConflictException.class,
+                () -> stripeCheckoutService.validateStock(10L, 2)
+        );
+
+        assertEquals("item no longer available at requested quantity", ex.getMessage());
+    }
+
+    @Test
+    void validateStock_productSold_throwsStockConflictException() {
+        Product product = Product.builder()
+                .id(10L)
+                .name("Venusaur")
+                .stock(5)
+                .status("SOLD")
+                .build();
+
+        when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+
+        StockConflictException ex = assertThrows(
+                StockConflictException.class,
+                () -> stripeCheckoutService.validateStock(10L, 1)
+        );
+
+        assertEquals("item no longer available at requested quantity", ex.getMessage());
+    }
+
+    @Test
+    void validateStock_sufficientStock_succeeds() {
+        Product product = Product.builder()
+                .id(10L)
+                .name("Venusaur")
+                .stock(5)
+                .status("AVAILABLE")
+                .build();
+
+        when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+
+        assertDoesNotThrow(() -> stripeCheckoutService.validateStock(10L, 2));
+    }
 }
 
