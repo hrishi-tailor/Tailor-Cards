@@ -5,9 +5,12 @@ import com.tailorcards.api.dto.ProductResponse;
 import com.tailorcards.api.entity.Category;
 import com.tailorcards.api.entity.Product;
 import com.tailorcards.api.exception.ResourceNotFoundException;
+import com.tailorcards.api.exception.StockConflictException;
 import com.tailorcards.api.mapper.ProductMapper;
 import com.tailorcards.api.repository.CategoryRepository;
 import com.tailorcards.api.repository.ProductRepository;
+import jakarta.persistence.OptimisticLockException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -76,8 +79,12 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
 
-        product.decrementStock(quantity);
-        Product updatedProduct = productRepository.save(product);
-        return productMapper.toResponse(updatedProduct);
+        try {
+            product.decrementStock(quantity);
+            Product updatedProduct = productRepository.save(product);
+            return productMapper.toResponse(updatedProduct);
+        } catch (OptimisticLockException | OptimisticLockingFailureException e) {
+            throw new StockConflictException("item no longer available at requested quantity", e);
+        }
     }
 }

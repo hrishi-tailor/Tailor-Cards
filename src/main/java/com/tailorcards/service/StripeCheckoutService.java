@@ -17,9 +17,12 @@ import com.tailorcards.api.entity.Product;
 import com.tailorcards.api.repository.CartItemRepository;
 import com.tailorcards.api.repository.OrderRepository;
 import com.tailorcards.api.repository.ProductRepository;
+import com.tailorcards.api.exception.StockConflictException;
+import jakarta.persistence.OptimisticLockException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -255,9 +258,7 @@ public class StripeCheckoutService {
         // Mark purchased products as SOLD in database and set stock to 0
         for (Long pId : productIds) {
             productRepository.findById(pId).ifPresent(product -> {
-                product.setStock(0);
-                product.setStatus("SOLD");
-                productRepository.save(product);
+                decrementStock(product, 1);
                 log.info("Marked product #{} ({}) as SOLD", product.getId(), product.getName());
             });
         }
@@ -324,6 +325,27 @@ public class StripeCheckoutService {
             return envKey;
         }
         return secretKey != null ? secretKey : "";
+    }
+
+    public void decrementStock(Long productId, int quantity) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found with ID: " + productId));
+        decrementStock(product, quantity);
+    }
+
+    public void decrementStock(Product product, int quantity) {
+        try {
+            if (product.getStock() != null && product.getStock() >= quantity) {
+                product.decrementStock(quantity);
+            } else {
+                product.setStock(0);
+                product.setStatus("SOLD");
+            }
+            productRepository.save(product);
+        } catch (OptimisticLockException | OptimisticLockingFailureException e) {
+            log.warn("Optimistic lock conflict when decrementing stock for product #{}: {}", product.getId(), e.getMessage());
+            throw new StockConflictException("item no longer available at requested quantity", e);
+        }
     }
 
     private record CartItemSnapshot(Long productId, int quantity) {}

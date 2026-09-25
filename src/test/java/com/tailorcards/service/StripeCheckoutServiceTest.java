@@ -7,14 +7,17 @@ import com.tailorcards.api.entity.CartItem;
 import com.tailorcards.api.entity.Category;
 import com.tailorcards.api.entity.Order;
 import com.tailorcards.api.entity.Product;
+import com.tailorcards.api.exception.StockConflictException;
 import com.tailorcards.api.repository.CartItemRepository;
 import com.tailorcards.api.repository.OrderRepository;
 import com.tailorcards.api.repository.ProductRepository;
+import jakarta.persistence.OptimisticLockException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
@@ -252,6 +255,73 @@ class StripeCheckoutServiceTest {
 
         assertEquals("https://tailorcards.com/checkout/success?session_id={CHECKOUT_SESSION_ID}", stripeCheckoutService.resolveSuccessUrl());
         assertEquals("https://tailorcards.com/cart", stripeCheckoutService.resolveCancelUrl());
+    }
+
+    @Test
+    void processCompletedCheckout_optimisticLockException_throwsStockConflictException() {
+        Product product = Product.builder()
+                .id(5L)
+                .name("Lugia 1st Edition Neo Genesis")
+                .price(new BigDecimal("1800.00"))
+                .stock(1)
+                .status("AVAILABLE")
+                .build();
+
+        when(orderRepository.existsByStripeSessionId("cs_test_conflict_123")).thenReturn(false);
+        when(productRepository.findById(5L)).thenReturn(Optional.of(product));
+        when(productRepository.save(any(Product.class)))
+                .thenThrow(new ObjectOptimisticLockingFailureException(Product.class, 5L));
+
+        Session mockSession = mock(Session.class);
+        when(mockSession.getId()).thenReturn("cs_test_conflict_123");
+        when(mockSession.getMetadata()).thenReturn(Map.of("cartId", "cart-buyer-88", "productIds", "5"));
+
+        StockConflictException ex = assertThrows(
+                StockConflictException.class,
+                () -> stripeCheckoutService.processCompletedCheckout(mockSession)
+        );
+
+        assertEquals("item no longer available at requested quantity", ex.getMessage());
+    }
+
+    @Test
+    void decrementStock_optimisticLockException_throwsStockConflictException() {
+        Product product = Product.builder()
+                .id(99L)
+                .name("Charizard")
+                .stock(5)
+                .build();
+
+        when(productRepository.findById(99L)).thenReturn(Optional.of(product));
+        when(productRepository.save(any(Product.class)))
+                .thenThrow(new ObjectOptimisticLockingFailureException(Product.class, 99L));
+
+        StockConflictException ex = assertThrows(
+                StockConflictException.class,
+                () -> stripeCheckoutService.decrementStock(99L, 1)
+        );
+
+        assertEquals("item no longer available at requested quantity", ex.getMessage());
+    }
+
+    @Test
+    void decrementStock_jakartaOptimisticLockException_throwsStockConflictException() {
+        Product product = Product.builder()
+                .id(101L)
+                .name("Blastoise")
+                .stock(3)
+                .build();
+
+        when(productRepository.findById(101L)).thenReturn(Optional.of(product));
+        when(productRepository.save(any(Product.class)))
+                .thenThrow(new OptimisticLockException("Row updated by another transaction"));
+
+        StockConflictException ex = assertThrows(
+                StockConflictException.class,
+                () -> stripeCheckoutService.decrementStock(101L, 1)
+        );
+
+        assertEquals("item no longer available at requested quantity", ex.getMessage());
     }
 }
 
