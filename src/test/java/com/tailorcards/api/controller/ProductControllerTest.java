@@ -105,7 +105,11 @@ class ProductControllerTest {
                 BigDecimal.valueOf(90.00),
                 BigDecimal.valueOf(5.00),
                 6.25,
-                List.of(new com.tailorcards.api.dto.PricePointResponse("2024-03-01", BigDecimal.valueOf(80.00), 10))
+                "TCGplayer market price via pokemontcg.io, converted to CAD",
+                false,
+                null,
+                15,
+                List.of(new com.tailorcards.api.dto.PricePointResponse("2024-03-01", BigDecimal.valueOf(80.00), null))
         );
 
         when(priceHistoryService.getPriceHistory(productId, range)).thenReturn(mockResponse);

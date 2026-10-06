@@ -14,5 +14,9 @@ public interface PriceSnapshotRepository extends JpaRepository<PriceSnapshot, Lo
 
     List<PriceSnapshot> findByCardIdOrderByFetchedAtDesc(String cardId);
 
+    List<PriceSnapshot> findByCardIdOrderByFetchedAtAsc(String cardId);
+
+    List<PriceSnapshot> findByCardIdAndFetchedAtGreaterThanEqualOrderByFetchedAtAsc(String cardId, java.time.Instant fetchedAt);
+
     List<PriceSnapshot> findTop100ByOrderByFetchedAtDesc();
 }

@@ -4,6 +4,7 @@ import com.tailorcards.api.dto.PriceHistoryResponse;
 import com.tailorcards.api.dto.PricePointResponse;
 import com.tailorcards.api.entity.Product;
 import com.tailorcards.api.exception.ResourceNotFoundException;
+import com.tailorcards.api.repository.PriceSnapshotRepository;
 import com.tailorcards.api.repository.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -131,5 +133,78 @@ class PriceHistoryServiceTest {
         when(productRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> priceHistoryService.getPriceHistory(999L, "3M"));
+    }
+
+    @Test
+    void getPriceHistory_realSnapshotsFewerThan7_showsTrackingStartedAndAllSnapshots() {
+        PriceSnapshotRepository snapshotRepo = org.mockito.Mockito.mock(PriceSnapshotRepository.class);
+        sampleProduct.setPokemontcgId("swsh4-25");
+
+        java.time.Instant day1 = java.time.Instant.parse("2026-03-01T10:00:00Z");
+        java.time.Instant day2 = java.time.Instant.parse("2026-03-02T10:00:00Z");
+        java.time.Instant day3 = java.time.Instant.parse("2026-03-03T10:00:00Z");
+
+        List<com.tailorcards.api.entity.PriceSnapshot> snapshots = List.of(
+                com.tailorcards.api.entity.PriceSnapshot.builder()
+                        .cardId("swsh4-25")
+                        .priceCad(new BigDecimal("82.00"))
+                        .source("pokemontcg.io")
+                        .fetchedAt(day1)
+                        .build(),
+                com.tailorcards.api.entity.PriceSnapshot.builder()
+                        .cardId("swsh4-25")
+                        .priceCad(new BigDecimal("84.50"))
+                        .source("pokemontcg.io")
+                        .fetchedAt(day2)
+                        .build(),
+                com.tailorcards.api.entity.PriceSnapshot.builder()
+                        .cardId("swsh4-25")
+                        .priceCad(new BigDecimal("85.50"))
+                        .source("pokemontcg.io")
+                        .fetchedAt(day3)
+                        .build()
+        );
+
+        when(productRepository.findById(16L)).thenReturn(Optional.of(sampleProduct));
+        when(snapshotRepo.findByCardIdOrderByFetchedAtAsc("swsh4-25")).thenReturn(snapshots);
+
+        PriceHistoryService realService = new PriceHistoryService(productRepository, snapshotRepo, false);
+        PriceHistoryResponse response = realService.getPriceHistory(16L, "3M");
+
+        assertNotNull(response);
+        assertFalse(response.isSampleData());
+        assertEquals(PriceHistoryService.REAL_SOURCE_LABEL, response.sourceLabel());
+        assertEquals("Tracking started 2026-03-01", response.trackingStartDate());
+        assertEquals(3, response.history().size());
+        assertEquals(new BigDecimal("82.00"), response.periodLow());
+        assertEquals(new BigDecimal("85.50"), response.periodHigh());
+    }
+
+    @Test
+    void getPriceHistory_realSnapshots7OrMore_noTrackingStartedNotice() {
+        PriceSnapshotRepository snapshotRepo = org.mockito.Mockito.mock(PriceSnapshotRepository.class);
+        sampleProduct.setPokemontcgId("swsh4-25");
+
+        java.time.Instant now = java.time.Instant.now();
+        List<com.tailorcards.api.entity.PriceSnapshot> snapshots = new java.util.ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            snapshots.add(com.tailorcards.api.entity.PriceSnapshot.builder()
+                    .cardId("swsh4-25")
+                    .priceCad(new BigDecimal("80.00").add(BigDecimal.valueOf(i)))
+                    .source("pokemontcg.io")
+                    .fetchedAt(now.minus(10 - i, java.time.temporal.ChronoUnit.DAYS))
+                    .build());
+        }
+
+        when(productRepository.findById(16L)).thenReturn(Optional.of(sampleProduct));
+        when(snapshotRepo.findByCardIdOrderByFetchedAtAsc("swsh4-25")).thenReturn(snapshots);
+
+        PriceHistoryService realService = new PriceHistoryService(productRepository, snapshotRepo, false);
+        PriceHistoryResponse response = realService.getPriceHistory(16L, "3M");
+
+        assertNotNull(response);
+        assertFalse(response.isSampleData());
+        assertNull(response.trackingStartDate());
+        assertEquals(10, response.history().size());
     }
 }

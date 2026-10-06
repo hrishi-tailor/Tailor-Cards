@@ -82,14 +82,21 @@ export const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({
     const yRange = yMax - yMin
 
     const points = data.history.map((pt, i) => {
-      const x = padLeft + (i / (data.history.length - 1)) * plotW
+      const x = data.history.length > 1
+        ? padLeft + (i / (data.history.length - 1)) * plotW
+        : padLeft + plotW / 2
       const y = padTop + plotH - ((pt.price - yMin) / yRange) * plotH
       return { x, y, pt, index: i }
     })
 
     // Construct line path and filled area polygon
-    const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
-    const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${(padTop + plotH).toFixed(1)} L ${points[0].x.toFixed(1)} ${(padTop + plotH).toFixed(1)} Z`
+    const linePath = points.length === 1
+      ? `M ${(points[0].x - 15).toFixed(1)} ${points[0].y.toFixed(1)} L ${(points[0].x + 15).toFixed(1)} ${points[0].y.toFixed(1)}`
+      : points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+
+    const areaPath = points.length === 1
+      ? `M ${(points[0].x - 15).toFixed(1)} ${points[0].y.toFixed(1)} L ${(points[0].x + 15).toFixed(1)} ${points[0].y.toFixed(1)} L ${(points[0].x + 15).toFixed(1)} ${(padTop + plotH).toFixed(1)} L ${(points[0].x - 15).toFixed(1)} ${(padTop + plotH).toFixed(1)} Z`
+      : `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${(padTop + plotH).toFixed(1)} L ${points[0].x.toFixed(1)} ${(padTop + plotH).toFixed(1)} Z`
 
     // Grid ticks (3 horizontal levels)
     const gridTicks = [
@@ -158,17 +165,17 @@ export const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({
           <div className="tc-tracker-eyebrow tc-mono">
             <span>HISTORICAL VALUATION ENGINE</span>
             <span className="tc-live-dot" />
-            <span className="tc-live-text">REAL-TIME INDEX</span>
+            <span className="tc-live-text">{data?.isSampleData ? 'SAMPLE SIMULATION' : 'REAL SNAPSHOTS'}</span>
           </div>
           <h3 className="tc-tracker-card-name">{productName}</h3>
-          {(cardSet || cardNumber) && (
-            <div className="tc-tracker-card-meta tc-mono">
-              {cardSet && <span className="tc-meta-chip">{cardSet}</span>}
-              {cardNumber && <span className="tc-meta-chip">#{cardNumber}</span>}
-              {condition && <span className="tc-meta-chip">{condition}</span>}
-              {grading && <span className="tc-meta-chip gold">{grading}</span>}
-            </div>
-          )}
+          <div className="tc-tracker-card-meta tc-mono">
+            {cardSet && <span className="tc-meta-chip">{cardSet}</span>}
+            {cardNumber && <span className="tc-meta-chip">#{cardNumber}</span>}
+            {condition && <span className="tc-meta-chip">{condition}</span>}
+            {grading && <span className="tc-meta-chip gold">{grading}</span>}
+            {data?.isSampleData && <span className="tc-meta-chip" style={{ background: '#78350f', color: '#fef3c7', border: '1px solid #d97706' }}>Sample Data</span>}
+            {data?.trackingStartDate && <span className="tc-meta-chip" style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#93c5fd', border: '1px solid rgba(59, 130, 246, 0.4)' }}>{data.trackingStartDate}</span>}
+          </div>
         </div>
 
         {/* Range Selector */}
@@ -375,25 +382,33 @@ export const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({
           >
             <div className="tc-tooltip-date tc-mono">{activePoint.pt.date}</div>
             <div className="tc-tooltip-price tc-pixel">${activePoint.pt.price.toFixed(2)} CAD</div>
-            <div className="tc-tooltip-vol tc-mono">{activePoint.pt.volume} verified trades</div>
+            {data?.isSampleData ? (
+              <div className="tc-tooltip-sample tc-mono" style={{ color: '#fbbf24', fontSize: '10px' }}>Sample simulation</div>
+            ) : (
+              <div className="tc-tooltip-sample tc-mono" style={{ color: '#9ca3af', fontSize: '10px' }}>Snapshot price</div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Market Quality & Ledger Footer */}
+      {/* Market Source Attribution & Tracking Footer */}
       <div className="tc-tracker-footer">
         <div className="tc-footer-item">
-          <span className="tc-footer-label tc-mono">MARKET LIQUIDITY:</span>
-          <span className="tc-footer-val tc-mono">HIGH TIER (ACTIVE ORDER BOOK)</span>
+          <span className="tc-footer-label tc-mono">DATA SOURCE:</span>
+          <span className="tc-footer-val tc-mono">{data?.sourceLabel || 'TCGplayer market price via pokemontcg.io, converted to CAD'}</span>
         </div>
         <div className="tc-footer-item">
-          <span className="tc-footer-label tc-mono">LEDGER ASSURANCE:</span>
-          <span className="tc-footer-val tc-mono">100% VERIFIED AUTHENTIC</span>
+          <span className="tc-footer-label tc-mono">HISTORY STATUS:</span>
+          <span className="tc-footer-val tc-mono">
+            {data?.trackingStartDate || (data?.isSampleData ? 'Deterministic Model' : 'Active Snapshots')}
+          </span>
         </div>
-        <div className="tc-footer-item">
-          <span className="tc-footer-label tc-mono">PRICING ENGINE:</span>
-          <span className="tc-footer-val tc-mono">DETERMINISTIC COMPOSITE</span>
-        </div>
+        {data?.isSampleData && (
+          <div className="tc-footer-item">
+            <span className="tc-footer-label tc-mono">MODE:</span>
+            <span className="tc-footer-val tc-mono" style={{ color: '#fbbf24' }}>SAMPLE DATA</span>
+          </div>
+        )}
       </div>
     </div>
   )

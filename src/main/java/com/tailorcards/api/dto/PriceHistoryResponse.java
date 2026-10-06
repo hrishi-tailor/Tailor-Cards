@@ -45,6 +45,18 @@ public record PriceHistoryResponse(
     @Schema(description = "Percentage change over the period (+/- %)", example = "7.09")
     Double changePercentage,
 
+    @Schema(description = "Attribution label for market price data source", example = "TCGplayer market price via pokemontcg.io, converted to CAD")
+    String sourceLabel,
+
+    @Schema(description = "Whether the data points are synthetic sample data", example = "false")
+    boolean isSampleData,
+
+    @Schema(description = "Tracking start notice when fewer than 7 snapshots exist", example = "Tracking started 2026-03-01")
+    String trackingStartDate,
+
+    @Schema(description = "Number of snapshots available for this card", example = "12")
+    int snapshotCount,
+
     @Schema(description = "Array of historical price points in chronological order")
     List<PricePointResponse> history
 ) {}

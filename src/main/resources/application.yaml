@@ -80,6 +80,8 @@ app:
   trade-assistant:
     rate-limit-per-minute: 20
     max-message-length: 2000
+  price-history:
+    sample-data: ${SAMPLE_DATA:false}
   demo-mode: ${DEMO_MODE:false}
   demo-user:
     username: ${DEMO_USERNAME:demo}

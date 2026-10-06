@@ -5,13 +5,20 @@ import com.tailorcards.api.dto.PricePointResponse;
 import com.tailorcards.api.entity.Product;
 import com.tailorcards.api.exception.ResourceNotFoundException;
 import com.tailorcards.api.repository.ProductRepository;
+import com.tailorcards.api.entity.PriceSnapshot;
+import com.tailorcards.api.repository.PriceSnapshotRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,10 +26,30 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class PriceHistoryService {
 
+    public static final String REAL_SOURCE_LABEL = "TCGplayer market price via pokemontcg.io, converted to CAD";
+    public static final String SAMPLE_SOURCE_LABEL = "Sample data (simulated market model)";
+
     private final ProductRepository productRepository;
+    private final PriceSnapshotRepository priceSnapshotRepository;
+    private final boolean sampleData;
+
+    @Autowired
+    public PriceHistoryService(
+            ProductRepository productRepository,
+            @Autowired(required = false) PriceSnapshotRepository priceSnapshotRepository,
+            @Value("${app.price-history.sample-data:${SAMPLE_DATA:false}}") boolean sampleData
+    ) {
+        this.productRepository = productRepository;
+        this.priceSnapshotRepository = priceSnapshotRepository;
+        this.sampleData = sampleData;
+    }
+
+    public PriceHistoryService(ProductRepository productRepository, PriceSnapshotRepository priceSnapshotRepository) {
+        this(productRepository, priceSnapshotRepository, false);
+    }
 
     public PriceHistoryService(ProductRepository productRepository) {
-        this.productRepository = productRepository;
+        this(productRepository, null, true);
     }
 
     public PriceHistoryResponse getPriceHistory(Long productId, String range) {
@@ -38,12 +65,72 @@ public class PriceHistoryService {
                 ? product.getPrice().setScale(2, RoundingMode.HALF_UP)
                 : BigDecimal.valueOf(25.00);
 
-        List<PricePointResponse> history = generateDeterministicTimeSeries(
-                productId,
-                product.getName(),
-                currentPrice,
-                normalizedRange
-        );
+        List<PricePointResponse> history;
+        boolean isSynthetic = this.sampleData;
+        String sourceLabel = isSynthetic ? SAMPLE_SOURCE_LABEL : REAL_SOURCE_LABEL;
+        String trackingStartDate = null;
+        int totalSnapshotCount = 0;
+
+        if (isSynthetic) {
+            history = generateDeterministicTimeSeries(
+                    productId,
+                    product.getName(),
+                    currentPrice,
+                    normalizedRange
+            );
+            totalSnapshotCount = history.size();
+        } else {
+            String cardId = product.getPokemontcgId();
+            List<PriceSnapshot> allSnapshots = (cardId != null && !cardId.isBlank() && priceSnapshotRepository != null)
+                    ? priceSnapshotRepository.findByCardIdOrderByFetchedAtAsc(cardId)
+                    : List.of();
+
+            totalSnapshotCount = allSnapshots.size();
+
+            if (totalSnapshotCount < 7) {
+                // If fewer than 7 snapshots exist, show "Tracking started [date]" and whatever points exist
+                if (totalSnapshotCount == 0) {
+                    trackingStartDate = "Tracking started " + LocalDate.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_LOCAL_DATE);
+                    history = List.of(new PricePointResponse(
+                            LocalDate.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_LOCAL_DATE),
+                            currentPrice,
+                            null
+                    ));
+                } else {
+                    LocalDate firstDate = LocalDate.ofInstant(allSnapshots.get(0).getFetchedAt(), ZoneOffset.UTC);
+                    trackingStartDate = "Tracking started " + firstDate.format(DateTimeFormatter.ISO_LOCAL_DATE);
+                    history = allSnapshots.stream()
+                            .map(s -> new PricePointResponse(
+                                    LocalDate.ofInstant(s.getFetchedAt(), ZoneOffset.UTC).format(DateTimeFormatter.ISO_LOCAL_DATE),
+                                    s.getPriceCad() != null ? s.getPriceCad().setScale(2, RoundingMode.HALF_UP) : currentPrice,
+                                    null
+                            ))
+                            .toList();
+                }
+            } else {
+                // 7 or more snapshots exist: filter by selected timeframe cutoff
+                long days = switch (normalizedRange) {
+                    case "1M" -> 30;
+                    case "1Y" -> 365;
+                    default -> 90;
+                };
+                Instant cutoff = Instant.now().minus(days, ChronoUnit.DAYS);
+
+                List<PriceSnapshot> inRange = allSnapshots.stream()
+                        .filter(s -> !s.getFetchedAt().isBefore(cutoff))
+                        .toList();
+
+                List<PriceSnapshot> effective = inRange.isEmpty() ? allSnapshots : inRange;
+
+                history = effective.stream()
+                        .map(s -> new PricePointResponse(
+                                LocalDate.ofInstant(s.getFetchedAt(), ZoneOffset.UTC).format(DateTimeFormatter.ISO_LOCAL_DATE),
+                                s.getPriceCad() != null ? s.getPriceCad().setScale(2, RoundingMode.HALF_UP) : currentPrice,
+                                null
+                        ))
+                        .toList();
+            }
+        }
 
         BigDecimal periodLow = history.stream()
                 .map(PricePointResponse::price)
@@ -78,6 +165,10 @@ public class PriceHistoryService {
                 periodHigh,
                 changeAmount,
                 changePercentage,
+                sourceLabel,
+                isSynthetic,
+                trackingStartDate,
+                totalSnapshotCount,
                 history
         );
     }

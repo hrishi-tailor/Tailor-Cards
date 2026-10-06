@@ -88,7 +88,7 @@ export type PriceRange = '1M' | '3M' | '1Y';
 export interface PricePoint {
   date: string;
   price: number;
-  volume: number;
+  volume?: number;
 }
 
 export interface PriceHistoryData {
@@ -105,6 +105,10 @@ export interface PriceHistoryData {
   periodHigh: number;
   changeAmount: number;
   changePercentage: number;
+  sourceLabel?: string;
+  isSampleData?: boolean;
+  trackingStartDate?: string;
+  snapshotCount?: number;
   history: PricePoint[];
 }
 
