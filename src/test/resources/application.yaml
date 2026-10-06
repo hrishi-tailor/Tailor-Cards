@@ -4,6 +4,9 @@ spring:
       enabled: true
       max-file-size: 10MB
       max-request-size: 50MB
+  security:
+    user:
+      password: test-admin-password
   datasource:
     url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
@@ -30,3 +33,6 @@ stripe:
   success-url: ${STRIPE_SUCCESS_URL:${frontend.url}/checkout/success?session_id={CHECKOUT_SESSION_ID}}
   cancel-url: ${STRIPE_CANCEL_URL:${frontend.url}/cart}
 
+app:
+  demo-user:
+    password: test-demo-password

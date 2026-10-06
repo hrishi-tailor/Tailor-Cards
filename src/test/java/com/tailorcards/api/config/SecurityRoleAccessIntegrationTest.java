@@ -130,4 +130,51 @@ class SecurityRoleAccessIntegrationTest {
         mockMvc.perform(get("/api/admin/price-overrides"))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    @DisplayName("userDetailsService refuses to start in production if ADMIN_PASSWORD is blank")
+    void userDetailsService_refusesToBootInProductionWithoutPassword() {
+        SecurityConfig config = new SecurityConfig();
+        org.springframework.security.crypto.password.PasswordEncoder encoder =
+                org.springframework.security.crypto.factory.PasswordEncoderFactories.createDelegatingPasswordEncoder();
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                config.userDetailsService("admin", "", false, "demo", "", encoder)
+        ).isInstanceOf(IllegalStateException.class)
+         .hasMessageContaining("ADMIN_PASSWORD environment variable is not set");
+    }
+
+    @Test
+    @DisplayName("userDetailsService refuses to start in production if DEMO_MODE is true and DEMO_PASSWORD is blank")
+    void userDetailsService_refusesToBootInProductionDemoModeWithoutDemoPassword() {
+        SecurityConfig config = new SecurityConfig();
+        org.springframework.security.crypto.password.PasswordEncoder encoder =
+                org.springframework.security.crypto.factory.PasswordEncoderFactories.createDelegatingPasswordEncoder();
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                config.userDetailsService("admin", "secret-admin-pass", true, "demo", "", encoder)
+        ).isInstanceOf(IllegalStateException.class)
+         .hasMessageContaining("DEMO_MODE is true but DEMO_PASSWORD environment variable is not set");
+    }
+
+    @Test
+    @DisplayName("Customer quote response strictly excludes confidential ruleTrace from serialized JSON")
+    void quoteResponse_excludesRuleTraceFromJson() throws Exception {
+        com.tailorcards.api.trade.model.RuleTrace trace = new com.tailorcards.api.trade.model.RuleTrace();
+        trace.add("BASE_R_MAX", "Fee: 0.12, Margin: 0.08, Cap: 0.90", "0.85");
+
+        com.tailorcards.api.trade.dto.TradeQuoteResponse quote = com.tailorcards.api.trade.dto.TradeQuoteResponse.builder()
+                .flowType(com.tailorcards.api.trade.model.TradeFlowType.SELL)
+                .decision(com.tailorcards.api.trade.model.TradeDecision.ACCEPT)
+                .cashOffer(java.math.BigDecimal.valueOf(100.00))
+                .ruleTrace(trace)
+                .build();
+
+        tools.jackson.databind.ObjectMapper mapper = new tools.jackson.databind.ObjectMapper();
+        String json = mapper.writeValueAsString(quote);
+
+        org.assertj.core.api.Assertions.assertThat(json).doesNotContain("ruleTrace");
+        org.assertj.core.api.Assertions.assertThat(json).doesNotContain("Fee: 0.12");
+        org.assertj.core.api.Assertions.assertThat(json).doesNotContain("BASE_R_MAX");
+    }
 }

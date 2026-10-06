@@ -1,5 +1,6 @@
 package com.tailorcards.api.trade.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.tailorcards.api.trade.model.CustomerCardItem;
 import com.tailorcards.api.trade.model.RuleTrace;
 import com.tailorcards.api.trade.model.StoreCardItem;
@@ -20,6 +21,7 @@ public record TradeQuoteResponse(
         BigDecimal customerTotalMarketCad,
         BigDecimal storeTotalListPriceCad,
         String explanation,
+        @JsonIgnore
         RuleTrace ruleTrace,
         List<CustomerCardItem> customerCards,
         List<StoreCardItem> storeCards

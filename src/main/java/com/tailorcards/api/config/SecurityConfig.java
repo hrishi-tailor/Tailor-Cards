@@ -100,24 +100,30 @@ public class SecurityConfig {
     ) {
         List<UserDetails> users = new ArrayList<>();
 
-        String effectiveAdminPass = (adminPassword != null && !adminPassword.isBlank())
-                ? adminPassword
-                : "admin123";
+        if (adminPassword == null || adminPassword.isBlank()) {
+            throw new IllegalStateException(
+                    "CRITICAL SECURITY CONFIGURATION ERROR: ADMIN_PASSWORD environment variable is not set. " +
+                    "Application refuses to boot in production with an empty or default password."
+            );
+        }
 
         users.add(User.builder()
                 .username(adminUsername)
-                .password(passwordEncoder.encode(effectiveAdminPass))
+                .password(passwordEncoder.encode(adminPassword))
                 .roles("ADMIN")
                 .build());
 
         if (demoMode) {
-            String effectiveDemoPass = (demoPassword != null && !demoPassword.isBlank())
-                    ? demoPassword
-                    : "demo123";
+            if (demoPassword == null || demoPassword.isBlank()) {
+                throw new IllegalStateException(
+                        "CRITICAL SECURITY CONFIGURATION ERROR: DEMO_MODE is true but DEMO_PASSWORD environment variable is not set. " +
+                        "Application refuses to boot without explicit demo credentials."
+                );
+            }
 
             users.add(User.builder()
                     .username(demoUsername)
-                    .password(passwordEncoder.encode(effectiveDemoPass))
+                    .password(passwordEncoder.encode(demoPassword))
                     .roles("DEMO")
                     .build());
         }
