@@ -3,3 +3,13 @@ target/
 frontend/node_modules/
 frontend/dist/
 uploads/
+
+# Security & environment files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+credentials.json
+
