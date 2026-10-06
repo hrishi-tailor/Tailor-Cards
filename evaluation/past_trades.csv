@@ -1,16 +1,17 @@
+# SAMPLE DATASET - Simulated historical trade records for backtesting until real trade history is provided.
 trade_id,flow_type,customer_card_name,condition,grade,sealed,quantity,customer_market_price_cad,store_card_name,store_list_price_cad,historical_decision,historical_offer_cad
-T-101,SELL,Charizard Base Set 4/102,Near Mint,PSA 10,false,1,400.00,,,ACCEPT,328.00
-T-102,SELL,Lugia V Alt Art,Near Mint,BGS Black Label,false,1,500.00,,,ACCEPT,410.00
-T-103,SELL,151 Elite Trainer Box,Near Mint,,true,1,120.00,,,ACCEPT,84.00
-T-104,SELL,Umbreon VMAX Alt Art,Near Mint,,false,1,950.00,,,ACCEPT,731.50
-T-105,SELL,Blastoise Base Set,Lightly Played,,false,1,100.00,,,ACCEPT,75.00
-T-106,TRADE,Rayquaza VMAX Alt Art,Near Mint,,false,1,400.00,Giratina V Alt Art,340.00,ACCEPT,340.00
-T-107,TRADE,Pikachu with Grey Felt Hat,Near Mint,PSA 10,false,1,220.00,Mew VMAX Alt Art,160.00,ACCEPT,160.00
-T-108,TRADE,Blastoise EX 151,Near Mint,,false,1,60.00,Charizard EX,70.00,COUNTER,46.00
-T-109,TRADE,Gengar Prime,Near Mint,,false,1,180.00,Lugia Legend,200.00,COUNTER,160.00
-T-110,TRADE,10x Budget Modern Holos,Near Mint,,false,10,5.00,Mewtwo GX,50.00,DECLINE,0.00
-T-111,TRADE,CoroCoro Shining Mew,Near Mint,,false,1,300.00,Latias & Latios GX,250.00,ACCEPT,250.00
-T-112,SELL,Venusaur Base Set,Damaged,,false,1,25.00,,,ACCEPT,18.75
-T-113,SELL,Charizard UPC Box,Near Mint,,true,2,160.00,,,ACCEPT,224.00
-T-114,TRADE,Radiant Charizard,Near Mint,,false,1,10.00,Lillie Full Art,200.00,DECLINE,0.00
-T-115,TRADE,Carmine SIR + Greninja SIR,Near Mint,,false,2,92.50,Dark Gengar Holo,150.00,ACCEPT,150.00
+SAMPLE-101,SELL,Charizard Base Set 4/102,Near Mint,PSA 10,false,1,400.00,,,ACCEPT,328.00
+SAMPLE-102,SELL,Lugia V Alt Art,Near Mint,BGS Black Label,false,1,500.00,,,ACCEPT,410.00
+SAMPLE-103,SELL,151 Elite Trainer Box,Near Mint,,true,1,120.00,,,ACCEPT,84.00
+SAMPLE-104,SELL,Umbreon VMAX Alt Art,Near Mint,,false,1,950.00,,,ACCEPT,731.50
+SAMPLE-105,SELL,Blastoise Base Set,Lightly Played,,false,1,100.00,,,ACCEPT,75.00
+SAMPLE-106,TRADE,Rayquaza VMAX Alt Art,Near Mint,,false,1,400.00,Giratina V Alt Art,340.00,ACCEPT,340.00
+SAMPLE-107,TRADE,Pikachu with Grey Felt Hat,Near Mint,PSA 10,false,1,220.00,Mew VMAX Alt Art,160.00,ACCEPT,160.00
+SAMPLE-108,TRADE,Blastoise EX 151,Near Mint,,false,1,60.00,Charizard EX,70.00,COUNTER,46.00
+SAMPLE-109,TRADE,Gengar Prime,Near Mint,,false,1,180.00,Lugia Legend,200.00,COUNTER,160.00
+SAMPLE-110,TRADE,10x Budget Modern Holos,Near Mint,,false,10,5.00,Mewtwo GX,50.00,DECLINE,0.00
+SAMPLE-111,TRADE,CoroCoro Shining Mew,Near Mint,,false,1,300.00,Latias & Latios GX,250.00,ACCEPT,250.00
+SAMPLE-112,SELL,Venusaur Base Set,Damaged,,false,1,25.00,,,ACCEPT,18.75
+SAMPLE-113,SELL,Charizard UPC Box,Near Mint,,true,2,160.00,,,ACCEPT,224.00
+SAMPLE-114,TRADE,Radiant Charizard,Near Mint,,false,1,10.00,Lillie Full Art,200.00,DECLINE,0.00
+SAMPLE-115,TRADE,Carmine SIR + Greninja SIR,Near Mint,,false,2,92.50,Dark Gengar Holo,150.00,ACCEPT,150.00

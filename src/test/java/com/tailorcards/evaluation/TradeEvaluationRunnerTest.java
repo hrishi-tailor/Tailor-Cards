@@ -2,6 +2,8 @@ package com.tailorcards.evaluation;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.tailorcards.api.entity.BuyRule;
 import com.tailorcards.api.entity.CardLiquidity;
 import com.tailorcards.api.entity.TradeParameter;
@@ -26,9 +28,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.io.File;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -37,15 +42,16 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("Trade Evaluation Harness")
-class TradeEvaluationRunnerTest {
+public class TradeEvaluationRunnerTest {
 
     @Mock
     private BuyRuleRepository buyRuleRepository;
@@ -57,12 +63,28 @@ class TradeEvaluationRunnerTest {
     private CardLiquidityRepository cardLiquidityRepository;
 
     @Mock
-    private AnthropicClient anthropicClient;
+    private AnthropicClient stubAnthropicClient;
 
     @Mock
     private PriceProvider priceProvider;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Test
+    @DisplayName("Evaluation fails loudly with IllegalStateException when scenario is unlabeled")
+    void failsLoudlyOnUnlabeledScenario() {
+        ObjectNode unlabeledScenario = objectMapper.createObjectNode();
+        unlabeledScenario.put("id", "scenario-test-unlabeled");
+        unlabeledScenario.put("description", "Unlabeled scenario test");
+        unlabeledScenario.put("flowType", "SELL");
+        unlabeledScenario.put("customerMessage", "Selling card");
+        unlabeledScenario.put("expectedDecision", "");
+
+        assertThatThrownBy(() -> validateScenarioLabeled(unlabeledScenario))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Evaluation failed loudly: Scenario [scenario-test-unlabeled]")
+                .hasMessageContaining("has an unlabeled expectedDecision");
+    }
 
     @Test
     @DisplayName("Executes evaluation harness across scenarios.json and generates Markdown report")
@@ -75,16 +97,31 @@ class TradeEvaluationRunnerTest {
         int totalScenarios = root.size();
         assertThat(totalScenarios).isGreaterThanOrEqualTo(40);
 
+        // Fail loudly if any scenarios in scenarios.json are unlabeled
+        List<String> unlabeledIds = new ArrayList<>();
+        for (JsonNode scenario : root) {
+            String decision = getExpectedDecision(scenario);
+            if (decision.isBlank()) {
+                unlabeledIds.add(scenario.path("id").asText());
+            }
+        }
+        if (!unlabeledIds.isEmpty()) {
+            throw new IllegalStateException(String.format(
+                    "Evaluation failed loudly: Found %d unlabeled scenario(s) in %s (%s). " +
+                    "Expected decisions must be filled before evaluation can run.",
+                    unlabeledIds.size(),
+                    scenariosFile.getPath(),
+                    String.join(", ", unlabeledIds.subList(0, Math.min(5, unlabeledIds.size()))) +
+                    (unlabeledIds.size() > 5 ? "..." : "")
+            ));
+        }
+
         // Setup TradePricingEngine with default seeded rules
         setupMockRepositories();
         TradeConfigService configService = new TradeConfigService(parameterRepository, buyRuleRepository, cardLiquidityRepository);
         TradePricingEngine engine = new TradePricingEngine(configService);
 
-        // Setup Extraction service
-        LlmRateLimiter rateLimiter = new LlmRateLimiter(1000);
-        TradeExtractionService extractionService = new TradeExtractionService(anthropicClient, priceProvider, rateLimiter, 2000);
-
-        // Configure mock responses for price search and anthropic client
+        // Configure price provider mock for card searches
         when(priceProvider.searchCards(anyString(), anyInt())).thenAnswer(inv -> {
             String query = inv.getArgument(0);
             return List.of(CardMarketPrice.builder()
@@ -95,6 +132,33 @@ class TradeEvaluationRunnerTest {
                     .imageUrl("https://images.pokemontcg.io/eval/1.png")
                     .build());
         });
+
+        // Determine whether to use stub (for CI / offline testing) or real Anthropic extraction path
+        boolean useStub = Boolean.parseBoolean(System.getProperty("eval.stub", "false"))
+                || "true".equalsIgnoreCase(System.getenv("EVAL_STUB"));
+
+        TradeExtractionService extractionService;
+        LlmRateLimiter rateLimiter = new LlmRateLimiter(1000);
+
+        if (useStub) {
+            when(stubAnthropicClient.isConfigured()).thenReturn(true);
+            extractionService = new TradeExtractionService(stubAnthropicClient, priceProvider, rateLimiter, 2000);
+        } else {
+            String apiKey = System.getenv("ANTHROPIC_API_KEY");
+            if (apiKey == null || apiKey.isBlank()) {
+                throw new IllegalStateException("Real extraction path requested, but ANTHROPIC_API_KEY is not set. " +
+                        "Set ANTHROPIC_API_KEY or run with -Deval.stub=true for CI stub mode.");
+            }
+            String model = System.getProperty("anthropic.model", "claude-haiku-4-5-20251001");
+            AnthropicClient realClient = new AnthropicClient(
+                    "https://api.anthropic.com/v1",
+                    apiKey,
+                    model,
+                    1024,
+                    15
+            );
+            extractionService = new TradeExtractionService(realClient, priceProvider, rateLimiter, 2000);
+        }
 
         int extractionMatches = 0;
         int engineAgreements = 0;
@@ -108,20 +172,20 @@ class TradeEvaluationRunnerTest {
             String description = scenario.path("description").asText();
             String flowTypeStr = scenario.path("flowType").asText();
             String customerMessage = scenario.path("customerMessage").asText();
-            String expectedDecisionRaw = scenario.path("expectedDecisionRaw").asText();
+            String expectedDecisionRaw = getExpectedDecision(scenario);
             String notes = scenario.path("notes").asText();
 
             TradeFlowType flowType = TradeFlowType.valueOf(flowTypeStr);
-
-            // Mock LLM call for extraction
             JsonNode expectedCardsNode = scenario.path("expectedCards");
-            when(anthropicClient.isConfigured()).thenReturn(true);
-            when(anthropicClient.sendMessage(anyString(), any())).thenReturn(
-                    Optional.of(new AnthropicResponse(
-                            expectedCardsNode.toString(),
-                            80, 45, 120, new BigDecimal("0.000915")
-                    ))
-            );
+
+            if (useStub) {
+                when(stubAnthropicClient.sendMessage(anyString(), any())).thenReturn(
+                        Optional.of(new AnthropicResponse(
+                                expectedCardsNode.toString(),
+                                80, 45, 120, new BigDecimal("0.000915")
+                        ))
+                );
+            }
 
             long startTime = System.currentTimeMillis();
             List<CustomerCardItem> extracted = extractionService.extractCards(id, customerMessage);
@@ -183,7 +247,7 @@ class TradeEvaluationRunnerTest {
         double extractionRate = (double) extractionMatches / totalScenarios * 100.0;
         double agreementRate = (double) engineAgreements / totalScenarios * 100.0;
         double avgLatency = (double) totalLatencyMs / totalScenarios;
-        BigDecimal avgCost = totalCostUsd.divide(BigDecimal.valueOf(totalScenarios), 6, java.math.RoundingMode.HALF_UP);
+        BigDecimal avgCost = totalCostUsd.divide(BigDecimal.valueOf(totalScenarios), 6, RoundingMode.HALF_UP);
 
         // Generate Markdown report
         String markdownReport = generateMarkdownReport(
@@ -196,6 +260,29 @@ class TradeEvaluationRunnerTest {
 
         assertThat(extractionRate).isGreaterThanOrEqualTo(90.0);
         assertThat(agreementRate).isGreaterThanOrEqualTo(90.0);
+    }
+
+    private void validateScenarioLabeled(JsonNode scenario) {
+        String id = scenario.path("id").asText();
+        String description = scenario.path("description").asText();
+        String decision = getExpectedDecision(scenario);
+        if (decision.isBlank()) {
+            throw new IllegalStateException(String.format(
+                    "Evaluation failed loudly: Scenario [%s] ('%s') has an unlabeled expectedDecision. " +
+                    "Expected decisions must be labeled before running evaluation.",
+                    id, description
+            ));
+        }
+    }
+
+    private String getExpectedDecision(JsonNode scenario) {
+        if (scenario.hasNonNull("expectedDecision") && !scenario.path("expectedDecision").asText().isBlank()) {
+            return scenario.path("expectedDecision").asText().trim();
+        }
+        if (scenario.hasNonNull("expectedDecisionRaw") && !scenario.path("expectedDecisionRaw").asText().isBlank()) {
+            return scenario.path("expectedDecisionRaw").asText().trim();
+        }
+        return "";
     }
 
     private boolean isExtractionAccurate(List<CustomerCardItem> extracted, JsonNode expectedCardsNode) {
@@ -220,7 +307,6 @@ class TradeEvaluationRunnerTest {
     }
 
     private void setupMockRepositories() {
-        // Buy rules
         List<BuyRule> rules = List.of(
                 BuyRule.builder().categoryCode("GRADED_GEM").rate(new BigDecimal("0.82")).priority(1).active(true).build(),
                 BuyRule.builder().categoryCode("SEALED").rate(new BigDecimal("0.70")).priority(2).active(true).build(),
@@ -229,7 +315,6 @@ class TradeEvaluationRunnerTest {
         );
         when(buyRuleRepository.findAllByOrderByPriorityAsc()).thenReturn(rules);
 
-        // Trade parameters
         List<TradeParameter> params = List.of(
                 TradeParameter.builder().paramKey(TradeConfigService.PARAM_VARIABLE_RESALE_FEE).paramValue(new BigDecimal("0.12")).build(),
                 TradeParameter.builder().paramKey(TradeConfigService.PARAM_FIXED_HANDLING_FEE).paramValue(new BigDecimal("0.50")).build(),

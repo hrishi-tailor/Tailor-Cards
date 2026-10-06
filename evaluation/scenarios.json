@@ -13,11 +13,11 @@
         "grade": "PSA 10",
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 400.00
+        "marketPriceCad": 400.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "PSA 10 category fires: 82% cash rate ($328.00 CAD)"
   },
   {
@@ -34,18 +34,18 @@
         "grade": "BGS Black Label",
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 500.00
+        "marketPriceCad": 500.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "BGS Black Label category fires: 82% cash rate ($410.00 CAD)"
   },
   {
     "id": "scenario-03",
     "description": "Sealed 151 Elite Trainer Box cash sale",
     "flowType": "SELL",
-    "customerMessage": "Selling a sealed Pokémon 151 Elite Trainer Box",
+    "customerMessage": "Selling a sealed Pok\u00e9mon 151 Elite Trainer Box",
     "expectedCards": [
       {
         "name": "151 Elite Trainer Box",
@@ -55,11 +55,11 @@
         "grade": null,
         "sealed": true,
         "quantity": 1,
-        "marketPriceCad": 120.00
+        "marketPriceCad": 120.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Sealed product category fires: 70% cash rate ($84.00 CAD)"
   },
   {
@@ -76,11 +76,11 @@
         "grade": null,
         "sealed": true,
         "quantity": 1,
-        "marketPriceCad": 850.00
+        "marketPriceCad": 850.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Sealed product rate 70% ($595.00 CAD)"
   },
   {
@@ -97,11 +97,11 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 950.00
+        "marketPriceCad": 950.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Near-mint raw single rate: 77% ($731.50 CAD)"
   },
   {
@@ -118,11 +118,11 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 350.00
+        "marketPriceCad": 350.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "NM raw single rate: 77% ($269.50 CAD)"
   },
   {
@@ -139,11 +139,11 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 100.00
+        "marketPriceCad": 100.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Category 4 (Everything else): 75% rate ($75.00 CAD)"
   },
   {
@@ -160,11 +160,11 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 30.00
+        "marketPriceCad": 30.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Category 4: 75% rate ($22.50 CAD)"
   },
   {
@@ -181,11 +181,11 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 25.00
+        "marketPriceCad": 25.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Category 4: 75% rate ($18.75 CAD)"
   },
   {
@@ -202,11 +202,11 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 20.00
+        "marketPriceCad": 20.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (NEEDS_REVIEW)",
-    "expectedDecisionRaw": "NEEDS_REVIEW",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Missing condition triggers NEEDS_REVIEW instead of guessing"
   },
   {
@@ -223,11 +223,11 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 90.00
+        "marketPriceCad": 90.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (NEEDS_REVIEW)",
-    "expectedDecisionRaw": "NEEDS_REVIEW",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Ambiguous grade requires staff appraisal"
   },
   {
@@ -244,16 +244,16 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 400.00
+        "marketPriceCad": 400.0
       }
     ],
     "storeCard": {
       "name": "Giratina V Alt Art",
-      "listPriceCad": 340.00,
-      "costBasisCad": 250.00
+      "listPriceCad": 340.0,
+      "costBasisCad": 250.0
     },
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Customer market $400 CAD credit covers store $340 CAD"
   },
   {
@@ -270,16 +270,16 @@
         "grade": "PSA 10",
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 220.00
+        "marketPriceCad": 220.0
       }
     ],
     "storeCard": {
       "name": "Mew VMAX Alt Art",
-      "listPriceCad": 160.00,
-      "costBasisCad": 120.00
+      "listPriceCad": 160.0,
+      "costBasisCad": 120.0
     },
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Generous credit rate covers outgoing $160 CAD"
   },
   {
@@ -296,16 +296,16 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 60.00
+        "marketPriceCad": 60.0
       }
     ],
     "storeCard": {
       "name": "Charizard EX",
-      "listPriceCad": 70.00,
-      "costBasisCad": 50.00
+      "listPriceCad": 70.0,
+      "costBasisCad": 50.0
     },
-    "expectedDecision": "TODO-VERIFY (COUNTER)",
-    "expectedDecisionRaw": "COUNTER",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Trade credit (~$46 CAD) leaves top-up ~$24 CAD (<= 25% of store price, r_max >= floor)"
   },
   {
@@ -322,16 +322,16 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 180.00
+        "marketPriceCad": 180.0
       }
     ],
     "storeCard": {
       "name": "Lugia Legend Top & Bottom",
-      "listPriceCad": 200.00,
-      "costBasisCad": 150.00
+      "listPriceCad": 200.0,
+      "costBasisCad": 150.0
     },
-    "expectedDecision": "TODO-VERIFY (COUNTER)",
-    "expectedDecisionRaw": "COUNTER",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Trade credit ~$160 CAD, top-up $40 CAD (20% of list price) -> COUNTER"
   },
   {
@@ -348,16 +348,16 @@
         "grade": null,
         "sealed": false,
         "quantity": 10,
-        "marketPriceCad": 5.00
+        "marketPriceCad": 5.0
       }
     ],
     "storeCard": {
       "name": "Mewtwo GX",
-      "listPriceCad": 50.00,
-      "costBasisCad": 38.00
+      "listPriceCad": 50.0,
+      "costBasisCad": 38.0
     },
-    "expectedDecision": "TODO-VERIFY (NEEDS_REVIEW)",
-    "expectedDecisionRaw": "NEEDS_REVIEW",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Lot of 10 cards exceeds 8-card threshold -> NEEDS_REVIEW"
   },
   {
@@ -374,7 +374,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 20.00
+        "marketPriceCad": 20.0
       },
       {
         "name": "Card B",
@@ -384,7 +384,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 20.00
+        "marketPriceCad": 20.0
       },
       {
         "name": "Card C",
@@ -394,7 +394,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 20.00
+        "marketPriceCad": 20.0
       },
       {
         "name": "Card D",
@@ -404,16 +404,16 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 20.00
+        "marketPriceCad": 20.0
       }
     ],
     "storeCard": {
       "name": "Charizard VMAX Shiny",
-      "listPriceCad": 120.00,
-      "costBasisCad": 90.00
+      "listPriceCad": 120.0,
+      "costBasisCad": 90.0
     },
-    "expectedDecision": "TODO-VERIFY (DECLINE)",
-    "expectedDecisionRaw": "DECLINE",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "4 cards offered, largest card ($20) is 16.7% of target ($120) < 25% -> DECLINE"
   },
   {
@@ -430,7 +430,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 35.00
+        "marketPriceCad": 35.0
       },
       {
         "name": "Charizard V",
@@ -440,7 +440,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 25.00
+        "marketPriceCad": 25.0
       },
       {
         "name": "Arceus V",
@@ -450,16 +450,16 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 20.00
+        "marketPriceCad": 20.0
       }
     ],
     "storeCard": {
       "name": "Gengar VMAX",
-      "listPriceCad": 90.00,
-      "costBasisCad": 68.00
+      "listPriceCad": 90.0,
+      "costBasisCad": 68.0
     },
-    "expectedDecision": "TODO-VERIFY (COUNTER)",
-    "expectedDecisionRaw": "COUNTER",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Largest card ($35) is 38.9% of target ($90), in [25%, 50%] range -> 0.05 penalty deducted from r_max"
   },
   {
@@ -476,7 +476,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 15.00
+        "marketPriceCad": 15.0
       },
       {
         "name": "Modern Card 2",
@@ -486,7 +486,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 15.00
+        "marketPriceCad": 15.0
       },
       {
         "name": "Modern Card 3",
@@ -496,7 +496,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 15.00
+        "marketPriceCad": 15.0
       },
       {
         "name": "Modern Card 4",
@@ -506,7 +506,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 15.00
+        "marketPriceCad": 15.0
       },
       {
         "name": "Modern Card 5",
@@ -516,7 +516,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 15.00
+        "marketPriceCad": 15.0
       },
       {
         "name": "Modern Card 6",
@@ -526,7 +526,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 15.00
+        "marketPriceCad": 15.0
       },
       {
         "name": "Modern Card 7",
@@ -536,7 +536,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 15.00
+        "marketPriceCad": 15.0
       },
       {
         "name": "Modern Card 8",
@@ -546,7 +546,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 15.00
+        "marketPriceCad": 15.0
       },
       {
         "name": "Modern Card 9",
@@ -556,16 +556,16 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 15.00
+        "marketPriceCad": 15.0
       }
     ],
     "storeCard": {
       "name": "Umbreon V Alt Art",
-      "listPriceCad": 120.00,
-      "costBasisCad": 90.00
+      "listPriceCad": 120.0,
+      "costBasisCad": 90.0
     },
-    "expectedDecision": "TODO-VERIFY (NEEDS_REVIEW)",
-    "expectedDecisionRaw": "NEEDS_REVIEW",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Lot size of 9 cards (> 8 card threshold) triggers NEEDS_REVIEW"
   },
   {
@@ -582,16 +582,16 @@
         "grade": "PSA 10",
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 1300.00
+        "marketPriceCad": 1300.0
       }
     ],
     "storeCard": {
       "name": "1st Edition Shining Charizard",
-      "listPriceCad": 1100.00,
-      "costBasisCad": 850.00
+      "listPriceCad": 1100.0,
+      "costBasisCad": 850.0
     },
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "HIGH liquidity tier (0.00 haircut) allows high r_max up to cap (0.90)"
   },
   {
@@ -608,16 +608,16 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 100.00
+        "marketPriceCad": 100.0
       }
     ],
     "storeCard": {
       "name": "Iono Special Illustration Rare",
-      "listPriceCad": 100.00,
-      "costBasisCad": 75.00
+      "listPriceCad": 100.0,
+      "costBasisCad": 75.0
     },
-    "expectedDecision": "TODO-VERIFY (COUNTER)",
-    "expectedDecisionRaw": "COUNTER",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "LOW liquidity tier (0.08 haircut) lowers r_max, requiring top-up"
   },
   {
@@ -634,16 +634,16 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 2000.00
+        "marketPriceCad": 2000.0
       }
     ],
     "storeCard": {
       "name": "Vintage Booster Box",
-      "listPriceCad": 1700.00,
-      "costBasisCad": 1250.00
+      "listPriceCad": 1700.0,
+      "costBasisCad": 1250.0
     },
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "r_max hard ceiling capped at 0.90"
   },
   {
@@ -654,22 +654,22 @@
     "expectedCards": [
       {
         "name": "Radiant Charizard",
-        "set": "Pokémon GO",
+        "set": "Pok\u00e9mon GO",
         "cardNumber": "011/078",
         "condition": "Near Mint",
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 10.00
+        "marketPriceCad": 10.0
       }
     ],
     "storeCard": {
       "name": "Lillie Full Art",
-      "listPriceCad": 200.00,
-      "costBasisCad": 150.00
+      "listPriceCad": 200.0,
+      "costBasisCad": 150.0
     },
-    "expectedDecision": "TODO-VERIFY (DECLINE)",
-    "expectedDecisionRaw": "DECLINE",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Top-up required exceeds 25% limit ($192 CAD > $50 CAD threshold) -> DECLINE"
   },
   {
@@ -686,16 +686,16 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 300.00
+        "marketPriceCad": 300.0
       }
     ],
     "storeCard": {
       "name": "Latias & Latios GX Alt Art",
-      "listPriceCad": 250.00,
-      "costBasisCad": 190.00
+      "listPriceCad": 250.0,
+      "costBasisCad": 190.0
     },
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Fixed handling cost $0.50 is negligible on $300 card, preserving high r_max"
   },
   {
@@ -712,11 +712,11 @@
         "grade": null,
         "sealed": false,
         "quantity": 3,
-        "marketPriceCad": 90.00
+        "marketPriceCad": 90.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "3 * $90 = $270 market value * 77% NM rate = $207.90 CAD cash"
   },
   {
@@ -733,11 +733,11 @@
         "grade": null,
         "sealed": true,
         "quantity": 2,
-        "marketPriceCad": 160.00
+        "marketPriceCad": 160.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Sealed product rate 70% of $320 = $224.00 CAD cash"
   },
   {
@@ -754,11 +754,11 @@
         "grade": "PSA 10",
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 3500.00
+        "marketPriceCad": 3500.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "PSA 10 rate 82% of $3500 = $2870.00 CAD cash"
   },
   {
@@ -775,11 +775,11 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 0.50
+        "marketPriceCad": 0.5
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "LLM override ignored: offer based solely on code formula (77% of $0.50 = $0.39 CAD)"
   },
   {
@@ -796,16 +796,16 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 85.00
+        "marketPriceCad": 85.0
       }
     ],
     "storeCard": {
       "name": "Erika's Invitation SIR",
-      "listPriceCad": 100.00,
-      "costBasisCad": 75.00
+      "listPriceCad": 100.0,
+      "costBasisCad": 75.0
     },
-    "expectedDecision": "TODO-VERIFY (COUNTER)",
-    "expectedDecisionRaw": "COUNTER",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Top-up <= 25% ($25 CAD) -> COUNTER"
   },
   {
@@ -822,16 +822,16 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 80.00
+        "marketPriceCad": 80.0
       }
     ],
     "storeCard": {
       "name": "Mew EX Metal Card",
-      "listPriceCad": 100.00,
-      "costBasisCad": 75.00
+      "listPriceCad": 100.0,
+      "costBasisCad": 75.0
     },
-    "expectedDecision": "TODO-VERIFY (DECLINE)",
-    "expectedDecisionRaw": "DECLINE",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Top-up > 25% list price ($26 CAD > $25 CAD) -> DECLINE"
   },
   {
@@ -848,7 +848,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 2.00
+        "marketPriceCad": 2.0
       },
       {
         "name": "Low Value Card 2",
@@ -858,16 +858,16 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 2.00
+        "marketPriceCad": 2.0
       }
     ],
     "storeCard": {
       "name": "Mid Tier Holo",
-      "listPriceCad": 6.00,
-      "costBasisCad": 4.50
+      "listPriceCad": 6.0,
+      "costBasisCad": 4.5
     },
-    "expectedDecision": "TODO-VERIFY (DECLINE)",
-    "expectedDecisionRaw": "DECLINE",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "r_max drops below floor (0.55) -> DECLINE instead of counter"
   },
   {
@@ -884,7 +884,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 90.00
+        "marketPriceCad": 90.0
       },
       {
         "name": "Greninja EX SIR",
@@ -894,16 +894,16 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 95.00
+        "marketPriceCad": 95.0
       }
     ],
     "storeCard": {
       "name": "Dark Gengar Holo",
-      "listPriceCad": 150.00,
-      "costBasisCad": 110.00
+      "listPriceCad": 150.0,
+      "costBasisCad": 110.0
     },
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Total market $185 CAD covers store $150 CAD, 2 cards don't trigger consolidation"
   },
   {
@@ -920,11 +920,11 @@
         "grade": null,
         "sealed": true,
         "quantity": 1,
-        "marketPriceCad": 25.00
+        "marketPriceCad": 25.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Sealed rate 70% ($17.50 CAD)"
   },
   {
@@ -941,11 +941,11 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 110.00
+        "marketPriceCad": 110.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Category 4 (Everything else) 75% rate ($82.50 CAD)"
   },
   {
@@ -962,12 +962,12 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 65.00
+        "marketPriceCad": 65.0
       }
     ],
     "storeCard": null,
-    "expectedDecision": "TODO-VERIFY (NEEDS_REVIEW)",
-    "expectedDecisionRaw": "NEEDS_REVIEW",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Missing store target item in trade flow results in NEEDS_REVIEW"
   },
   {
@@ -984,11 +984,11 @@
         "grade": "PSA 9",
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 140.00
+        "marketPriceCad": 140.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Category 4 (not PSA 10/BGS BL): 75% rate ($105.00 CAD)"
   },
   {
@@ -1005,11 +1005,11 @@
         "grade": "CGC 10",
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 1200.00
+        "marketPriceCad": 1200.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Category 4 (not PSA 10 or BGS BL): 75% rate ($900.00 CAD)"
   },
   {
@@ -1026,11 +1026,11 @@
         "grade": "BGS 9.5",
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 300.00
+        "marketPriceCad": 300.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Category 4: 75% rate ($225.00 CAD)"
   },
   {
@@ -1050,8 +1050,8 @@
         "marketPriceCad": null
       }
     ],
-    "expectedDecision": "TODO-VERIFY (NEEDS_REVIEW)",
-    "expectedDecisionRaw": "NEEDS_REVIEW",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Unpriced niche vintage card returns NEEDS_REVIEW"
   },
   {
@@ -1068,11 +1068,11 @@
         "grade": null,
         "sealed": true,
         "quantity": 1,
-        "marketPriceCad": 95.00
+        "marketPriceCad": 95.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Sealed rate 70% ($66.50 CAD)"
   },
   {
@@ -1089,7 +1089,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 25.00
+        "marketPriceCad": 25.0
       },
       {
         "name": "Card 2",
@@ -1099,7 +1099,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 25.00
+        "marketPriceCad": 25.0
       },
       {
         "name": "Card 3",
@@ -1109,16 +1109,16 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 25.00
+        "marketPriceCad": 25.0
       }
     ],
     "storeCard": {
       "name": "Vintage Snorlax",
-      "listPriceCad": 100.00,
-      "costBasisCad": 75.00
+      "listPriceCad": 100.0,
+      "costBasisCad": 75.0
     },
-    "expectedDecision": "TODO-VERIFY (DECLINE)",
-    "expectedDecisionRaw": "DECLINE",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Largest card ($25) is 25% of target, required top-up ($47.50 CAD) exceeds 25% limit ($25 CAD) -> DECLINE"
   },
   {
@@ -1135,7 +1135,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 51.00
+        "marketPriceCad": 51.0
       },
       {
         "name": "Card Mid",
@@ -1145,7 +1145,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 30.00
+        "marketPriceCad": 30.0
       },
       {
         "name": "Card Low",
@@ -1155,16 +1155,16 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 20.00
+        "marketPriceCad": 20.0
       }
     ],
     "storeCard": {
       "name": "Charizard V Alt Art",
-      "listPriceCad": 100.00,
-      "costBasisCad": 75.00
+      "listPriceCad": 100.0,
+      "costBasisCad": 75.0
     },
-    "expectedDecision": "TODO-VERIFY (COUNTER)",
-    "expectedDecisionRaw": "COUNTER",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Largest card ($51) > 50% of target (no consolidation penalty); trade credit $87.87 counters with $12.13 CAD top-up"
   },
   {
@@ -1181,7 +1181,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 60.00
+        "marketPriceCad": 60.0
       },
       {
         "name": "Card 2",
@@ -1191,7 +1191,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 60.00
+        "marketPriceCad": 60.0
       },
       {
         "name": "Card 3",
@@ -1201,7 +1201,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 60.00
+        "marketPriceCad": 60.0
       },
       {
         "name": "Card 4",
@@ -1211,7 +1211,7 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 60.00
+        "marketPriceCad": 60.0
       },
       {
         "name": "Card 5",
@@ -1221,16 +1221,16 @@
         "grade": null,
         "sealed": false,
         "quantity": 1,
-        "marketPriceCad": 60.00
+        "marketPriceCad": 60.0
       }
     ],
     "storeCard": {
       "name": "CoroCoro Shining Mew",
-      "listPriceCad": 280.00,
-      "costBasisCad": 210.00
+      "listPriceCad": 280.0,
+      "costBasisCad": 210.0
     },
-    "expectedDecision": "TODO-VERIFY (DECLINE)",
-    "expectedDecisionRaw": "DECLINE",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "5 cards offered, largest ($60) is 21.4% of target ($280) < 25% -> DECLINE by consolidation rule"
   },
   {
@@ -1247,16 +1247,16 @@
         "grade": null,
         "sealed": true,
         "quantity": 1,
-        "marketPriceCad": 65.00
+        "marketPriceCad": 65.0
       }
     ],
     "storeCard": {
       "name": "Dragonite V Alt Art",
-      "listPriceCad": 55.00,
-      "costBasisCad": 40.00
+      "listPriceCad": 55.0,
+      "costBasisCad": 40.0
     },
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "Sealed pack trade credit covers store card list price"
   },
   {
@@ -1273,11 +1273,11 @@
         "grade": null,
         "sealed": false,
         "quantity": 5,
-        "marketPriceCad": 22.00
+        "marketPriceCad": 22.0
       }
     ],
-    "expectedDecision": "TODO-VERIFY (ACCEPT)",
-    "expectedDecisionRaw": "ACCEPT",
+    "expectedDecision": "",
+    "expectedDecisionRaw": "",
     "notes": "5 * $22.00 = $110.00 market value * 77% NM rate = $84.70 CAD cash"
   }
 ]

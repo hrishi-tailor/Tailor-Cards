@@ -60,10 +60,10 @@ class TradeBacktesterTest {
         int total = 0;
 
         try (BufferedReader reader = new BufferedReader(new FileReader(csvFile))) {
-            String header = reader.readLine(); // skip header
             String line;
             while ((line = reader.readLine()) != null) {
-                if (line.isBlank() || line.startsWith("#")) continue;
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#") || line.startsWith("trade_id,")) continue;
                 String[] cols = line.split(",", -1);
                 if (cols.length < 11) continue;
 
