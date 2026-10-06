@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
-import { createCheckoutSession } from '../api/cartApi'
+import { createCheckoutSession, executeDemoCheckout } from '../api/cartApi'
+import { fetchDemoStatus } from '../api/buylistApi'
 import './Cart.css'
 
 export function Cart() {
@@ -10,6 +11,13 @@ export function Cart() {
   const [removingId, setRemovingId] = useState<number | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [isCheckingOut, setIsCheckingOut] = useState<boolean>(false)
+  const [demoModeEnabled, setDemoModeEnabled] = useState<boolean>(false)
+
+  useEffect(() => {
+    fetchDemoStatus()
+      .then((res) => setDemoModeEnabled(Boolean(res.demoMode)))
+      .catch(() => setDemoModeEnabled(false))
+  }, [])
 
   const handleRemove = async (itemId: number) => {
     try {
@@ -46,12 +54,27 @@ export function Cart() {
     }
   }
 
-  const handleDemoCheckout = () => {
+  const handleDemoCheckout = async () => {
+    if (!demoModeEnabled) {
+      setActionError('Demo checkout is disabled on this server.')
+      return
+    }
     if (!cart?.cartSessionId || items.length === 0) {
       setActionError('Cannot proceed to demo checkout: Your cart is empty.')
       return
     }
-    navigate('/checkout/success?session_id=demo_recruiter_instant_checkout')
+    try {
+      setIsCheckingOut(true)
+      setActionError(null)
+      const res = await executeDemoCheckout(cart.cartSessionId)
+      navigate(`/checkout/success?session_id=${encodeURIComponent(res.sessionId || 'demo_recruiter_instant_checkout')}`)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Demo checkout failed.'
+      console.error('Demo checkout error:', errorMessage)
+      setActionError(errorMessage)
+    } finally {
+      setIsCheckingOut(false)
+    }
   }
 
   if (loading && !cart) {
@@ -268,29 +291,31 @@ export function Cart() {
             )}
           </button>
 
-          {/* Recruiter / Public Demo Mode */}
-          <div className="tc-cart-demo-box">
-            <div className="tc-cart-demo-header">
-              <span className="tc-cart-demo-badge">RECRUITER / DEMO MODE</span>
-              <span className="tc-cart-demo-pill">No Payment Needed</span>
+          {/* Recruiter / Public Demo Mode - only shown when DEMO_MODE is active */}
+          {demoModeEnabled && (
+            <div className="tc-cart-demo-box">
+              <div className="tc-cart-demo-header">
+                <span className="tc-cart-demo-badge">RECRUITER / DEMO MODE</span>
+                <span className="tc-cart-demo-pill">No Payment Needed</span>
+              </div>
+              <p className="tc-cart-demo-desc">
+                Test the acquisition pipeline without entering financial details:
+              </p>
+              <button
+                type="button"
+                className="tc-cart-demo-instant-btn"
+                onClick={handleDemoCheckout}
+                disabled={isCheckingOut || removingId !== null}
+              >
+                ⚡ Instant Demo Checkout (Simulate Acquisition)
+              </button>
+              <div className="tc-cart-demo-stripe-note">
+                <span>Or test hosted Stripe with sandbox card:</span>
+                <code>4242 •••• •••• 4242</code>
+                <span>Exp: <code>12/34</code> | CVC: <code>123</code></span>
+              </div>
             </div>
-            <p className="tc-cart-demo-desc">
-              Test the acquisition pipeline without entering financial details:
-            </p>
-            <button
-              type="button"
-              className="tc-cart-demo-instant-btn"
-              onClick={handleDemoCheckout}
-              disabled={isCheckingOut || removingId !== null}
-            >
-              ⚡ Instant Demo Checkout (Simulate Acquisition)
-            </button>
-            <div className="tc-cart-demo-stripe-note">
-              <span>Or test hosted Stripe with sandbox card:</span>
-              <code>4242 •••• •••• 4242</code>
-              <span>Exp: <code>12/34</code> | CVC: <code>123</code></span>
-            </div>
-          </div>
+          )}
 
           <div className="tc-security-note">
             Tracked &amp; insured shipping in protective sleeve + toploader

@@ -5,6 +5,8 @@ import com.tailorcards.api.dto.CheckoutSessionResponse;
 import com.tailorcards.service.StripeCheckoutService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,9 +23,19 @@ import java.util.Map;
 public class CheckoutController {
 
     private final StripeCheckoutService stripeCheckoutService;
+    private final boolean demoMode;
 
     public CheckoutController(StripeCheckoutService stripeCheckoutService) {
+        this(stripeCheckoutService, false);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public CheckoutController(
+            StripeCheckoutService stripeCheckoutService,
+            @Value("${DEMO_MODE:${app.demo-mode:false}}") boolean demoMode
+    ) {
         this.stripeCheckoutService = stripeCheckoutService;
+        this.demoMode = demoMode;
     }
 
     @PostMapping("/create-session")
@@ -32,6 +44,21 @@ public class CheckoutController {
         CheckoutSessionRequest effectiveRequest = request != null ? request : new CheckoutSessionRequest(null, null);
         CheckoutSessionResponse session = stripeCheckoutService.createCheckoutSession(effectiveRequest);
         return ResponseEntity.ok(session);
+    }
+
+    @PostMapping("/demo")
+    @Operation(summary = "Instant Demo Checkout", description = "Simulates acquisition in DEMO_MODE without modifying stock or creating real orders")
+    public ResponseEntity<Map<String, Object>> demoCheckout(@RequestBody(required = false) CheckoutSessionRequest request) {
+        if (!demoMode) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of(
+                            "error", "Demo checkout is disabled on this server. Enable DEMO_MODE to use this feature.",
+                            "demoMode", false
+                    ));
+        }
+        CheckoutSessionRequest effectiveRequest = request != null ? request : new CheckoutSessionRequest(null, null);
+        Map<String, Object> result = stripeCheckoutService.simulateDemoCheckout(effectiveRequest);
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/webhook")

@@ -259,13 +259,17 @@ public class StripeCheckoutService {
     }
 
     public void processCompletedCheckout(Session session) {
-        String sessionId = session.getId();
-        if (orderRepository.existsByStripeSessionId(sessionId)) {
+        String sessionId = session != null ? session.getId() : null;
+        if (sessionId != null && sessionId.startsWith("demo_")) {
+            log.info("Demo session {} ignored in processCompletedCheckout: stock and orders are never altered for demo checkouts.", sessionId);
+            return;
+        }
+        if (sessionId != null && orderRepository.existsByStripeSessionId(sessionId)) {
             log.info("Stripe session {} has already been recorded. Skipping duplicate.", sessionId);
             return;
         }
 
-        Map<String, String> metadata = session.getMetadata();
+        Map<String, String> metadata = session != null ? session.getMetadata() : null;
         String cartId = metadata != null ? metadata.get("cartId") : null;
         String productIdsStr = metadata != null ? metadata.get("productIds") : null;
 
@@ -400,6 +404,51 @@ public class StripeCheckoutService {
                     product != null ? product.getStock() : null);
             throw new StockConflictException("item no longer available at requested quantity");
         }
+    }
+
+    public Map<String, Object> simulateDemoCheckout(CheckoutSessionRequest request) {
+        String cartId = request != null ? request.cartId() : null;
+        List<CartItemSnapshot> items = new ArrayList<>();
+
+        if (cartId != null && !cartId.isBlank()) {
+            List<CartItem> cartItems = cartItemRepository.findByCartSessionId(cartId);
+            for (CartItem ci : cartItems) {
+                items.add(new CartItemSnapshot(ci.getProduct().getId(), ci.getQuantity()));
+            }
+        }
+
+        if (items.isEmpty() && request != null && request.productIds() != null && !request.productIds().isEmpty()) {
+            for (Long pId : request.productIds()) {
+                items.add(new CartItemSnapshot(pId, 1));
+            }
+        }
+
+        if (items.isEmpty()) {
+            throw new IllegalArgumentException("Cart is empty or no valid products found for demo checkout.");
+        }
+
+        // Validate products exist in catalog
+        for (CartItemSnapshot item : items) {
+            Product product = productRepository.findById(item.productId())
+                    .orElseThrow(() -> new IllegalArgumentException("Product not found with ID: " + item.productId()));
+            if ("SOLD".equalsIgnoreCase(product.getStatus())) {
+                throw new IllegalStateException(String.format("Product '%s' is already sold.", product.getName()));
+            }
+        }
+
+        // Clear only the guest's cart session so the local cart is emptied,
+        // BUT never decrement Product.stock, never change Product.status, and never create an Order!
+        if (cartId != null && !cartId.isBlank()) {
+            cartItemRepository.deleteByCartSessionId(cartId);
+            log.info("Demo checkout: Cleared cart session {} without modifying stock or creating orders", cartId);
+        }
+
+        log.info("Simulated demo checkout completed for cartId={}. Real stock and orders were NOT touched.", cartId);
+        return Map.of(
+                "success", true,
+                "sessionId", "demo_recruiter_instant_checkout",
+                "message", "Demo checkout simulated successfully. Stock and orders remain untouched."
+        );
     }
 
     private record CartItemSnapshot(Long productId, int quantity) {}

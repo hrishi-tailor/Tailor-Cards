@@ -37,3 +37,22 @@ export async function createCheckoutSession(
   return data
 }
 
+export async function executeDemoCheckout(
+  cartId: string
+): Promise<{ success: boolean; sessionId: string; message?: string }> {
+  const response = await fetch(`${API_BASE_URL}/api/checkout/demo`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ cartId }),
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null)
+    throw new Error(errorData?.error || errorData?.message || `Demo checkout failed with status ${response.status}`)
+  }
+
+  return response.json()
+}
+
