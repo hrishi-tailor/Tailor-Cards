@@ -8,6 +8,7 @@ import { AdminBuylist } from './components/AdminBuylist'
 import { AdminLoginPage } from './components/AdminLoginPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { CheckoutSuccess } from './components/CheckoutSuccess'
+import { TradeAssistant } from './components/TradeAssistant'
 import { CartProvider, useCart } from './context/CartContext'
 import { API_BASE_URL } from './api/config'
 import logoImg from './assets/logo.jpg'
@@ -82,6 +83,12 @@ function MainNavigation({ onCategorySelect, selectedCategory }: NavigationProps)
           >
             Sell to Us
           </NavLink>
+          <NavLink
+            to="/trade-assistant"
+            className={({ isActive }) => `tc-nav-link ${isActive ? 'active' : ''}`}
+          >
+            Sell or Trade
+          </NavLink>
         </nav>
 
         {/* Search Bar & Cart Actions */}
@@ -146,6 +153,7 @@ function AppContent() {
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/sell" element={<SellBuylist />} />
           <Route path="/sell/track/:token" element={<TrackBuylist />} />
+          <Route path="/trade-assistant" element={<TradeAssistant />} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route
             path="/admin/buylist"
@@ -166,6 +174,8 @@ function AppContent() {
           </div>
 
           <div className="tc-footer-links">
+            <Link to="/trade-assistant" className="tc-footer-link">Sell or Trade</Link>
+            <span className="tc-footer-divider" aria-hidden="true">/</span>
             <Link to="/sell" className="tc-footer-link">Sell to Us</Link>
             <span className="tc-footer-divider" aria-hidden="true">/</span>
             <a

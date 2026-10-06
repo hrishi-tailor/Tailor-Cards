@@ -108,3 +108,91 @@ export interface PriceHistoryData {
   history: PricePoint[];
 }
 
+export type TradeFlowType = 'SELL' | 'TRADE';
+export type TradeDecision = 'ACCEPT' | 'COUNTER' | 'DECLINE' | 'NEEDS_REVIEW';
+
+export interface CustomerCardItem {
+  name: string;
+  set?: string;
+  cardNumber?: string;
+  pokemontcgId?: string;
+  condition?: string;
+  grading?: string;
+  isSealed?: boolean;
+  quantity?: number;
+  marketPriceCad?: number;
+  imageUrl?: string;
+  confirmed?: boolean;
+}
+
+export interface StoreCardItem {
+  productId: number;
+  name: string;
+  listPriceCad: number;
+  quantity: number;
+}
+
+export interface TradeChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface TradeConversationRequest {
+  conversationId?: string;
+  flowType: TradeFlowType;
+  messages: TradeChatMessage[];
+  confirmedItems?: CustomerCardItem[];
+  storeProductIds?: number[];
+}
+
+export interface TradeConversationResponse {
+  conversationId: string;
+  reply: string;
+  extractedItems: CustomerCardItem[];
+  requiresConfirmation: boolean;
+}
+
+export interface TradeQuoteRequest {
+  flowType: TradeFlowType;
+  customerCards: CustomerCardItem[];
+  storeProductIds?: number[];
+}
+
+export interface TradeQuoteResponse {
+  flowType: TradeFlowType;
+  decision: TradeDecision;
+  cashOffer?: number;
+  tradeCredit?: number;
+  counterTopUp?: number;
+  customerTotalMarketCad?: number;
+  storeTotalListPriceCad?: number;
+  explanation: string;
+  ruleTrace?: any;
+  customerCards: CustomerCardItem[];
+  storeCards: StoreCardItem[];
+}
+
+export interface TradeSubmissionPayload {
+  quote: TradeQuoteRequest;
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string;
+  customerNotes?: string;
+}
+
+export interface TradeSubmissionResponse {
+  id: number;
+  referenceCode: string;
+  status: string;
+  flowType: TradeFlowType;
+  decision: TradeDecision;
+  offeredAmount?: number;
+  counterTopUp?: number;
+  customerTotalMarketCad?: number;
+  storeTotalListPriceCad?: number;
+  customerName: string;
+  customerEmail: string;
+  explanation?: string;
+  createdAt: string;
+}
+
