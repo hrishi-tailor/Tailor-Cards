@@ -25,6 +25,17 @@ public class TradePricingEngine {
     }
 
     /**
+     * Unified evaluation entrypoint dispatching to evaluateSell or evaluateTrade based on flowType.
+     */
+    public PricingResult evaluate(TradeFlowType flowType, List<CustomerCardItem> customerCards, List<StoreCardItem> storeCards) {
+        if (flowType == TradeFlowType.SELL) {
+            return evaluateSell(customerCards);
+        } else {
+            return evaluateTrade(customerCards, storeCards);
+        }
+    }
+
+    /**
      * Calculates cash offer for selling cards to Tailor Cards.
      */
     public PricingResult evaluateSell(List<CustomerCardItem> customerCards) {

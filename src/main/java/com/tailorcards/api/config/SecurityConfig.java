@@ -38,6 +38,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/buylist/upload").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/buylist/track/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/buylist/*/messages").permitAll()
+                .requestMatchers("/api/trade-assistant/**").permitAll()
                 .requestMatchers("/api/auth/verify").hasRole("ADMIN")
                 .requestMatchers("/api/buylist/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")

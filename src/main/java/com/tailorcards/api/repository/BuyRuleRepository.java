@@ -10,5 +10,6 @@ import java.util.Optional;
 @Repository
 public interface BuyRuleRepository extends JpaRepository<BuyRule, Long> {
     List<BuyRule> findByActiveTrueOrderByPriorityAsc();
+    List<BuyRule> findAllByOrderByPriorityAsc();
     Optional<BuyRule> findByCategoryCode(String categoryCode);
 }
