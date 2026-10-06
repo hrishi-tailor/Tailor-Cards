@@ -36,7 +36,8 @@ public class ProductMapper {
                 product.getSet(),
                 product.getCondition(),
                 product.getGrading(),
-                product.getStatus() != null ? product.getStatus() : "AVAILABLE"
+                product.getStatus() != null ? product.getStatus() : "AVAILABLE",
+                product.getPokemontcgId()
         );
     }
 

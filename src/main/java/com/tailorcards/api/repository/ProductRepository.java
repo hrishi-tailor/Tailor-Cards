@@ -35,5 +35,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByPokemontcgIdIsNotNull();
 
     @EntityGraph(attributePaths = {"category"})
+    List<Product> findByPokemontcgIdIsNull();
+
+    @EntityGraph(attributePaths = {"category"})
     Optional<Product> findByPokemontcgId(String pokemontcgId);
 }

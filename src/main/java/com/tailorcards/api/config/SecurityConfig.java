@@ -63,15 +63,13 @@ public class SecurityConfig {
                 // Read-only dashboard access: both ADMIN and DEMO
                 .requestMatchers(HttpMethod.GET, "/api/buylist/admin/**").hasAnyRole("ADMIN", "DEMO")
                 .requestMatchers(HttpMethod.GET, "/api/admin/trade-assistant/requests/**").hasAnyRole("ADMIN", "DEMO")
-                // State mutations on buylist or admin endpoints: ADMIN ONLY
+                // All other /api/admin/** endpoints (GET, POST, PUT, DELETE): ADMIN ONLY
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                // State mutations on buylist endpoints: ADMIN ONLY
                 .requestMatchers(HttpMethod.POST, "/api/buylist/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/buylist/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PATCH, "/api/buylist/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/buylist/admin/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/admin/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/admin/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PATCH, "/api/admin/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/admin/**").hasRole("ADMIN")
                 // General public GET endpoints (catalog, categories, price history)
                 .requestMatchers(HttpMethod.GET, "/api/**").permitAll()
                 // Fallback for all other endpoints
