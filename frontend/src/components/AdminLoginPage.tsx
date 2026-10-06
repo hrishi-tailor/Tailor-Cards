@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
-import { verifyAdminAuth, setAdminAuth, isAdminAuthenticated } from '../api/buylistApi'
+import { verifyAdminAuth, setAdminAuth, isAdminAuthenticated, fetchDemoStatus } from '../api/buylistApi'
 import logoImg from '../assets/logo.jpg'
 import './AdminLoginPage.css'
 
@@ -14,6 +14,7 @@ export function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [demoModeEnabled, setDemoModeEnabled] = useState(false)
 
   // Where to redirect after successful login
   const fromLocation = (location.state as { from?: { pathname?: string } })?.from?.pathname || '/admin/buylist'
@@ -24,6 +25,17 @@ export function AdminLoginPage() {
       navigate(fromLocation, { replace: true })
     }
   }, [navigate, fromLocation])
+
+  // Check if demo mode is enabled on the server or via Vite env
+  useEffect(() => {
+    if (import.meta.env.VITE_DEMO_MODE === 'true') {
+      setDemoModeEnabled(true)
+    } else {
+      fetchDemoStatus().then((res) => {
+        if (res.demoMode) setDemoModeEnabled(true)
+      })
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,30 +51,14 @@ export function AdminLoginPage() {
 
     try {
       // Submits credentials to GET /api/auth/verify using Basic Auth
-      await verifyAdminAuth(trimmedUser, password)
+      const authResult = await verifyAdminAuth(trimmedUser, password)
 
-      // On success: Stores the base64 auth header securely and redirects to /admin/buylist
-      setAdminAuth(trimmedUser, password, rememberMe)
+      // On success: Stores the base64 auth header and role securely and redirects to /admin/buylist
+      setAdminAuth(trimmedUser, password, rememberMe, authResult.role || 'ADMIN')
       navigate(fromLocation, { replace: true })
     } catch {
       // On failure: Displays a clear "Invalid credentials" error banner without leaking details
       setErrorMessage('Invalid credentials. Please verify your admin username and password.')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleDemoFillAndLogin = async () => {
-    setUsername('admin')
-    setPassword('TailorCardsAdmin2026!')
-    setErrorMessage(null)
-    setIsSubmitting(true)
-    try {
-      await verifyAdminAuth('admin', 'TailorCardsAdmin2026!')
-      setAdminAuth('admin', 'TailorCardsAdmin2026!', true)
-      navigate(fromLocation, { replace: true })
-    } catch {
-      setErrorMessage('Failed to sign in with demo credentials.')
     } finally {
       setIsSubmitting(false)
     }
@@ -91,28 +87,22 @@ export function AdminLoginPage() {
           </p>
         </div>
 
-        {/* Recruiter / Public Demo Mode Banner */}
-        <div className="tc-demo-access-box">
-          <div className="tc-demo-access-header">
-            <span className="tc-demo-access-badge">RECRUITER / DEMO ACCESS</span>
-            <span className="tc-demo-access-pill">Demo Mode</span>
+        {/* Evaluator / Read-Only Demo Access Banner (rendered only when DEMO_MODE=true) */}
+        {demoModeEnabled && (
+          <div className="tc-demo-access-box">
+            <div className="tc-demo-access-header">
+              <span className="tc-demo-access-badge">EVALUATOR / DEMO ACCESS</span>
+              <span className="tc-demo-access-pill">Read-Only</span>
+            </div>
+            <p className="tc-demo-access-desc">
+              Platform evaluation mode is active. Sign in with the demo account credentials provisioned in your environment (<code>DEMO_USERNAME</code> / <code>DEMO_PASSWORD</code>).
+            </p>
+            <div className="tc-demo-creds-preview">
+              <span>Role: <code>READ-ONLY AUDIT</code></span>
+              <span>Buylist &amp; trade request inspection enabled. Modifying records and viewing business margins/parameters is restricted.</span>
+            </div>
           </div>
-          <p className="tc-demo-access-desc">
-            Evaluating the platform? Use demo credentials to test the appraisal queue, status workflow, and customer messaging.
-          </p>
-          <div className="tc-demo-creds-preview">
-            <span>Username: <code>admin</code></span>
-            <span>Password: <code>TailorCardsAdmin2026!</code></span>
-          </div>
-          <button
-            type="button"
-            className="tc-demo-login-btn"
-            onClick={handleDemoFillAndLogin}
-            disabled={isSubmitting}
-          >
-            ⚡ Auto-Fill Demo Credentials &amp; Enter Portal
-          </button>
-        </div>
+        )}
 
         {/* Error Banner */}
         {errorMessage && (

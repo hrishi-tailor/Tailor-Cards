@@ -8,7 +8,7 @@ spring:
   security:
     user:
       name: ${ADMIN_USERNAME:admin}
-      password: ${ADMIN_PASSWORD:TailorCardsAdmin2026!}
+      password: ${ADMIN_PASSWORD:}
       roles: ADMIN
 
   servlet:
@@ -80,5 +80,9 @@ app:
   trade-assistant:
     rate-limit-per-minute: 20
     max-message-length: 2000
+  demo-mode: ${DEMO_MODE:false}
+  demo-user:
+    username: ${DEMO_USERNAME:demo}
+    password: ${DEMO_PASSWORD:}
 
 

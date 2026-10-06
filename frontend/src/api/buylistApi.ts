@@ -141,39 +141,71 @@ const ADMIN_AUTH_KEY = 'tc_admin_auth';
  * Admin credentials helper for Basic Auth.
  * Reads dynamically from sessionStorage or localStorage without any hardcoded credentials.
  */
+const ADMIN_ROLE_KEY = 'tc_admin_role';
+
 export function getAdminAuthHeader(): string | null {
   return sessionStorage.getItem(ADMIN_AUTH_KEY) || localStorage.getItem(ADMIN_AUTH_KEY) || null;
 }
 
-export function setAdminAuth(username: string, password: string, rememberMe = true): string {
+export function getAdminRole(): string | null {
+  return sessionStorage.getItem(ADMIN_ROLE_KEY) || localStorage.getItem(ADMIN_ROLE_KEY) || null;
+}
+
+export function isDemoRole(): boolean {
+  return getAdminRole() === 'DEMO';
+}
+
+export function setAdminAuth(username: string, password: string, rememberMe = true, role = 'ADMIN'): string {
   const encoded = btoa(`${username.trim()}:${password.trim()}`);
   if (rememberMe) {
     localStorage.setItem(ADMIN_AUTH_KEY, encoded);
+    localStorage.setItem(ADMIN_ROLE_KEY, role);
     sessionStorage.removeItem(ADMIN_AUTH_KEY);
+    sessionStorage.removeItem(ADMIN_ROLE_KEY);
   } else {
     sessionStorage.setItem(ADMIN_AUTH_KEY, encoded);
+    sessionStorage.setItem(ADMIN_ROLE_KEY, role);
     localStorage.removeItem(ADMIN_AUTH_KEY);
+    localStorage.removeItem(ADMIN_ROLE_KEY);
   }
   return encoded;
 }
 
-export function setAdminAuthHeader(authHeader: string, rememberMe = true): void {
+export function setAdminAuthHeader(authHeader: string, rememberMe = true, role = 'ADMIN'): void {
   if (rememberMe) {
     localStorage.setItem(ADMIN_AUTH_KEY, authHeader);
+    localStorage.setItem(ADMIN_ROLE_KEY, role);
     sessionStorage.removeItem(ADMIN_AUTH_KEY);
+    sessionStorage.removeItem(ADMIN_ROLE_KEY);
   } else {
     sessionStorage.setItem(ADMIN_AUTH_KEY, authHeader);
+    sessionStorage.setItem(ADMIN_ROLE_KEY, role);
     localStorage.removeItem(ADMIN_AUTH_KEY);
+    localStorage.removeItem(ADMIN_ROLE_KEY);
   }
 }
 
 export function clearAdminAuth(): void {
   localStorage.removeItem(ADMIN_AUTH_KEY);
+  localStorage.removeItem(ADMIN_ROLE_KEY);
   sessionStorage.removeItem(ADMIN_AUTH_KEY);
+  sessionStorage.removeItem(ADMIN_ROLE_KEY);
 }
 
 export function isAdminAuthenticated(): boolean {
   return Boolean(getAdminAuthHeader());
+}
+
+export async function fetchDemoStatus(): Promise<{ demoMode: boolean }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/demo-status`);
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch {
+    // fallback if endpoint unreachable
+  }
+  return { demoMode: false };
 }
 
 /**

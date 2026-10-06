@@ -7,6 +7,7 @@ import {
   getBuylistSubmission,
   resolveImageUrl,
   clearAdminAuth,
+  isDemoRole,
 } from '../api/buylistApi'
 import type { BuylistSubmission, BuylistStatus } from '../types'
 import './AdminBuylist.css'
@@ -378,6 +379,20 @@ export function AdminBuylist() {
 
       {/* Main Admin Header */}
       <header className="tc-admin-header-card">
+        {isDemoRole() && (
+          <div className="tc-admin-demo-alert" style={{
+            background: 'rgba(217, 119, 6, 0.15)',
+            border: '1px solid rgba(217, 119, 6, 0.4)',
+            color: '#fbbf24',
+            padding: '10px 16px',
+            borderRadius: '8px',
+            marginBottom: '16px',
+            fontSize: '0.88rem',
+            lineHeight: '1.4'
+          }}>
+            🔒 <strong>READ-ONLY DEMO MODE ACTIVE</strong>: You are viewing the appraisal dashboard with audit permissions. State changes, customer chat replies, and internal business margins/parameters are restricted.
+          </div>
+        )}
         <div className="tc-admin-header-titles">
           <div className="tc-admin-badge-pill">[STAFF] Appraisal Operations</div>
           <h1 className="tc-admin-main-title">Buylist Submissions Dashboard</h1>
@@ -899,7 +914,8 @@ export function AdminBuylist() {
                         type="button"
                         className={`tc-status-segment-btn segment-${statusVal.toLowerCase()} ${isActive ? 'active' : ''}`}
                         onClick={() => handleStatusChange(statusVal)}
-                        disabled={isUpdatingStatus}
+                        disabled={isUpdatingStatus || isDemoRole()}
+                        title={isDemoRole() ? 'Status updates are disabled in read-only demo mode' : undefined}
                       >
                         {statusVal === 'PENDING' && 'Pending'}
                         {statusVal === 'UNDER_REVIEW' && 'Under Review'}
@@ -1018,7 +1034,7 @@ export function AdminBuylist() {
                     <textarea
                       rows={3}
                       className="tc-admin-textarea"
-                      placeholder="Type a response to the seller or apply a quick template above..."
+                      placeholder={isDemoRole() ? "Messaging is disabled in read-only demo mode." : "Type a response to the seller or apply a quick template above..."}
                       value={adminReplyText}
                       onChange={(e) => setAdminReplyText(e.target.value)}
                       onKeyDown={(e) => {
@@ -1027,12 +1043,12 @@ export function AdminBuylist() {
                           handleSendAdminMessage(e)
                         }
                       }}
-                      disabled={isSendingMessage}
+                      disabled={isSendingMessage || isDemoRole()}
                     />
                     <button
                       type="submit"
                       className="tc-admin-send-btn"
-                      disabled={isSendingMessage || !adminReplyText.trim()}
+                      disabled={isSendingMessage || !adminReplyText.trim() || isDemoRole()}
                     >
                       {isSendingMessage ? 'Sending...' : 'Send Message'}
                     </button>

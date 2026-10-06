@@ -29,7 +29,7 @@ Evaluating the platform? You can test both the customer checkout and the staff a
 | :--- | :--- | :--- |
 | **Instant Demo Checkout** | Add items to cart $\rightarrow$ click **⚡ Instant Demo Checkout** | Validates stock decrement, skips payment gate, renders official `[ACQUISITION CONFIRMED]` dossier. |
 | **Stripe Sandbox Checkout** | Click **Checkout via Stripe** $\rightarrow$ Card: `4242 4242 4242 4242` (Exp: `12/34`, CVC: `123`) | Hosted Stripe payment session, signed webhook handling, and inventory ledger locking. |
-| **Staff Appraisal Portal** | Visit `/admin/login` $\rightarrow$ Click **⚡ Auto-Fill Demo Credentials**<br>• User: `admin`<br>• Pass: `TailorCardsAdmin2026!` | Review buylist card quotes, high-resolution corner loupe inspection, status transitions, and customer counter-offers. |
+| **Staff Appraisal Portal** | Visit `/admin/login` $\rightarrow$ Sign in with credentials configured via env vars<br>• User: `${DEMO_USERNAME:-demo}` (or admin)<br>• Role: `DEMO` (Read-only audit) or `ADMIN` | Review buylist card quotes, high-resolution corner loupe inspection, and customer trade submissions with granular role-based access. |
 | **Buylist Submission** | Visit `/sell` $\rightarrow$ upload card front/back photos | Supabase image upload pipeline with local fallback, tracking token generation, and real-time chat. |
 
 ---
@@ -418,6 +418,13 @@ The repository includes a comprehensive 45-scenario test harness and a historica
    export DB_PASSWORD=your_password
    export STRIPE_SECRET_KEY=sk_test_placeholder
    export FRONTEND_URL=http://localhost:5173
+
+   # Security & Staff / Demo Portal Roles
+   export ADMIN_USERNAME=admin                            # Admin username (default: admin)
+   export ADMIN_PASSWORD=your_secure_admin_password       # Required for administrative mutations
+   export DEMO_MODE=true                                  # Set to true to seed read-only DEMO evaluator account
+   export DEMO_USERNAME=demo                              # Evaluator username (default: demo)
+   export DEMO_PASSWORD=your_demo_password                # Evaluator password (read-only audit access)
 
    # Pokémon TCG & Anthropic API (Stage 2 & 4 Trade Assistant)
    export POKEMONTCG_API_KEY=your_pokemontcg_io_api_key   # Optional: free key from pokemontcg.io
