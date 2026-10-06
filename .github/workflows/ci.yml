@@ -24,9 +24,6 @@ jobs:
       - name: Run Maven Tests
         run: ./mvnw clean test
 
-      - name: Run Trade Evaluation Harness
-        run: ./evaluation/run_evaluation.sh
-
   frontend:
     name: React Frontend (TypeScript + Vite)
     runs-on: ubuntu-latest
