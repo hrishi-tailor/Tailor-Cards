@@ -83,3 +83,28 @@ export interface BuylistUploadResponse {
   url: string;
 }
 
+export type PriceRange = '1M' | '3M' | '1Y';
+
+export interface PricePoint {
+  date: string;
+  price: number;
+  volume: number;
+}
+
+export interface PriceHistoryData {
+  productId: number;
+  productName: string;
+  cardSet?: string;
+  cardNumber?: string;
+  condition?: string;
+  grading?: string;
+  range: PriceRange;
+  currency: string;
+  currentPrice: number;
+  periodLow: number;
+  periodHigh: number;
+  changeAmount: number;
+  changePercentage: number;
+  history: PricePoint[];
+}
+

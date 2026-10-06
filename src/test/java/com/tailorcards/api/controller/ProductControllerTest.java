@@ -33,11 +33,14 @@ class ProductControllerTest {
     @Mock
     private ProductService productService;
 
+    @Mock
+    private com.tailorcards.api.service.PriceHistoryService priceHistoryService;
+
     private ProductController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new ProductController(productService);
+        controller = new ProductController(productService, priceHistoryService);
     }
 
     @Test
@@ -82,5 +85,37 @@ class ProductControllerTest {
         assertEquals(68, response.getBody().getContent().size());
         assertEquals("SOLD", response.getBody().getContent().get(0).status());
         verify(productService).getProducts(pageRequest);
+    }
+
+    @Test
+    void getPriceHistory_shouldReturnPriceHistoryResponse() {
+        Long productId = 16L;
+        String range = "3M";
+        com.tailorcards.api.dto.PriceHistoryResponse mockResponse = new com.tailorcards.api.dto.PriceHistoryResponse(
+                productId,
+                "Mewtwo GX",
+                "Shining Legends",
+                "78/73",
+                "NM",
+                "PSA 10",
+                range,
+                "CAD",
+                BigDecimal.valueOf(85.00),
+                BigDecimal.valueOf(70.00),
+                BigDecimal.valueOf(90.00),
+                BigDecimal.valueOf(5.00),
+                6.25,
+                List.of(new com.tailorcards.api.dto.PricePointResponse("2024-03-01", BigDecimal.valueOf(80.00), 10))
+        );
+
+        when(priceHistoryService.getPriceHistory(productId, range)).thenReturn(mockResponse);
+
+        ResponseEntity<com.tailorcards.api.dto.PriceHistoryResponse> response = controller.getPriceHistory(productId, range);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Mewtwo GX", response.getBody().productName());
+        assertEquals(BigDecimal.valueOf(85.00), response.getBody().currentPrice());
+        verify(priceHistoryService).getPriceHistory(productId, range);
     }
 }

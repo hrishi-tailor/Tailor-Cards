@@ -4,6 +4,7 @@ import { API_BASE_URL } from '../api/config'
 import { useCart } from '../context/CartContext'
 import type { PageResponse, Product } from '../types'
 import { WhySellDirectly } from './WhySellDirectly'
+import { PriceHistoryChart } from './PriceHistoryChart'
 import './ProductList.css'
 
 interface ProductListProps {
@@ -100,6 +101,7 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
   // Quick Inspect Lightbox State
   const [inspectProduct, setInspectProduct] = useState<Product | null>(null)
   const [zoomCorner, setZoomCorner] = useState<ZoomCorner>('FULL')
+  const [modalTab, setModalTab] = useState<'LOUPE' | 'PRICE'>('LOUPE')
 
   const { addToCart } = useCart()
 
@@ -247,6 +249,7 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
       if (e.key === 'Escape') {
         setInspectProduct(null)
         setZoomCorner('FULL')
+        setModalTab('LOUPE')
       } else if (e.key === 'ArrowRight') {
         const pool = showFullCatalog || selectedCategory !== 'All' ? filteredProducts : showcaseProducts
         const currentIndex = pool.findIndex((p) => p.id === inspectProduct.id)
@@ -285,10 +288,15 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
     }
   }
 
-  const handleOpenInspect = (product: Product, e?: React.MouseEvent) => {
+  const handleOpenInspect = (
+    product: Product,
+    e?: React.MouseEvent,
+    tab: 'LOUPE' | 'PRICE' = 'LOUPE'
+  ) => {
     if (e) e.stopPropagation()
     setInspectProduct(product)
     setZoomCorner('FULL')
+    setModalTab(tab)
   }
 
   const getZoomStyle = (corner: ZoomCorner) => {
@@ -357,21 +365,37 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
             <div className="tc-no-image tc-mono">No Image</div>
           )}
 
-          <button
-            type="button"
-            className="tc-loupe-btn"
-            onClick={(e) => handleOpenInspect(product, e)}
-            aria-label={`Inspect ${product.name} at 250% magnification`}
-            title="Inspect 250% Optical Loupe"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14" aria-hidden="true">
-              <circle cx="11" cy="11" r="7" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              <line x1="11" y1="8" x2="11" y2="14" />
-              <line x1="8" y1="11" x2="14" y2="11" />
-            </svg>
-            <span>250% Loupe</span>
-          </button>
+          <div className="tc-card-stage-actions">
+            <button
+              type="button"
+              className="tc-loupe-btn"
+              onClick={(e) => handleOpenInspect(product, e, 'LOUPE')}
+              aria-label={`Inspect ${product.name} at 250% magnification`}
+              title="Inspect 250% Optical Loupe"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                <line x1="11" y1="8" x2="11" y2="14" />
+                <line x1="8" y1="11" x2="14" y2="11" />
+              </svg>
+              <span>250% Loupe</span>
+            </button>
+
+            <button
+              type="button"
+              className="tc-card-trend-btn tc-mono"
+              onClick={(e) => handleOpenInspect(product, e, 'PRICE')}
+              aria-label={`View price history for ${product.name}`}
+              title="View Price History & Market Trends"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" aria-hidden="true">
+                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                <polyline points="16 7 22 7 22 13" />
+              </svg>
+              <span>Price Trends</span>
+            </button>
+          </div>
         </div>
 
         <div className="tc-card-body">
@@ -403,9 +427,19 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
               <span className="tc-price-cur tc-pixel">CAD</span>
             </div>
 
-            <span className={`tc-stock-tag ${isSold ? 'tc-pixel tag-sold' : 'tc-mono'} ${isOutOfStock ? 'tag-out' : 'tag-available'}`}>
-              {isSold ? '[ARCHIVE]' : isOutOfStock ? '[OUT OF STOCK]' : '[IN STOCK]'}
-            </span>
+            <div className="tc-price-status-wrap">
+              <button
+                type="button"
+                className="tc-trend-quick-pill tc-mono"
+                onClick={(e) => handleOpenInspect(product, e, 'PRICE')}
+                title="View price history chart"
+              >
+                📈 Trends
+              </button>
+              <span className={`tc-stock-tag ${isSold ? 'tc-pixel tag-sold' : 'tc-mono'} ${isOutOfStock ? 'tag-out' : 'tag-available'}`}>
+                {isSold ? '[ARCHIVE]' : isOutOfStock ? '[OUT OF STOCK]' : '[IN STOCK]'}
+              </span>
+            </div>
           </div>
 
           <div className="tc-card-actions">
@@ -867,6 +901,33 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
                   <h2 className="tc-modal-title">{inspectProduct.name}</h2>
                 </div>
 
+                {/* Mode Switcher Tabs */}
+                <div className="tc-modal-mode-tabs">
+                  <button
+                    type="button"
+                    className={`tc-mode-tab tc-mono ${modalTab === 'LOUPE' ? 'active' : ''}`}
+                    onClick={() => setModalTab('LOUPE')}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+                      <circle cx="11" cy="11" r="7" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <span>250% Loupe</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`tc-mode-tab tc-mono ${modalTab === 'PRICE' ? 'active' : ''}`}
+                    onClick={() => setModalTab('PRICE')}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+                      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                      <polyline points="16 7 22 7 22 13" />
+                    </svg>
+                    <span>Price History</span>
+                  </button>
+                </div>
+
                 <div className="tc-modal-actions">
                   <span className="tc-key-hint tc-mono"><kbd>Esc</kbd> to close &middot; <kbd>&larr;</kbd> <kbd>&rarr;</kbd> navigate</span>
                   <button
@@ -875,6 +936,7 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
                     onClick={() => {
                       setInspectProduct(null)
                       setZoomCorner('FULL')
+                      setModalTab('LOUPE')
                     }}
                     aria-label="Close Inspector"
                   >
@@ -887,84 +949,99 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
               </div>
 
               <div className="tc-modal-body">
-                {/* Left: Loupe Stage */}
-                <div className="tc-loupe-col">
-                  <div className="tc-loupe-viewport">
-                    {inspectProduct.imageUrl && !imgError[inspectProduct.id] ? (
-                      <img
-                        src={inspectProduct.imageUrl}
-                        alt={inspectProduct.name}
-                        className="tc-loupe-img"
-                        style={getZoomStyle(zoomCorner)}
-                      />
-                    ) : (
-                      <div className="tc-no-image tc-mono">No image available for loupe inspection</div>
-                    )}
-
-                    {inspectProduct.status === 'SOLD' && (
-                      <div className="tc-modal-sold-tag tc-pixel">[SOLD ARCHIVE]</div>
-                    )}
+                {modalTab === 'PRICE' ? (
+                  /* Left: Price History Tracker Stage */
+                  <div className="tc-price-modal-stage">
+                    <PriceHistoryChart
+                      productId={inspectProduct.id}
+                      productName={inspectProduct.name}
+                      currentPrice={inspectProduct.price}
+                      cardSet={inspectProduct.set}
+                      cardNumber={inspectProduct.cardNumber}
+                      condition={inspectProduct.condition}
+                      grading={inspectProduct.grading}
+                    />
                   </div>
+                ) : (
+                  /* Left: Loupe Stage */
+                  <div className="tc-loupe-col">
+                    <div className="tc-loupe-viewport">
+                      {inspectProduct.imageUrl && !imgError[inspectProduct.id] ? (
+                        <img
+                          src={inspectProduct.imageUrl}
+                          alt={inspectProduct.name}
+                          className="tc-loupe-img"
+                          style={getZoomStyle(zoomCorner)}
+                        />
+                      ) : (
+                        <div className="tc-no-image tc-mono">No image available for loupe inspection</div>
+                      )}
 
-                  {/* Corner Loupe Presets */}
-                  <div className="tc-loupe-controls">
-                    <span className="tc-loupe-label tc-mono">CORNER LOUPE:</span>
-                    <div className="tc-loupe-buttons">
-                      <button
-                        type="button"
-                        className={`tc-loupe-preset ${zoomCorner === 'FULL' ? 'active' : ''}`}
-                        onClick={() => setZoomCorner('FULL')}
-                      >
-                        Full Card
-                      </button>
-                      <button
-                        type="button"
-                        className={`tc-loupe-preset ${zoomCorner === 'TL' ? 'active' : ''}`}
-                        onClick={() => setZoomCorner('TL')}
-                        title="Top-Left Corner (Whitening & Edge Silvering)"
-                      >
-                        Top-Left
-                      </button>
-                      <button
-                        type="button"
-                        className={`tc-loupe-preset ${zoomCorner === 'TR' ? 'active' : ''}`}
-                        onClick={() => setZoomCorner('TR')}
-                        title="Top-Right Corner (Edge Cut & Centering)"
-                      >
-                        Top-Right
-                      </button>
-                      <button
-                        type="button"
-                        className={`tc-loupe-preset ${zoomCorner === 'BL' ? 'active' : ''}`}
-                        onClick={() => setZoomCorner('BL')}
-                        title="Bottom-Left Corner (Back Scratches & Edgewear)"
-                      >
-                        Bottom-Left
-                      </button>
-                      <button
-                        type="button"
-                        className={`tc-loupe-preset ${zoomCorner === 'BR' ? 'active' : ''}`}
-                        onClick={() => setZoomCorner('BR')}
-                        title="Bottom-Right Corner"
-                      >
-                        Bottom-Right
-                      </button>
-                      <button
-                        type="button"
-                        className={`tc-loupe-preset ${zoomCorner === 'CENTER' ? 'active' : ''}`}
-                        onClick={() => setZoomCorner('CENTER')}
-                        title="Holo Surface & Foil Centering"
-                      >
-                        Center Holo
-                      </button>
+                      {inspectProduct.status === 'SOLD' && (
+                        <div className="tc-modal-sold-tag tc-pixel">[SOLD ARCHIVE]</div>
+                      )}
+                    </div>
+
+                    {/* Corner Loupe Presets */}
+                    <div className="tc-loupe-controls">
+                      <span className="tc-loupe-label tc-mono">CORNER LOUPE:</span>
+                      <div className="tc-loupe-buttons">
+                        <button
+                          type="button"
+                          className={`tc-loupe-preset ${zoomCorner === 'FULL' ? 'active' : ''}`}
+                          onClick={() => setZoomCorner('FULL')}
+                        >
+                          Full Card
+                        </button>
+                        <button
+                          type="button"
+                          className={`tc-loupe-preset ${zoomCorner === 'TL' ? 'active' : ''}`}
+                          onClick={() => setZoomCorner('TL')}
+                          title="Top-Left Corner (Whitening & Edge Silvering)"
+                        >
+                          Top-Left
+                        </button>
+                        <button
+                          type="button"
+                          className={`tc-loupe-preset ${zoomCorner === 'TR' ? 'active' : ''}`}
+                          onClick={() => setZoomCorner('TR')}
+                          title="Top-Right Corner (Edge Cut & Centering)"
+                        >
+                          Top-Right
+                        </button>
+                        <button
+                          type="button"
+                          className={`tc-loupe-preset ${zoomCorner === 'BL' ? 'active' : ''}`}
+                          onClick={() => setZoomCorner('BL')}
+                          title="Bottom-Left Corner (Back Scratches & Edgewear)"
+                        >
+                          Bottom-Left
+                        </button>
+                        <button
+                          type="button"
+                          className={`tc-loupe-preset ${zoomCorner === 'BR' ? 'active' : ''}`}
+                          onClick={() => setZoomCorner('BR')}
+                          title="Bottom-Right Corner"
+                        >
+                          Bottom-Right
+                        </button>
+                        <button
+                          type="button"
+                          className={`tc-loupe-preset ${zoomCorner === 'CENTER' ? 'active' : ''}`}
+                          onClick={() => setZoomCorner('CENTER')}
+                          title="Holo Surface & Foil Centering"
+                        >
+                          Center Holo
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="tc-loupe-guide">
+                      <span className="tc-guide-bold tc-mono">250% OPTICAL MAGNIFICATION:</span>
+                      <span>Direct high-resolution scan. Corner presets isolate edge silvering, whitening, and holo foil scratches.</span>
                     </div>
                   </div>
-
-                  <div className="tc-loupe-guide">
-                    <span className="tc-guide-bold tc-mono">250% OPTICAL MAGNIFICATION:</span>
-                    <span>Direct high-resolution scan. Corner presets isolate edge silvering, whitening, and holo foil scratches.</span>
-                  </div>
-                </div>
+                )}
 
                 {/* Right: Spec Dossier Column */}
                 <div className="tc-dossier-col">
@@ -980,6 +1057,27 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
                     <span className={`tc-meta-tag stamp-${modalCond.code} tc-mono`}>
                       {modalCond.stamp}
                     </span>
+                  </div>
+
+                  {/* Quick Toggle Banner */}
+                  <div className="tc-dossier-tab-toggle">
+                    <button
+                      type="button"
+                      className="tc-dossier-toggle-btn tc-mono"
+                      onClick={() => setModalTab(modalTab === 'PRICE' ? 'LOUPE' : 'PRICE')}
+                    >
+                      {modalTab === 'PRICE' ? (
+                        <>
+                          <span>🔍 View 250% Optical Loupe Scan</span>
+                          <span>&rarr;</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>📈 View Historical Price Tracking (1M • 3M • 1Y)</span>
+                          <span>&rarr;</span>
+                        </>
+                      )}
+                    </button>
                   </div>
 
                   {/* Specs Table */}
