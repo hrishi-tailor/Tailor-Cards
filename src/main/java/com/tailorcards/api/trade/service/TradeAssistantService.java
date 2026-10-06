@@ -32,6 +32,10 @@ import com.tailorcards.api.trade.provider.CardMarketPrice;
 import com.tailorcards.api.trade.provider.PriceProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.tailorcards.api.trade.llm.TradeExplanationService;
+import com.tailorcards.api.trade.llm.TradeExtractionService;
+import com.tailorcards.api.trade.model.RuleTrace;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -46,7 +50,6 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class TradeAssistantService {
 
     private final TradePricingEngine pricingEngine;
@@ -57,8 +60,59 @@ public class TradeAssistantService {
     private final BuyRuleRepository buyRuleRepository;
     private final TradeParameterRepository parameterRepository;
     private final CardLiquidityRepository cardLiquidityRepository;
+    private final TradeExtractionService extractionService;
+    private final TradeExplanationService explanationService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Autowired
+    public TradeAssistantService(
+            TradePricingEngine pricingEngine,
+            CardPriceService cardPriceService,
+            PriceProvider priceProvider,
+            ProductRepository productRepository,
+            TradeAssistantRequestRepository requestRepository,
+            BuyRuleRepository buyRuleRepository,
+            TradeParameterRepository parameterRepository,
+            CardLiquidityRepository cardLiquidityRepository,
+            TradeExtractionService extractionService,
+            TradeExplanationService explanationService
+    ) {
+        this.pricingEngine = pricingEngine;
+        this.cardPriceService = cardPriceService;
+        this.priceProvider = priceProvider;
+        this.productRepository = productRepository;
+        this.requestRepository = requestRepository;
+        this.buyRuleRepository = buyRuleRepository;
+        this.parameterRepository = parameterRepository;
+        this.cardLiquidityRepository = cardLiquidityRepository;
+        this.extractionService = extractionService;
+        this.explanationService = explanationService;
+    }
+
+    public TradeAssistantService(
+            TradePricingEngine pricingEngine,
+            CardPriceService cardPriceService,
+            PriceProvider priceProvider,
+            ProductRepository productRepository,
+            TradeAssistantRequestRepository requestRepository,
+            BuyRuleRepository buyRuleRepository,
+            TradeParameterRepository parameterRepository,
+            CardLiquidityRepository cardLiquidityRepository
+    ) {
+        this(
+                pricingEngine,
+                cardPriceService,
+                priceProvider,
+                productRepository,
+                requestRepository,
+                buyRuleRepository,
+                parameterRepository,
+                cardLiquidityRepository,
+                new TradeExtractionService(new com.tailorcards.api.trade.llm.AnthropicClient("http://localhost", "", "mock", 100, 1), priceProvider, new com.tailorcards.api.trade.llm.LlmRateLimiter(100), 2000),
+                new TradeExplanationService(new com.tailorcards.api.trade.llm.AnthropicClient("http://localhost", "", "mock", 100, 1))
+        );
+    }
 
     /**
      * Handles conversation turn, extracting items and building assistant response.
@@ -86,34 +140,22 @@ public class TradeAssistantService {
 
         List<CustomerCardItem> extracted = new ArrayList<>(confirmedItems);
 
-        // Basic structured fallback extraction if items not already extracted
+        // Structured extraction via LLM layer or fallback provider
         if (extracted.isEmpty() && !lastUserMessage.isBlank()) {
-            List<CardMarketPrice> searchResults = priceProvider.searchCards(lastUserMessage, 3);
-            for (CardMarketPrice match : searchResults) {
-                extracted.add(CustomerCardItem.builder()
-                        .pokemontcgId(match.cardId())
-                        .name(match.name())
-                        .set(match.setName())
-                        .cardNumber(match.cardNumber())
-                        .imageUrl(match.imageUrl())
-                        .condition("NEAR_MINT")
-                        .grading("RAW")
-                        .isSealed(false)
-                        .quantity(1)
-                        .build());
-            }
+            List<CustomerCardItem> extractedCards = extractionService.extractCards(conversationId, lastUserMessage);
+            extracted.addAll(extractedCards);
         }
 
-        boolean requiresConfirmation = !extracted.isEmpty() && confirmedItems.isEmpty();
+        boolean requiresConfirmation = !extracted.isEmpty() && extracted.stream().anyMatch(item -> !item.isConfirmed());
         String replyText;
 
         if (extracted.isEmpty()) {
             replyText = "Could you tell me the card name, set, or card number you'd like to " +
                     (request.flowType() == TradeFlowType.SELL ? "sell for cash" : "trade") + "?";
         } else if (requiresConfirmation) {
-            replyText = "I found " + extracted.size() + " matching card(s). Please confirm the card and condition before I compute your quote.";
+            replyText = "I found " + extracted.size() + " matching card(s). Please review and confirm the card match and condition before I compute your quote.";
         } else {
-            replyText = "Great! Your cards are confirmed. Generating your official quote now.";
+            replyText = "Great! Your card details are confirmed. Generating your official quote now.";
         }
 
         return TradeConversationResponse.builder()
@@ -132,6 +174,29 @@ public class TradeAssistantService {
     public TradeQuoteResponse computeQuote(TradeQuoteRequest request) {
         log.info("Computing quote for flowType={}, customerCardsCount={}",
                 request.flowType(), request.customerCards() != null ? request.customerCards().size() : 0);
+
+        // Do not price an unconfirmed match or missing card ID
+        if (request.customerCards() != null) {
+            for (CustomerCardItem item : request.customerCards()) {
+                if (Boolean.FALSE.equals(item.confirmed()) || item.cardId() == null || item.cardId().isBlank()) {
+                    RuleTrace trace = new RuleTrace();
+                    trace.add("VALIDATION", "Unconfirmed card item or missing card ID: " + item.name(), "NEEDS_REVIEW");
+                    return TradeQuoteResponse.builder()
+                            .flowType(request.flowType())
+                            .decision(TradeDecision.NEEDS_REVIEW)
+                            .cashOffer(BigDecimal.ZERO)
+                            .tradeCredit(BigDecimal.ZERO)
+                            .counterTopUp(BigDecimal.ZERO)
+                            .customerTotalMarketCad(BigDecimal.ZERO)
+                            .storeTotalListPriceCad(BigDecimal.ZERO)
+                            .explanation("Please confirm all card matches before generating a final quote.")
+                            .ruleTrace(trace)
+                            .customerCards(request.customerCards())
+                            .storeCards(List.of())
+                            .build();
+                }
+            }
+        }
 
         List<CustomerCardItem> customerCards = new ArrayList<>();
         if (request.customerCards() != null) {
@@ -158,7 +223,7 @@ public class TradeAssistantService {
         }
 
         PricingResult result = pricingEngine.evaluate(request.flowType(), customerCards, storeCards);
-        String explanation = generateDeterministicExplanation(result, request.flowType());
+        String explanation = explanationService.explainResult(result, request.flowType());
 
         return TradeQuoteResponse.builder()
                 .flowType(request.flowType())

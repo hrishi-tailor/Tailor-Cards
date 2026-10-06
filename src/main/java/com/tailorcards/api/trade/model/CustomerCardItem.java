@@ -15,8 +15,24 @@ public record CustomerCardItem(
     Boolean isSealed,
     Integer quantity,
     BigDecimal marketPriceCad,
-    String imageUrl
+    String imageUrl,
+    Boolean confirmed
 ) {
+    public CustomerCardItem(
+            String name,
+            String set,
+            String cardNumber,
+            String pokemontcgId,
+            String condition,
+            String grading,
+            Boolean isSealed,
+            Integer quantity,
+            BigDecimal marketPriceCad,
+            String imageUrl
+    ) {
+        this(name, set, cardNumber, pokemontcgId, condition, grading, isSealed, quantity, marketPriceCad, imageUrl, null);
+    }
+
     public String cardId() {
         return pokemontcgId;
     }
@@ -31,6 +47,10 @@ public record CustomerCardItem(
 
     public Boolean getSealed() {
         return isSealed;
+    }
+
+    public boolean isConfirmed() {
+        return !Boolean.FALSE.equals(confirmed);
     }
 
     public int effectiveQuantity() {
