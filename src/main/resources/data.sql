@@ -86,3 +86,12 @@ VALUES
     ('swsh7-215', 'HIGH', 0.0000, 'Umbreon VMAX Alt Art Evolving Skies')
 ON CONFLICT (pokemontcg_id) DO UPDATE SET haircut = EXCLUDED.haircut, liquidity_tier = EXCLUDED.liquidity_tier;
 
+-- Trade Assistant: Sample Manual Price Overrides (Graded slabs & sealed)
+INSERT INTO manual_price_overrides (card_id, condition_or_grade, override_price_cad, notes, updated_at)
+VALUES
+    ('base1-4', 'PSA 10', 4500.00, 'Charizard Base Set Holo PSA 10 gem mint baseline', CURRENT_TIMESTAMP),
+    ('base1-4', 'BGS BL', 12000.00, 'Charizard Base Set Holo BGS Black Label 10 pristine', CURRENT_TIMESTAMP),
+    ('swsh7-215', 'PSA 10', 1350.00, 'Umbreon VMAX Alt Art Evolving Skies PSA 10', CURRENT_TIMESTAMP),
+    ('sv3pt5-151', 'SEALED', 180.00, 'Pokemon 151 Booster Bundle factory sealed box', CURRENT_TIMESTAMP)
+ON CONFLICT (card_id, condition_or_grade) DO UPDATE SET override_price_cad = EXCLUDED.override_price_cad, notes = EXCLUDED.notes, updated_at = EXCLUDED.updated_at;
+

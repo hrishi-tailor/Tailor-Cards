@@ -30,4 +30,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @EntityGraph(attributePaths = {"category"})
     List<Product> findByNameContainingIgnoreCase(String name);
+
+    @EntityGraph(attributePaths = {"category"})
+    List<Product> findByPokemontcgIdIsNotNull();
+
+    @EntityGraph(attributePaths = {"category"})
+    Optional<Product> findByPokemontcgId(String pokemontcgId);
 }
