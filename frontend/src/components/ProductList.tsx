@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../api/config'
 import { useCart } from '../context/CartContext'
 import type { PageResponse, Product } from '../types'
+import { isGradedOrSealed } from '../types'
 import { WhySellDirectly } from './WhySellDirectly'
 import { PriceHistoryChart } from './PriceHistoryChart'
 import './ProductList.css'
@@ -294,9 +295,10 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
     tab: 'LOUPE' | 'PRICE' = 'LOUPE'
   ) => {
     if (e) e.stopPropagation()
+    const targetTab = tab === 'PRICE' && isGradedOrSealed(product) ? 'LOUPE' : tab
     setInspectProduct(product)
     setZoomCorner('FULL')
-    setModalTab(tab)
+    setModalTab(targetTab)
   }
 
   const getZoomStyle = (corner: ZoomCorner) => {
@@ -382,19 +384,21 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
               <span>250% Loupe</span>
             </button>
 
-            <button
-              type="button"
-              className="tc-card-trend-btn tc-mono"
-              onClick={(e) => handleOpenInspect(product, e, 'PRICE')}
-              aria-label={`View price history for ${product.name}`}
-              title="View Price History & Market Trends"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" aria-hidden="true">
-                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-                <polyline points="16 7 22 7 22 13" />
-              </svg>
-              <span>Price Trends</span>
-            </button>
+            {!isGradedOrSealed(product) && (
+              <button
+                type="button"
+                className="tc-card-trend-btn tc-mono"
+                onClick={(e) => handleOpenInspect(product, e, 'PRICE')}
+                aria-label={`View raw price history for ${product.name}`}
+                title="View Raw Card Price History & Trends"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" aria-hidden="true">
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                  <polyline points="16 7 22 7 22 13" />
+                </svg>
+                <span>Raw Price Trends</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -428,14 +432,16 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
             </div>
 
             <div className="tc-price-status-wrap">
-              <button
-                type="button"
-                className="tc-trend-quick-pill tc-mono"
-                onClick={(e) => handleOpenInspect(product, e, 'PRICE')}
-                title="View price history chart"
-              >
-                📈 Trends
-              </button>
+              {!isGradedOrSealed(product) && (
+                <button
+                  type="button"
+                  className="tc-trend-quick-pill tc-mono"
+                  onClick={(e) => handleOpenInspect(product, e, 'PRICE')}
+                  title="View raw card price history chart"
+                >
+                  📈 Trends
+                </button>
+              )}
               <span className={`tc-stock-tag ${isSold ? 'tc-pixel tag-sold' : 'tc-mono'} ${isOutOfStock ? 'tag-out' : 'tag-available'}`}>
                 {isSold ? '[ARCHIVE]' : isOutOfStock ? '[OUT OF STOCK]' : '[IN STOCK]'}
               </span>
@@ -915,17 +921,19 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
                     <span>250% Loupe</span>
                   </button>
 
-                  <button
-                    type="button"
-                    className={`tc-mode-tab tc-mono ${modalTab === 'PRICE' ? 'active' : ''}`}
-                    onClick={() => setModalTab('PRICE')}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
-                      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-                      <polyline points="16 7 22 7 22 13" />
-                    </svg>
-                    <span>Price History</span>
-                  </button>
+                  {!isGradedOrSealed(inspectProduct) && (
+                    <button
+                      type="button"
+                      className={`tc-mode-tab tc-mono ${modalTab === 'PRICE' ? 'active' : ''}`}
+                      onClick={() => setModalTab('PRICE')}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+                        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                        <polyline points="16 7 22 7 22 13" />
+                      </svg>
+                      <span>Raw Price History</span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="tc-modal-actions">

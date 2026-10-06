@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import type { PriceHistoryData, PriceRange } from '../types'
+import { isGradedOrSealed } from '../types'
 import { fetchPriceHistory } from '../api/priceApi'
 import './PriceHistoryChart.css'
 
@@ -23,6 +24,8 @@ export const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({
   condition,
   grading,
 }) => {
+  const isExcludedGradedOrSealed = isGradedOrSealed({ grading, condition, name: productName })
+
   const [selectedRange, setSelectedRange] = useState<PriceRange>('3M')
   const [data, setData] = useState<PriceHistoryData | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
@@ -30,6 +33,10 @@ export const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({
   const svgRef = useRef<SVGSVGElement | null>(null)
 
   useEffect(() => {
+    if (isExcludedGradedOrSealed) {
+      setLoading(false)
+      return
+    }
     let active = true
     setLoading(true)
 
@@ -157,18 +164,48 @@ export const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({
 
   const isPositive = (data?.changePercentage ?? 0) >= 0
 
+  if (isExcludedGradedOrSealed) {
+    return (
+      <div className="tc-price-tracker tc-graded-sealed-notice">
+        <div className="tc-tracker-header">
+          <div className="tc-tracker-title-box">
+            <div className="tc-tracker-eyebrow tc-mono" style={{ color: '#f59e0b' }}>
+              <span>RAW CARD MARKET PRICE TRACKING ONLY</span>
+            </div>
+            <h3 className="tc-tracker-card-name">{productName}</h3>
+            <div className="tc-tracker-card-meta tc-mono">
+              {grading && <span className="tc-meta-chip gold">{grading}</span>}
+              {condition && <span className="tc-meta-chip">{condition}</span>}
+              <span className="tc-meta-chip" style={{ background: '#78350f', color: '#fef3c7' }}>Price Chart Hidden</span>
+            </div>
+          </div>
+        </div>
+        <div style={{ padding: '36px 24px', textAlign: 'center', background: '#0f172a', borderRadius: '8px', margin: '20px 0', border: '1px solid #1e293b' }}>
+          <div style={{ fontSize: '28px', marginBottom: '12px' }}>📊</div>
+          <h4 className="tc-mono" style={{ fontSize: '15px', color: '#f3f4f6', margin: '0 0 8px 0', letterSpacing: '0.05em' }}>
+            Price history chart is hidden for graded and sealed products
+          </h4>
+          <p className="tc-mono" style={{ fontSize: '13px', color: '#94a3b8', maxWidth: '480px', margin: '0 auto', lineHeight: '1.6' }}>
+            Live market price history tracks <strong>raw card market prices</strong> from TCGplayer via pokemontcg.io. Graded cards (PSA/BGS) and sealed boxes are priced via manual inventory valuation.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="tc-price-tracker">
       {/* Tracker Header */}
       <div className="tc-tracker-header">
         <div className="tc-tracker-title-box">
           <div className="tc-tracker-eyebrow tc-mono">
-            <span>HISTORICAL VALUATION ENGINE</span>
+            <span>RAW CARD MARKET PRICE ENGINE</span>
             <span className="tc-live-dot" />
             <span className="tc-live-text">{data?.isSampleData ? 'SAMPLE SIMULATION' : 'REAL SNAPSHOTS'}</span>
           </div>
           <h3 className="tc-tracker-card-name">{productName}</h3>
           <div className="tc-tracker-card-meta tc-mono">
+            <span className="tc-meta-chip" style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.3)' }}>Raw Single</span>
             {cardSet && <span className="tc-meta-chip">{cardSet}</span>}
             {cardNumber && <span className="tc-meta-chip">#{cardNumber}</span>}
             {condition && <span className="tc-meta-chip">{condition}</span>}
@@ -198,7 +235,7 @@ export const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({
       <div className="tc-metric-ribbon">
         <div className="tc-metric-cell">
           <span className="tc-metric-label tc-mono">
-            {hoverIndex !== null ? 'POINT VALUATION' : 'CURRENT VAULT PRICE'}
+            {hoverIndex !== null ? 'RAW VALUATION' : 'RAW CARD MARKET PRICE'}
           </span>
           <span className="tc-metric-val tc-pixel">
             ${activePoint ? activePoint.pt.price.toFixed(2) : currentPrice.toFixed(2)}
@@ -395,7 +432,7 @@ export const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({
       <div className="tc-tracker-footer">
         <div className="tc-footer-item">
           <span className="tc-footer-label tc-mono">DATA SOURCE:</span>
-          <span className="tc-footer-val tc-mono">{data?.sourceLabel || 'TCGplayer market price via pokemontcg.io, converted to CAD'}</span>
+          <span className="tc-footer-val tc-mono">{data?.sourceLabel || 'TCGplayer raw market price via pokemontcg.io, converted to CAD'}</span>
         </div>
         <div className="tc-footer-item">
           <span className="tc-footer-label tc-mono">HISTORY STATUS:</span>

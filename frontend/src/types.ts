@@ -112,6 +112,30 @@ export interface PriceHistoryData {
   history: PricePoint[];
 }
 
+export function isGradedOrSealed(product?: {
+  grading?: string | null;
+  condition?: string | null;
+  category?: { name?: string | null } | null;
+  name?: string | null;
+}): boolean {
+  if (!product) return false;
+  const gradingUpper = (product.grading || '').trim().toUpperCase();
+  const isGraded = Boolean(
+    (gradingUpper && gradingUpper !== 'RAW' && gradingUpper !== 'UNGRADED') ||
+    /\b(PSA\s*\d+|BGS\s*[\d\.]+|CGC\s*[\d\.]+|PSA|BGS|CGC)\b/i.test(product.name || '')
+  );
+
+  const condUpper = (product.condition || '').trim().toUpperCase();
+  const catUpper = (product.category?.name || '').trim().toUpperCase();
+  const isSealed = Boolean(
+    condUpper === 'SEALED' ||
+    catUpper.includes('SEALED') ||
+    /\b(sealed|booster box|etb|elite trainer box|blister pack)\b/i.test(product.name || '')
+  );
+
+  return isGraded || isSealed;
+}
+
 export type TradeFlowType = 'SELL' | 'TRADE';
 export type TradeDecision = 'ACCEPT' | 'COUNTER' | 'DECLINE' | 'NEEDS_REVIEW';
 
