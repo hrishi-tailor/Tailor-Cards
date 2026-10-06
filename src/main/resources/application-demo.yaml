@@ -1,0 +1,8 @@
+# Spring Configuration for DEMO deployment profile
+# Used exclusively for isolated recruiter / evaluation sandbox deployments
+
+app:
+  demo-mode: true
+
+server:
+  port: ${PORT:8080}

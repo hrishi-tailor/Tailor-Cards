@@ -456,7 +456,43 @@ The repository includes a comprehensive 45-scenario test harness and a historica
 
 ---
 
-### 2. Frontend Setup
+### 2. Two-Deployment Architecture (Production vs. Demo Sandbox)
+
+Tailor Cards supports a strict separation of concerns between live production commerce and recruiter/evaluator sandboxes:
+
+```mermaid
+flowchart LR
+    subgraph Production ["Production Environment (DEMO_MODE=false)"]
+        ProdClient["Live Customers"] --> ProdAPI["Spring Boot (default profile)"]
+        ProdAPI --> ProdDB[("Production PostgreSQL DB<br/>Real Orders, PII & Live Inventory")]
+        ProdAPI --> StripeLive["Live Stripe Checkout"]
+    end
+
+    subgraph DemoSandbox ["Demo / Sandbox Environment (DEMO_MODE=true)"]
+        Recruiter["Recruiter / Evaluator"] --> DemoAPI["Spring Boot ('demo' profile)"]
+        DemoAPI --> DemoDB[("Isolated Sandbox Database<br/>Seeded Demo Data Only")]
+        DemoAPI --> MockCheckout["Instant Demo Checkout (Mock)"]
+    end
+```
+
+| Deployment Feature | Production (`DEMO_MODE=false`) | Demo Deployment (`DEMO_MODE=true`) |
+| :--- | :--- | :--- |
+| **Active Spring Profile** | `default` (or `production`) | `demo` (auto-activated via `DEMO_MODE=true`) |
+| **Target Database** | Production PostgreSQL (Live catalog, real PII) | **Separate Isolated Sandbox Database** |
+| **Demo Dataset Seeder** | **Disabled** (`DemoDataSeeder` skips execution) | **Enabled** (seeds mock cards, `DEMO-SUB-*`, `DEMO-TR-*`) |
+| **DEMO Role Credentials** | **Omitted** (UserDetailsService does not create user) | **Seeded** via `DEMO_USERNAME` / `DEMO_PASSWORD` |
+| **Customer Data Isolation** | Only `ROLE_ADMIN` can access admin routes | `ROLE_DEMO` is restricted strictly to `DEMO-` prefixed records; accessing real customer IDs returns **403 Forbidden** |
+| **Trade Engine & Cost Basis** | Internal algorithms use confidential `costBasis` | `costBasis` is strictly hidden from `ProductResponse` & public endpoints |
+| **Administrative Mutations** | Full admin control | Backfill & snapshot sync endpoints return **403 Forbidden** for `ROLE_DEMO` |
+| **Checkout Flow** | Live Stripe payment gateway | Instant Demo Checkout enabled for frictionless walkthroughs |
+
+> [!IMPORTANT]
+> **Production Protection Guarantee**:
+> In production (`DEMO_MODE=false`), `DemoDataSeeder` will **never** execute, `ROLE_DEMO` is never loaded into Spring Security, and Instant Demo Checkout is hard-blocked.
+
+---
+
+### 3. Frontend Setup
 
 1. **Navigate to the frontend directory**:
    ```bash
@@ -478,7 +514,7 @@ The repository includes a comprehensive 45-scenario test harness and a historica
 
 ---
 
-### 3. Running Automated Tests
+### 4. Running Automated Tests
 
 Execute the complete test suite (unit tests, integration tests, optimistic locking concurrency validation):
 

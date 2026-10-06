@@ -1,11 +1,13 @@
 package com.tailorcards.api.trade.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.math.BigDecimal;
 
 public record StoreCardItem(
     Long productId,
     String name,
     BigDecimal listPriceCad,
+    @JsonIgnore
     BigDecimal costBasisCad,
     Integer quantity
 ) {

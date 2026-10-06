@@ -281,9 +281,22 @@ public class TradeAssistantService {
 
     @Transactional(readOnly = true)
     public Page<TradeSubmissionResponse> getRequests(String status, Pageable pageable) {
-        Page<TradeAssistantRequest> page = (status != null && !status.isBlank()) ?
-                requestRepository.findByStatus(status.trim().toUpperCase(), pageable) :
-                requestRepository.findAll(pageable);
+        Page<TradeAssistantRequest> page;
+        boolean isDemo = com.tailorcards.api.security.SecurityUtils.isCurrentUserDemoRole();
+
+        if (isDemo) {
+            // DEMO role can only see seeded DEMO trade requests (prefixed with DEMO-)
+            if (status != null && !status.isBlank()) {
+                page = requestRepository.findByStatusAndReferenceCodeStartingWithIgnoreCase(
+                        status.trim().toUpperCase(), "DEMO-", pageable);
+            } else {
+                page = requestRepository.findByReferenceCodeStartingWithIgnoreCase("DEMO-", pageable);
+            }
+        } else if (status != null && !status.isBlank()) {
+            page = requestRepository.findByStatus(status.trim().toUpperCase(), pageable);
+        } else {
+            page = requestRepository.findAll(pageable);
+        }
 
         return page.map(this::mapToSubmissionResponse);
     }
@@ -292,6 +305,14 @@ public class TradeAssistantService {
     public TradeSubmissionResponse getRequestById(Long id) {
         TradeAssistantRequest req = requestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Trade assistant request not found with id: " + id));
+
+        if (com.tailorcards.api.security.SecurityUtils.isCurrentUserDemoRole()) {
+            if (req.getReferenceCode() == null || !req.getReferenceCode().toUpperCase().startsWith("DEMO-")) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "DEMO role is not permitted to view real customer trade requests.");
+            }
+        }
+
         return mapToSubmissionResponse(req);
     }
 

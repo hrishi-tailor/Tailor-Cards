@@ -59,13 +59,31 @@ public class BuylistService {
     public BuylistSubmissionResponse getSubmissionById(Long id) {
         BuylistSubmission submission = buylistSubmissionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Submission not found with id: " + id));
+
+        if (com.tailorcards.api.security.SecurityUtils.isCurrentUserDemoRole()) {
+            if (submission.getTrackingToken() == null || !submission.getTrackingToken().toUpperCase().startsWith("DEMO-")) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "DEMO role is not permitted to view real customer buylist submissions.");
+            }
+        }
+
         return buylistMapper.toResponse(submission);
     }
 
     @Transactional(readOnly = true)
     public Page<BuylistSubmissionResponse> getAdminSubmissions(String status, Pageable pageable) {
         Page<BuylistSubmission> page;
-        if (status != null && !status.isBlank()) {
+        boolean isDemo = com.tailorcards.api.security.SecurityUtils.isCurrentUserDemoRole();
+
+        if (isDemo) {
+            // DEMO role can only see seeded DEMO submissions (prefixed with DEMO-)
+            if (status != null && !status.isBlank()) {
+                page = buylistSubmissionRepository.findByStatusIgnoreCaseAndTrackingTokenStartingWithIgnoreCase(
+                        status.trim(), "DEMO-", pageable);
+            } else {
+                page = buylistSubmissionRepository.findByTrackingTokenStartingWithIgnoreCase("DEMO-", pageable);
+            }
+        } else if (status != null && !status.isBlank()) {
             page = buylistSubmissionRepository.findByStatusIgnoreCase(status.trim(), pageable);
         } else {
             page = buylistSubmissionRepository.findAll(pageable);

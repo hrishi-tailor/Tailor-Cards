@@ -12,6 +12,9 @@ import java.util.Optional;
 public interface TradeAssistantRequestRepository extends JpaRepository<TradeAssistantRequest, Long> {
 
     Optional<TradeAssistantRequest> findByReferenceCode(String referenceCode);
+    boolean existsByReferenceCode(String referenceCode);
 
     Page<TradeAssistantRequest> findByStatus(String status, Pageable pageable);
+    Page<TradeAssistantRequest> findByReferenceCodeStartingWithIgnoreCase(String prefix, Pageable pageable);
+    Page<TradeAssistantRequest> findByStatusAndReferenceCodeStartingWithIgnoreCase(String status, String prefix, Pageable pageable);
 }

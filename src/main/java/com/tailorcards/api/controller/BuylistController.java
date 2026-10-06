@@ -74,6 +74,12 @@ public class BuylistController {
         return ResponseEntity.ok(buylistService.getAdminSubmissions(status, pageable));
     }
 
+    @GetMapping("/admin/submissions/{id}")
+    @Operation(summary = "Get buylist submission by ID (Admin)", description = "View details of a specific card appraisal. Requires ADMIN or DEMO role.", security = @SecurityRequirement(name = "basicAuth"))
+    public ResponseEntity<BuylistSubmissionResponse> getAdminSubmissionById(@PathVariable Long id) {
+        return ResponseEntity.ok(buylistService.getSubmissionById(id));
+    }
+
     @PatchMapping("/admin/submissions/{id}/status")
     @Operation(summary = "Update appraisal status / offer (Admin)", description = "Accept, counter-offer, or reject a submission. Requires ADMIN role.", security = @SecurityRequirement(name = "basicAuth"))
     public ResponseEntity<BuylistSubmissionResponse> updateSubmissionStatus(
