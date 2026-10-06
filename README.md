@@ -433,13 +433,25 @@ The repository includes a comprehensive 45-scenario test harness and a historica
    ```
    *(To test against Supabase, set `DB_HOST=aws-0-us-west-2.pooler.supabase.com`, `DB_PORT=6543`, `DB_NAME=postgres`, and your credentials)*.
 
-3. **Run the Spring Boot application**:
+3. **First-Deploy Database Migrations (Flyway & PostgreSQL)**:
+   The application uses automated Flyway versioned migrations with Hibernate schema validation (`spring.jpa.hibernate.ddl-auto=validate`).
+   
+   * **Case A: First-Deploy on an Existing Database (Zero Downtime, No Data Loss)**:
+     - The configuration has `spring.flyway.baseline-on-migrate: true` and `spring.flyway.baseline-version: 1` enabled in `application.yaml`.
+     - When booting against an existing database, Flyway automatically baselines the existing schema at version `1` (marking [`V1__initial_schema.sql`](src/main/resources/db/migration/V1__initial_schema.sql) as applied) without dropping or altering your existing tables.
+     - Flyway then applies [`V2__seed_data.sql`](src/main/resources/db/migration/V2__seed_data.sql) safely (`INSERT ... ON CONFLICT DO NOTHING`), guaranteeing all trade parameters, buy rules, and configuration defaults are seeded without touching production catalog records.
+   * **Case B: First-Deploy on a Fresh / Blank Database**:
+     - Flyway automatically runs from version 0, applying `V1__initial_schema.sql` (creating all relational tables, indexes, and foreign keys) followed by `V2__seed_data.sql`.
+   * **Zero DDL Mutations (`ddl-auto=validate`)**:
+     - Hibernate will **never** issue `ALTER TABLE` or `DROP TABLE` statements against your database. It validates that entity definitions strictly match the database schema before serving traffic.
+
+4. **Run the Spring Boot application**:
    ```bash
    ./mvnw spring-boot:run
    ```
-   The backend boots on `http://localhost:8080`. Hibernate validates schema structure and seeds initial categories and products via [`data.sql`](src/main/resources/data.sql).
+   The backend boots on `http://localhost:8080`.
 
-4. **Verify Swagger UI**:
+5. **Verify Swagger UI**:
    Open [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html) in your browser.
 
 ---
