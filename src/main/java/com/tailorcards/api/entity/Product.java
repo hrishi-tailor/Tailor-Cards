@@ -12,6 +12,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import org.hibernate.annotations.ColumnDefault;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -36,6 +37,8 @@ public class Product {
     private Long id;
 
     @Version
+    @ColumnDefault("0")
+    @Column(name = "version")
     private Long version;
 
     @Column(nullable = false)

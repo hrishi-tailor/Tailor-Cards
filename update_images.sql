@@ -3,8 +3,9 @@
 -- Alters products table to add images text[] and maps product photos
 -- =============================================================================
 
--- 1. Add images text[] array column if it does not already exist
+-- 1. Add images and version columns if they do not already exist
 ALTER TABLE products ADD COLUMN IF NOT EXISTS images text[];
+ALTER TABLE products ADD COLUMN IF NOT EXISTS version bigint DEFAULT 0 NOT NULL;
 
 -- 2. Map each product ID to its verified array of relative image paths
 UPDATE products SET images = ARRAY['/images/12-front.jpg', '/images/12-back.jpg', '/images/12-left.jpg', '/images/12-right.jpg'] WHERE id = 12;
