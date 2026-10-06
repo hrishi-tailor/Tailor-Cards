@@ -31,12 +31,12 @@ public class AnthropicClient {
     public AnthropicClient(
             @Value("${app.anthropic.base-url:https://api.anthropic.com/v1}") String baseUrl,
             @Value("${ANTHROPIC_API_KEY:${app.anthropic.api-key:}}") String apiKey,
-            @Value("${app.anthropic.model:claude-3-5-sonnet-20241022}") String model,
+            @Value("${ANTHROPIC_MODEL:${app.anthropic.model:claude-haiku-4-5-20251001}}") String model,
             @Value("${app.anthropic.max-tokens:1024}") int maxTokens,
             @Value("${app.anthropic.timeout-seconds:10}") int timeoutSeconds
     ) {
         this.apiKey = apiKey != null ? apiKey.trim() : "";
-        this.model = model != null && !model.isBlank() ? model.trim() : "claude-3-5-sonnet-20241022";
+        this.model = model != null && !model.isBlank() ? model.trim() : "claude-haiku-4-5-20251001";
         this.maxTokens = maxTokens > 0 ? maxTokens : 1024;
         this.objectMapper = new ObjectMapper();
 
@@ -65,13 +65,17 @@ public class AnthropicClient {
         this.objectMapper = new ObjectMapper();
     }
 
+    public String getModel() {
+        return this.model;
+    }
+
     public boolean isConfigured() {
         return !apiKey.isEmpty();
     }
 
     /**
      * Sends a request to Anthropic Messages API.
-     * Logs input tokens, output tokens, latency, and estimated cost per call.
+     * Logs input tokens, output tokens, latency, and estimated cost per call based on actual token usage.
      */
     public Optional<AnthropicResponse> sendMessage(String systemPrompt, List<Map<String, String>> messages) {
         if (!isConfigured()) {
@@ -118,8 +122,8 @@ public class AnthropicClient {
 
             BigDecimal estimatedCostUsd = calculateEstimatedCost(inTokens, outTokens);
 
-            log.info("Anthropic call completed: model={}, latency={}ms, inputTokens={}, outputTokens={}, estCostUsd=${}",
-                    this.model, latencyMs, inTokens, outTokens, estimatedCostUsd);
+            log.info("Anthropic call completed: model='{}', latency={}ms, inputTokens={}, outputTokens={}, totalTokens={}, actualCostUsd=${}",
+                    this.model, latencyMs, inTokens, outTokens, (inTokens + outTokens), estimatedCostUsd);
 
             return Optional.of(new AnthropicResponse(text, inTokens, outTokens, latencyMs, estimatedCostUsd));
         } catch (Exception ex) {
@@ -129,13 +133,27 @@ public class AnthropicClient {
         }
     }
 
-    private BigDecimal calculateEstimatedCost(int inTokens, int outTokens) {
-        // Sonnet rates: $3.00/1M input, $15.00/1M output
-        // Haiku rates: $0.80/1M input, $4.00/1M output
-        BigDecimal inRate = model.contains("haiku") ?
-                new BigDecimal("0.0000008") : new BigDecimal("0.000003");
-        BigDecimal outRate = model.contains("haiku") ?
-                new BigDecimal("0.000004") : new BigDecimal("0.000015");
+    public BigDecimal calculateEstimatedCost(int inTokens, int outTokens) {
+        String m = this.model.toLowerCase();
+        BigDecimal inRate;
+        BigDecimal outRate;
+        if (m.contains("haiku-4-5") || m.contains("haiku-4.5") || m.contains("haiku-4")) {
+            // Haiku 4.5: $1.00 / 1M input ($0.00000100), $5.00 / 1M output ($0.00000500)
+            inRate = new BigDecimal("0.00000100");
+            outRate = new BigDecimal("0.00000500");
+        } else if (m.contains("haiku")) {
+            // Haiku 3 / 3.5: $0.80 / 1M input ($0.00000080), $4.00 / 1M output ($0.00000400)
+            inRate = new BigDecimal("0.00000080");
+            outRate = new BigDecimal("0.00000400");
+        } else if (m.contains("opus")) {
+            // Opus: $15.00 / 1M input, $75.00 / 1M output
+            inRate = new BigDecimal("0.00001500");
+            outRate = new BigDecimal("0.00007500");
+        } else {
+            // Sonnet / default: $3.00 / 1M input, $15.00 / 1M output
+            inRate = new BigDecimal("0.00000300");
+            outRate = new BigDecimal("0.00001500");
+        }
 
         BigDecimal inCost = BigDecimal.valueOf(inTokens).multiply(inRate);
         BigDecimal outCost = BigDecimal.valueOf(outTokens).multiply(outRate);
