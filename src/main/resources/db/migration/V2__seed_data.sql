@@ -1,14 +1,14 @@
--- data.sql
--- Seed data (Note: Flyway migrations in db/migration are the source of truth)
+-- V2__seed_data.sql
+-- Initial seed data for categories, buy rules, trade parameters, liquidity, and manual overrides
 
--- Categories: Only Singles (ID: 1) and Sealed (ID: 2)
+-- Categories
 INSERT INTO categories (id, name, description)
 VALUES (1, 'Singles', 'Individual collectible trading cards, singles, and graded slabs')
-ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description;
+ON CONFLICT DO NOTHING;
 
 INSERT INTO categories (id, name, description)
 VALUES (2, 'Sealed', 'Factory sealed booster boxes, packs, and bundles')
-ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description;
+ON CONFLICT DO NOTHING;
 
 -- Trade Assistant: Buy Rules (Cash Payouts)
 INSERT INTO buy_rules (priority, category_code, display_name, rate, active)
@@ -17,7 +17,7 @@ VALUES
     (2, 'SEALED', 'Sealed product', 0.7000, true),
     (3, 'RAW_NEAR_MINT', 'Near-mint raw single', 0.7700, true),
     (4, 'DEFAULT', 'Everything else', 0.7500, true)
-ON CONFLICT (category_code) DO UPDATE SET rate = EXCLUDED.rate, priority = EXCLUDED.priority, active = EXCLUDED.active;
+ON CONFLICT DO NOTHING;
 
 -- Trade Assistant: Configurable Trade Parameters
 INSERT INTO trade_parameters (param_key, param_value, description)
@@ -38,7 +38,7 @@ VALUES
     ('DEFAULT_LIQUIDITY_HAIRCUT_HIGH', 0.0000, 'Liquidity haircut for high-velocity cards'),
     ('DEFAULT_LIQUIDITY_HAIRCUT_MEDIUM', 0.0300, 'Liquidity haircut for medium-velocity cards'),
     ('DEFAULT_LIQUIDITY_HAIRCUT_LOW', 0.0800, 'Liquidity haircut for low-velocity / niche cards')
-ON CONFLICT (param_key) DO UPDATE SET param_value = EXCLUDED.param_value, description = EXCLUDED.description;
+ON CONFLICT DO NOTHING;
 
 -- Trade Assistant: Sample Liquidity Tags
 INSERT INTO card_liquidity (pokemontcg_id, liquidity_tier, haircut, notes)
@@ -48,7 +48,7 @@ VALUES
     ('base1-15', 'HIGH', 0.0000, 'Base Set Venusaur Holo'),
     ('sm35-78', 'HIGH', 0.0000, 'Mewtwo GX Secret Rare Shining Legends'),
     ('swsh7-215', 'HIGH', 0.0000, 'Umbreon VMAX Alt Art Evolving Skies')
-ON CONFLICT (pokemontcg_id) DO UPDATE SET haircut = EXCLUDED.haircut, liquidity_tier = EXCLUDED.liquidity_tier;
+ON CONFLICT DO NOTHING;
 
 -- Trade Assistant: Sample Manual Price Overrides (Graded slabs & sealed)
 INSERT INTO manual_price_overrides (card_id, condition_or_grade, override_price_cad, notes, updated_at)
@@ -57,4 +57,4 @@ VALUES
     ('base1-4', 'BGS BL', 12000.00, 'Charizard Base Set Holo BGS Black Label 10 pristine', CURRENT_TIMESTAMP),
     ('swsh7-215', 'PSA 10', 1350.00, 'Umbreon VMAX Alt Art Evolving Skies PSA 10', CURRENT_TIMESTAMP),
     ('sv3pt5-151', 'SEALED', 180.00, 'Pokemon 151 Booster Bundle factory sealed box', CURRENT_TIMESTAMP)
-ON CONFLICT (card_id, condition_or_grade) DO UPDATE SET override_price_cad = EXCLUDED.override_price_cad, notes = EXCLUDED.notes, updated_at = EXCLUDED.updated_at;
+ON CONFLICT DO NOTHING;

@@ -18,6 +18,8 @@ spring:
   sql:
     init:
       mode: never
+  flyway:
+    enabled: false
 
 frontend:
   url: https://tailorcards.com
