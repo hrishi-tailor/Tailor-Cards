@@ -72,6 +72,12 @@ public class Product {
     @Column(name = "grading")
     private String grading;
 
+    @Column(name = "cost_basis", precision = 10, scale = 2)
+    private BigDecimal costBasis;
+
+    @Column(name = "pokemontcg_id")
+    private String pokemontcgId;
+
     @Builder.Default
     @Column(name = "status")
     private String status = "AVAILABLE";
