@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { createCheckoutSession } from '../api/cartApi'
 import './Cart.css'
 
 export function Cart() {
+  const navigate = useNavigate()
   const { cart, loading, error, removeFromCart } = useCart()
   const [removingId, setRemovingId] = useState<number | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -43,6 +44,14 @@ export function Cart() {
     } finally {
       setIsCheckingOut(false)
     }
+  }
+
+  const handleDemoCheckout = () => {
+    if (!cart?.cartSessionId || items.length === 0) {
+      setActionError('Cannot proceed to demo checkout: Your cart is empty.')
+      return
+    }
+    navigate('/checkout/success?session_id=demo_recruiter_instant_checkout')
   }
 
   if (loading && !cart) {
@@ -258,6 +267,30 @@ export function Cart() {
               </span>
             )}
           </button>
+
+          {/* Recruiter / Public Demo Mode */}
+          <div className="tc-cart-demo-box">
+            <div className="tc-cart-demo-header">
+              <span className="tc-cart-demo-badge">RECRUITER / DEMO MODE</span>
+              <span className="tc-cart-demo-pill">No Payment Needed</span>
+            </div>
+            <p className="tc-cart-demo-desc">
+              Test the acquisition pipeline without entering financial details:
+            </p>
+            <button
+              type="button"
+              className="tc-cart-demo-instant-btn"
+              onClick={handleDemoCheckout}
+              disabled={isCheckingOut || removingId !== null}
+            >
+              ⚡ Instant Demo Checkout (Simulate Acquisition)
+            </button>
+            <div className="tc-cart-demo-stripe-note">
+              <span>Or test hosted Stripe with sandbox card:</span>
+              <code>4242 •••• •••• 4242</code>
+              <span>Exp: <code>12/34</code> | CVC: <code>123</code></span>
+            </div>
+          </div>
 
           <div className="tc-security-note">
             Tracked &amp; insured shipping in protective sleeve + toploader

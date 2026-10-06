@@ -9,6 +9,7 @@ import { AdminLoginPage } from './components/AdminLoginPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { CheckoutSuccess } from './components/CheckoutSuccess'
 import { CartProvider, useCart } from './context/CartContext'
+import { API_BASE_URL } from './api/config'
 import logoImg from './assets/logo.jpg'
 import './App.css'
 
@@ -167,7 +168,29 @@ function AppContent() {
           <div className="tc-footer-links">
             <Link to="/sell" className="tc-footer-link">Sell to Us</Link>
             <span className="tc-footer-divider" aria-hidden="true">/</span>
-            <Link to="/admin/buylist" className="tc-footer-link tc-footer-staff-link">Staff Portal</Link>
+            <a
+              href={`${API_BASE_URL}/swagger-ui/index.html`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="tc-footer-link"
+              title="OpenAPI 3.0 / Swagger Interactive API Documentation"
+            >
+              Swagger API Docs
+            </a>
+            <span className="tc-footer-divider" aria-hidden="true">/</span>
+            <a
+              href="https://www.loom.com/share/tailor-cards-architecture-walkthrough"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="tc-footer-link"
+              title="60 to 90 second video walkthrough for recruiters"
+            >
+              Loom Walkthrough
+            </a>
+            <span className="tc-footer-divider" aria-hidden="true">/</span>
+            <Link to="/admin/login" className="tc-footer-link tc-footer-staff-link" title="Staff Portal with 1-click recruiter demo credentials">
+              Staff Portal (Demo)
+            </Link>
           </div>
         </div>
       </footer>

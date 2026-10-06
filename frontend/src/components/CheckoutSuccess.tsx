@@ -7,6 +7,7 @@ export function CheckoutSuccess() {
   const [searchParams] = useSearchParams()
   const sessionId = searchParams.get('session_id')
   const { clearCart } = useCart()
+  const isDemo = sessionId?.startsWith('demo_')
 
   useEffect(() => {
     // Clear the local cart state upon successful checkout
@@ -30,25 +31,40 @@ export function CheckoutSuccess() {
           </svg>
         </div>
 
-        <div className="tc-success-badge tc-mono">[ACQUISITION CONFIRMED]</div>
+        <div className="tc-success-badge tc-mono">
+          {isDemo ? '[RECRUITER DEMO VERIFIED]' : '[ACQUISITION CONFIRMED]'}
+        </div>
 
-        <h1 className="tc-success-title">Payment Verified &amp; Secured</h1>
+        <h1 className="tc-success-title">
+          {isDemo ? 'Demo Order Verified & Logged' : 'Payment Verified & Secured'}
+        </h1>
 
         <p className="tc-success-subtitle">
-          Thank you for your purchase. Your acquired singles and slabs have been officially locked in the vault ledger
-          and marked as <strong>SOLD ARCHIVE</strong>.
+          {isDemo ? (
+            <>
+              Thank you for evaluating <strong>Tailor Cards</strong>! This order was processed via our instant recruiter demo bypass.
+              The cart checkout flow, order state lifecycle, and vault ledger transitions are simulated with zero financial cost.
+            </>
+          ) : (
+            <>
+              Thank you for your purchase. Your acquired singles and slabs have been officially locked in the vault ledger
+              and marked as <strong>SOLD ARCHIVE</strong>.
+            </>
+          )}
         </p>
 
         {/* Order Dossier Details */}
         <div className="tc-success-dossier">
           <div className="tc-dossier-row">
-            <span className="tc-dossier-label">Stripe Session ID</span>
+            <span className="tc-dossier-label">{isDemo ? 'Evaluation Session ID' : 'Stripe Session ID'}</span>
             <span className="tc-dossier-value tc-mono">{sessionId || 'cs_verified_payment'}</span>
           </div>
 
           <div className="tc-dossier-row">
             <span className="tc-dossier-label">Payment Status</span>
-            <span className="tc-dossier-value status-paid tc-mono">● PAID IN FULL (CAD)</span>
+            <span className="tc-dossier-value status-paid tc-mono">
+              {isDemo ? '● DEMO SIMULATION (NO CHARGE)' : '● PAID IN FULL (CAD)'}
+            </span>
           </div>
 
           <div className="tc-dossier-row">

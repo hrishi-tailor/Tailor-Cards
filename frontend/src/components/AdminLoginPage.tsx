@@ -52,6 +52,22 @@ export function AdminLoginPage() {
     }
   }
 
+  const handleDemoFillAndLogin = async () => {
+    setUsername('admin')
+    setPassword('TailorCardsAdmin2026!')
+    setErrorMessage(null)
+    setIsSubmitting(true)
+    try {
+      await verifyAdminAuth('admin', 'TailorCardsAdmin2026!')
+      setAdminAuth('admin', 'TailorCardsAdmin2026!', true)
+      navigate(fromLocation, { replace: true })
+    } catch {
+      setErrorMessage('Failed to sign in with demo credentials.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className="tc-login-wrapper">
       <div className="tc-login-card">
@@ -73,6 +89,29 @@ export function AdminLoginPage() {
           <p className="tc-login-subtitle">
             Secure appraisal dashboard access for TailorCards team members.
           </p>
+        </div>
+
+        {/* Recruiter / Public Demo Mode Banner */}
+        <div className="tc-demo-access-box">
+          <div className="tc-demo-access-header">
+            <span className="tc-demo-access-badge">RECRUITER / DEMO ACCESS</span>
+            <span className="tc-demo-access-pill">Demo Mode</span>
+          </div>
+          <p className="tc-demo-access-desc">
+            Evaluating the platform? Use demo credentials to test the appraisal queue, status workflow, and customer messaging.
+          </p>
+          <div className="tc-demo-creds-preview">
+            <span>Username: <code>admin</code></span>
+            <span>Password: <code>TailorCardsAdmin2026!</code></span>
+          </div>
+          <button
+            type="button"
+            className="tc-demo-login-btn"
+            onClick={handleDemoFillAndLogin}
+            disabled={isSubmitting}
+          >
+            ⚡ Auto-Fill Demo Credentials &amp; Enter Portal
+          </button>
         </div>
 
         {/* Error Banner */}

@@ -280,6 +280,86 @@
   height: 14px;
 }
 
+/* Recruiter / Public Demo Banner */
+.tc-demo-access-box {
+  background: rgba(212, 175, 55, 0.05);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: var(--tc-radius-sm, 6px);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.tc-demo-access-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.tc-demo-access-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--tc-accent, #d4af37);
+  font-family: var(--tc-font-mono, monospace);
+}
+
+.tc-demo-access-pill {
+  font-size: 0.68rem;
+  color: var(--tc-green, #4ade80);
+  background: rgba(74, 222, 128, 0.1);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.tc-demo-access-desc {
+  font-size: 0.8rem;
+  color: var(--tc-text-secondary, #a3a3a3);
+  margin: 0 0 10px 0;
+  line-height: 1.4;
+}
+
+.tc-demo-creds-preview {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  color: var(--tc-text-muted, #737373);
+  margin-bottom: 12px;
+}
+
+.tc-demo-creds-preview code {
+  color: var(--tc-text-primary, #fff);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.tc-demo-login-btn {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--tc-accent, #d4af37);
+  color: #0b0c10;
+  border: none;
+  border-radius: var(--tc-radius-sm, 6px);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tc-demo-login-btn:hover:not(:disabled) {
+  background: #e2c04d;
+  box-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
+}
+
+.tc-demo-login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 500px) {
   .tc-login-card {
     padding: 24px 16px;

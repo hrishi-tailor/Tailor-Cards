@@ -4,6 +4,9 @@ import com.tailorcards.api.dto.CategoryRequest;
 import com.tailorcards.api.dto.CategoryResponse;
 import com.tailorcards.api.service.CategoryService;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +22,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/categories")
+@Tag(name = "Categories", description = "Endpoints for managing card categories (Singles, Sealed, Slabs)")
 public class CategoryController {
 
     private final CategoryService categoryService;
@@ -28,16 +32,19 @@ public class CategoryController {
     }
 
     @GetMapping
+    @Operation(summary = "List all categories", description = "Retrieve all card categories and taxonomies")
     public ResponseEntity<List<CategoryResponse>> getAllCategories() {
         return ResponseEntity.ok(categoryService.getAllCategories());
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get category by ID", description = "Retrieve a specific category by ID")
     public ResponseEntity<CategoryResponse> getCategoryById(@PathVariable Long id) {
         return ResponseEntity.ok(categoryService.getCategoryById(id));
     }
 
     @PostMapping
+    @Operation(summary = "Create category (Admin)", description = "Create a new category. Requires HTTP Basic authentication with ADMIN role.", security = @SecurityRequirement(name = "basicAuth"))
     public ResponseEntity<CategoryResponse> createCategory(@Valid @RequestBody CategoryRequest request) {
         CategoryResponse created = categoryService.createCategory(request);
         URI location = URI.create("/api/categories/" + created.id());
@@ -45,6 +52,7 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Update category (Admin)", description = "Update category details. Requires HTTP Basic authentication with ADMIN role.", security = @SecurityRequirement(name = "basicAuth"))
     public ResponseEntity<CategoryResponse> updateCategory(
             @PathVariable Long id,
             @Valid @RequestBody CategoryRequest request
@@ -53,6 +61,7 @@ public class CategoryController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Delete category (Admin)", description = "Remove a category. Requires HTTP Basic authentication with ADMIN role.", security = @SecurityRequirement(name = "basicAuth"))
     public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);
         return ResponseEntity.noContent().build();
