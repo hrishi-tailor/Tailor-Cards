@@ -40,10 +40,13 @@ class PostgreSqlFlywayMigrationIntegrationTest {
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         if (postgres != null && postgres.isRunning()) {
-            registry.add("spring.datasource.url", () -> postgres.getJdbcUrl() + "?prepareThreshold=0");
+            registry.add("spring.datasource.url",
+                    () -> AbstractFlywayBaselineIntegrationTest.withPrepareThresholdZero(postgres.getJdbcUrl()));
             registry.add("spring.datasource.username", postgres::getUsername);
             registry.add("spring.datasource.password", postgres::getPassword);
             registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
+            // The shared test config sets H2Dialect; validate against PostgreSQL types
+            registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
             registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
             registry.add("spring.flyway.enabled", () -> "true");
             registry.add("spring.flyway.baseline-on-migrate", () -> "true");
@@ -65,9 +68,11 @@ class PostgreSqlFlywayMigrationIntegrationTest {
         assertThat(categoryCount).isNotNull();
         assertThat(categoryCount).isGreaterThanOrEqualTo(2);
 
+        // Migrations seed no products (only DemoDataSeeder does, and only with DEMO_MODE=true),
+        // so on an empty database the table exists and is empty
         Integer productCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM products", Integer.class);
         assertThat(productCount).isNotNull();
-        assertThat(productCount).isGreaterThanOrEqualTo(4);
+        assertThat(productCount).isZero();
 
         // 2. Verify V2 seed data exists
         Integer buyRuleCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM buy_rules", Integer.class);

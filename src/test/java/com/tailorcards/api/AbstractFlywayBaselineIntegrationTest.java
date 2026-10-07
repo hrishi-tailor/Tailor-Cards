@@ -56,9 +56,14 @@ abstract class AbstractFlywayBaselineIntegrationTest {
         }
     }
 
+    /** Appends prepareThreshold=0 with the right separator (Testcontainers URLs already carry "?loggerLevel=OFF"). */
+    static String withPrepareThresholdZero(String jdbcUrl) {
+        return jdbcUrl + (jdbcUrl.contains("?") ? "&" : "?") + "prepareThreshold=0";
+    }
+
     static void registerBaselinedPostgres(DynamicPropertyRegistry registry, PostgreSQLContainer<?> postgres) {
         if (postgres != null && postgres.isRunning()) {
-            registry.add("spring.datasource.url", () -> postgres.getJdbcUrl() + "?prepareThreshold=0");
+            registry.add("spring.datasource.url", () -> withPrepareThresholdZero(postgres.getJdbcUrl()));
             registry.add("spring.datasource.username", postgres::getUsername);
             registry.add("spring.datasource.password", postgres::getPassword);
             registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
