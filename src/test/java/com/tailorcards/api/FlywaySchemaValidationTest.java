@@ -7,10 +7,16 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @TestPropertySource(properties = {
+        // Own uniquely named in-memory database: the shared "testdb" may already hold tables created by
+        // other Spring tests (ddl-auto=create-drop), depending on test order. Same mode/parameters as testdb.
+        "spring.datasource.url=jdbc:h2:mem:flyway_validation_${random.value};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;"
+                + "DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1",
         "spring.flyway.enabled=true",
         "spring.jpa.hibernate.ddl-auto=validate",
         "spring.flyway.init-sqls[0]=" + H2PostgresSequenceFunctions.CREATE_PG_GET_SERIAL_SEQUENCE,
@@ -24,6 +30,16 @@ class FlywaySchemaValidationTest {
     @Test
     @DisplayName("Flyway migrations apply cleanly and Hibernate validate passes")
     void flywayMigrationsApplyAndHibernateValidates() {
+        // Started from an empty schema: V1 and V2 were executed, not baselined
+        List<String> types = jdbcTemplate.queryForList(
+                "SELECT \"type\" FROM \"flyway_schema_history\" ORDER BY \"installed_rank\"", String.class);
+        assertThat(types).doesNotContain("BASELINE");
+        List<String> versioned = jdbcTemplate.queryForList(
+                "SELECT \"version\" || ':' || \"type\" || ':' || \"success\" FROM \"flyway_schema_history\" "
+                        + "WHERE \"version\" IS NOT NULL ORDER BY \"installed_rank\"",
+                String.class);
+        assertThat(versioned).containsExactly("1:SQL:TRUE", "2:SQL:TRUE");
+
         Integer categoryCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM categories", Integer.class);
         assertThat(categoryCount).isNotNull();
         assertThat(categoryCount).isGreaterThanOrEqualTo(2);
