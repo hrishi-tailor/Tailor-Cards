@@ -224,3 +224,71 @@ export interface TradeSubmissionResponse {
   createdAt: string;
 }
 
+
+// ---- Admin Listing Generator ----
+
+export type ListingCondition =
+  | 'NEAR_MINT'
+  | 'LIGHTLY_PLAYED'
+  | 'MODERATELY_PLAYED'
+  | 'HEAVILY_PLAYED'
+  | 'DAMAGED'
+  | 'UNKNOWN';
+
+export type ListingConfidence = 'LOW' | 'MEDIUM' | 'HIGH';
+
+/** Text-only draft read from photos. Never contains a price. */
+export interface ListingDraft {
+  cardName: string;
+  setName: string | null;
+  cardNumber: string | null;
+  rarity: string | null;
+  language: string | null;
+  condition: ListingCondition;
+  gradingCompany: string | null;
+  grade: string | null;
+  isSealed: boolean;
+  title: string;
+  description: string;
+  conditionNotes: string | null;
+  confidence: ListingConfidence;
+  uncertainties: string[];
+}
+
+export interface ListingCardCandidate {
+  cardId: string;
+  name: string | null;
+  setName: string | null;
+  cardNumber: string | null;
+  imageUrl: string | null;
+}
+
+export interface ListingMarketReference {
+  cardId: string;
+  name: string | null;
+  setName: string | null;
+  cardNumber: string | null;
+  marketReferenceCad: number | null;
+  stockImageUrl: string | null;
+}
+
+export interface ListingDraftResponse {
+  draft: ListingDraft;
+  matchStatus: 'MATCHED' | 'AMBIGUOUS' | 'NONE';
+  marketReference: ListingMarketReference | null;
+  candidates: ListingCardCandidate[];
+}
+
+export interface CreateProductPayload {
+  name: string;
+  description: string;
+  price: number;
+  imageUrl: string | null;
+  stock: number;
+  categoryId: number;
+  cardNumber: string | null;
+  set: string | null;
+  condition: string | null;
+  grading: string | null;
+  pokemontcgId: string | null;
+}

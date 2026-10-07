@@ -349,6 +349,11 @@ export function AdminBuylist() {
           <span className="tc-admin-current">Buylist Admin Portal</span>
         </div>
         <div className="tc-admin-top-actions">
+          {!isDemoRole() && (
+            <Link to="/admin/listing-generator" className="tc-admin-refresh-btn" title="Draft a product listing from card photos">
+              <span>Listing Generator</span>
+            </Link>
+          )}
           <button
             type="button"
             className="tc-admin-refresh-btn"

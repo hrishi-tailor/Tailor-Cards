@@ -61,6 +61,7 @@ public class ProductMapper {
                 .condition(request.condition())
                 .grading(request.grading())
                 .status(status)
+                .pokemontcgId(blankToNull(request.pokemontcgId()))
                 .build();
     }
 
@@ -83,5 +84,13 @@ public class ProductMapper {
         if (request.status() != null && !request.status().isBlank()) {
             product.setStatus(request.status());
         }
+        // Only set when provided, so updates that omit it keep an existing link
+        if (blankToNull(request.pokemontcgId()) != null) {
+            product.setPokemontcgId(request.pokemontcgId().trim());
+        }
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

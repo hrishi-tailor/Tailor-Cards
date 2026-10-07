@@ -41,5 +41,17 @@ public record ProductRequest(
     String grading,
 
     @Pattern(regexp = "^(AVAILABLE|SOLD)$", message = "Status must be either AVAILABLE or SOLD")
-    String status
-) {}
+    String status,
+
+    // Optional catalog link (e.g. "base1-4", "sv03.5-151"); product writes are ADMIN-only
+    @Pattern(regexp = ProductRequest.POKEMONTCG_ID_PATTERN, message = "pokemontcgId must look like 'base1-4'")
+    String pokemontcgId
+) {
+    public static final String POKEMONTCG_ID_PATTERN = "^[A-Za-z0-9.]{1,30}-[A-Za-z0-9]{1,15}$";
+
+    public ProductRequest(String name, String description, BigDecimal price, String imageUrl, Integer stock,
+                          Long categoryId, String cardNumber, String set, String condition, String grading,
+                          String status) {
+        this(name, description, price, imageUrl, stock, categoryId, cardNumber, set, condition, grading, status, null);
+    }
+}

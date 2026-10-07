@@ -6,6 +6,7 @@ import { SellBuylist } from './components/SellBuylist'
 import { TrackBuylist } from './components/TrackBuylist'
 import { AdminBuylist } from './components/AdminBuylist'
 import { AdminLoginPage } from './components/AdminLoginPage'
+import { ListingGenerator } from './components/ListingGenerator'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { CheckoutSuccess } from './components/CheckoutSuccess'
 import { TradeAssistant } from './components/TradeAssistant'
@@ -160,6 +161,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <AdminBuylist />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/listing-generator"
+            element={
+              <ProtectedRoute>
+                <ListingGenerator />
               </ProtectedRoute>
             }
           />

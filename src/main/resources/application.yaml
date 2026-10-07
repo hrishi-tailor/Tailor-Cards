@@ -82,6 +82,15 @@ app:
     base-url: https://api.pokemontcg.io/v2
   tcgdex:
     base-url: ${TCGDEX_BASE_URL:https://api.tcgdex.net/v2/en}
+  listing-generator:
+    # Vision-capable model; defaults to the trade assistant's model
+    model: ${LISTING_GENERATOR_MODEL:${app.anthropic.model}}
+    max-tokens: 1024
+    timeout-seconds: 30
+    rate-limit-per-hour: 20
+    daily-cap: 100
+    max-image-bytes: 5242880
+    max-note-length: 500
   trade-assistant:
     rate-limit-per-minute: 20
     max-message-length: 2000

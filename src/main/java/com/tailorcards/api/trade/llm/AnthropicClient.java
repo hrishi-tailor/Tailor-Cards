@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -22,6 +23,7 @@ import java.util.Optional;
 public class AnthropicClient {
 
     private final RestClient restClient;
+    private final String baseUrl;
     private final String apiKey;
     private final String model;
     private final int maxTokens;
@@ -35,11 +37,15 @@ public class AnthropicClient {
             @Value("${app.anthropic.max-tokens:1024}") int maxTokens,
             @Value("${app.anthropic.timeout-seconds:10}") int timeoutSeconds
     ) {
+        this.baseUrl = baseUrl;
         this.apiKey = apiKey != null ? apiKey.trim() : "";
         this.model = model != null && !model.isBlank() ? model.trim() : "claude-haiku-4-5-20251001";
         this.maxTokens = maxTokens > 0 ? maxTokens : 1024;
         this.objectMapper = new ObjectMapper();
+        this.restClient = buildRestClient(baseUrl, this.apiKey, timeoutSeconds);
+    }
 
+    private static RestClient buildRestClient(String baseUrl, String apiKey, int timeoutSeconds) {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofSeconds(timeoutSeconds));
         requestFactory.setReadTimeout(Duration.ofSeconds(timeoutSeconds));
@@ -48,21 +54,34 @@ public class AnthropicClient {
                 .baseUrl(baseUrl)
                 .requestFactory(requestFactory);
 
-        if (!this.apiKey.isEmpty()) {
-            builder.defaultHeader("x-api-key", this.apiKey)
+        if (!apiKey.isEmpty()) {
+            builder.defaultHeader("x-api-key", apiKey)
                     .defaultHeader("anthropic-version", "2023-06-01");
         }
 
-        this.restClient = builder.build();
+        return builder.build();
     }
 
     // Testing constructor
     public AnthropicClient(RestClient restClient, String model, int maxTokens) {
         this.restClient = restClient;
+        this.baseUrl = null;
         this.apiKey = "test-key";
         this.model = model;
         this.maxTokens = maxTokens;
         this.objectMapper = new ObjectMapper();
+    }
+
+    /**
+     * Returns a client sharing this client's API key and base URL but with its own model,
+     * max tokens and timeout (e.g. slower vision calls). Not a Spring bean.
+     */
+    public AnthropicClient withSettings(String model, int maxTokens, int timeoutSeconds) {
+        String effectiveModel = model != null && !model.isBlank() ? model : this.model;
+        if (baseUrl == null) {
+            return new AnthropicClient(this.restClient, effectiveModel, maxTokens);
+        }
+        return new AnthropicClient(baseUrl, apiKey, effectiveModel, maxTokens, timeoutSeconds);
     }
 
     public String getModel() {
@@ -78,6 +97,18 @@ public class AnthropicClient {
      * Logs input tokens, output tokens, latency, and estimated cost per call based on actual token usage.
      */
     public Optional<AnthropicResponse> sendMessage(String systemPrompt, List<Map<String, String>> messages) {
+        return send(systemPrompt, messages);
+    }
+
+    /**
+     * Sends messages whose content may be a list of content blocks (text and base64 images).
+     * Same logging and cost accounting as {@link #sendMessage}; request and response bodies are never logged.
+     */
+    public Optional<AnthropicResponse> sendContentMessage(String systemPrompt, List<Map<String, Object>> messages) {
+        return send(systemPrompt, messages);
+    }
+
+    private Optional<AnthropicResponse> send(String systemPrompt, List<? extends Map<String, ?>> messages) {
         if (!isConfigured()) {
             log.info("Anthropic API key not configured. Using deterministic fallback.");
             return Optional.empty();
@@ -128,7 +159,11 @@ public class AnthropicClient {
             return Optional.of(new AnthropicResponse(text, inTokens, outTokens, latencyMs, estimatedCostUsd));
         } catch (Exception ex) {
             long latencyMs = System.currentTimeMillis() - startTime;
-            log.warn("Anthropic API call failed after {}ms: {}", latencyMs, ex.getMessage());
+            // Status code or exception type only: error bodies and messages can echo request content
+            String reason = ex instanceof RestClientResponseException rre
+                    ? "HTTP " + rre.getStatusCode().value()
+                    : ex.getClass().getSimpleName();
+            log.warn("Anthropic API call failed after {}ms: {}", latencyMs, reason);
             return Optional.empty();
         }
     }

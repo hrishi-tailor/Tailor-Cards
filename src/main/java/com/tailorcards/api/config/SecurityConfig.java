@@ -60,6 +60,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/trade-assistant/buy-rules/**").hasRole("ADMIN")
                 .requestMatchers("/api/admin/trade-assistant/liquidity/**").hasRole("ADMIN")
                 .requestMatchers("/api/admin/price-overrides/**").hasRole("ADMIN")
+                // Listing generator (paid AI calls): ADMIN ONLY, never DEMO
+                .requestMatchers("/api/admin/listing-generator/**").hasRole("ADMIN")
                 // Read-only dashboard access: both ADMIN and DEMO
                 .requestMatchers(HttpMethod.GET, "/api/buylist/admin/**").hasAnyRole("ADMIN", "DEMO")
                 .requestMatchers(HttpMethod.GET, "/api/admin/trade-assistant/requests/**").hasAnyRole("ADMIN", "DEMO")
