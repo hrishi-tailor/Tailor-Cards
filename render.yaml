@@ -13,6 +13,9 @@ services:
     envVars:
       - key: PORT
         value: 8080
+      # Required: the app refuses to boot without it. Set the value in the Render dashboard.
+      - key: ADMIN_PASSWORD
+        sync: false
       - key: DB_HOST
         fromDatabase:
           name: tailorcards-db
