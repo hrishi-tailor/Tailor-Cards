@@ -76,9 +76,12 @@ app:
     base-url: https://api.anthropic.com/v1
     max-tokens: 1024
     timeout-seconds: 10
+  price-provider: ${PRICE_PROVIDER:pokemontcg}
   pokemontcg:
     api-key: ${POKEMONTCG_API_KEY:}
     base-url: https://api.pokemontcg.io/v2
+  tcgdex:
+    base-url: ${TCGDEX_BASE_URL:https://api.tcgdex.net/v2/en}
   trade-assistant:
     rate-limit-per-minute: 20
     max-message-length: 2000

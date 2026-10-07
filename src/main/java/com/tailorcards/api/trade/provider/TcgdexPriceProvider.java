@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -20,48 +19,43 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Free, key-less Pokémon TCG pricing provider backed by tcgdex.net.
+ * Selected via {@code app.price-provider=tcgdex}.
+ */
 @Slf4j
 @Service
-@ConditionalOnProperty(prefix = "app", name = "price-provider", havingValue = "pokemontcg", matchIfMissing = true)
-public class PokemonTcgIoPriceProvider implements PriceProvider {
+@ConditionalOnProperty(prefix = "app", name = "price-provider", havingValue = "tcgdex")
+public class TcgdexPriceProvider implements PriceProvider {
 
-    public static final String PROVIDER_NAME = "POKEMONTCG_IO";
-    private static final String DEFAULT_BASE_URL = "https://api.pokemontcg.io/v2";
+    public static final String PROVIDER_NAME = "TCGDEX";
+    private static final String DEFAULT_BASE_URL = "https://api.tcgdex.net/v2/en";
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
-    private final String apiKey;
 
     @org.springframework.beans.factory.annotation.Autowired
-    public PokemonTcgIoPriceProvider(
-            @Value("${app.pokemontcg.base-url:" + DEFAULT_BASE_URL + "}") String baseUrl,
-            @Value("${POKEMONTCG_API_KEY:${app.pokemontcg.api-key:}}") String apiKey
+    public TcgdexPriceProvider(
+            @Value("${app.tcgdex.base-url:" + DEFAULT_BASE_URL + "}") String baseUrl
     ) {
-        this.apiKey = apiKey != null ? apiKey.trim() : "";
         this.objectMapper = new ObjectMapper();
 
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofSeconds(5));
         requestFactory.setReadTimeout(Duration.ofSeconds(5));
 
-        RestClient.Builder builder = RestClient.builder()
+        this.restClient = RestClient.builder()
                 .baseUrl(baseUrl)
-                .requestFactory(requestFactory);
+                .requestFactory(requestFactory)
+                .build();
 
-        if (!this.apiKey.isEmpty()) {
-            builder.defaultHeader("X-Api-Key", this.apiKey);
-        } else {
-            log.info("POKEMONTCG_API_KEY not set; calling pokemontcg.io without X-Api-Key header (subject to lower, unauthenticated rate limits).");
-        }
-
-        this.restClient = builder.build();
+        log.info("Using TCGdex as the price provider (no API key required).");
     }
 
     // Testing constructor
-    public PokemonTcgIoPriceProvider(RestClient restClient, ObjectMapper objectMapper) {
+    public TcgdexPriceProvider(RestClient restClient, ObjectMapper objectMapper) {
         this.restClient = restClient;
         this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
-        this.apiKey = "";
     }
 
     @Override
@@ -76,7 +70,7 @@ public class PokemonTcgIoPriceProvider implements PriceProvider {
         }
 
         try {
-            log.info("Fetching card price from pokemontcg.io for cardId={}", cardId);
+            log.info("Fetching card price from tcgdex.net for cardId={}", cardId);
             String responseBody = restClient.get()
                     .uri("/cards/{id}", cardId)
                     .retrieve()
@@ -87,14 +81,9 @@ public class PokemonTcgIoPriceProvider implements PriceProvider {
             }
 
             JsonNode root = objectMapper.readTree(responseBody);
-            JsonNode dataNode = root.path("data");
-            if (dataNode.isMissingNode() || dataNode.isNull()) {
-                return Optional.empty();
-            }
-
-            return Optional.ofNullable(mapJsonToCardMarketPrice(dataNode));
+            return Optional.ofNullable(mapJsonToCardMarketPrice(root));
         } catch (Exception ex) {
-            log.warn("Failed to fetch price from pokemontcg.io for cardId={}: {}", cardId, ex.getMessage());
+            log.warn("Failed to fetch price from tcgdex.net for cardId={}: {}", cardId, ex.getMessage());
             return Optional.empty();
         }
     }
@@ -106,15 +95,13 @@ public class PokemonTcgIoPriceProvider implements PriceProvider {
         }
 
         int pageSize = Math.clamp(limit, 1, 50);
-        String formattedQuery = formatQuery(query.trim());
 
         try {
-            log.info("Searching pokemontcg.io cards: query='{}', pageSize={}", formattedQuery, pageSize);
+            log.info("Searching tcgdex.net cards: query='{}', limit={}", query, pageSize);
             String responseBody = restClient.get()
                     .uri(uriBuilder -> uriBuilder
                             .path("/cards")
-                            .queryParam("q", formattedQuery)
-                            .queryParam("pageSize", pageSize)
+                            .queryParam("name", query.trim())
                             .build())
                     .retrieve()
                     .body(String.class);
@@ -124,13 +111,15 @@ public class PokemonTcgIoPriceProvider implements PriceProvider {
             }
 
             JsonNode root = objectMapper.readTree(responseBody);
-            JsonNode dataArray = root.path("data");
-            if (!dataArray.isArray()) {
+            if (!root.isArray()) {
                 return Collections.emptyList();
             }
 
             List<CardMarketPrice> results = new ArrayList<>();
-            for (JsonNode itemNode : dataArray) {
+            for (JsonNode itemNode : root) {
+                if (results.size() >= pageSize) {
+                    break;
+                }
                 CardMarketPrice card = mapJsonToCardMarketPrice(itemNode);
                 if (card != null) {
                     results.add(card);
@@ -138,18 +127,9 @@ public class PokemonTcgIoPriceProvider implements PriceProvider {
             }
             return results;
         } catch (Exception ex) {
-            log.warn("Failed to search pokemontcg.io for query='{}': {}", query, ex.getMessage());
+            log.warn("Failed to search tcgdex.net for query='{}': {}", query, ex.getMessage());
             return Collections.emptyList();
         }
-    }
-
-    private String formatQuery(String query) {
-        if (query.startsWith("name:") || query.contains(":") || query.contains("*")) {
-            return query;
-        }
-        // If user enters "Charizard Base Set", format as name:"*Charizard*"
-        String sanitized = query.replaceAll("[\"\\\\]", "");
-        return "name:\"*" + sanitized + "*\"";
     }
 
     private CardMarketPrice mapJsonToCardMarketPrice(JsonNode node) {
@@ -160,11 +140,12 @@ public class PokemonTcgIoPriceProvider implements PriceProvider {
 
         String name = node.path("name").asText(null);
         String setName = node.path("set").path("name").asText(null);
-        String number = node.path("number").asText(null);
-        String smallImage = node.path("images").path("small").asText(null);
-        String largeImage = node.path("images").path("large").asText(null);
+        String number = node.path("localId").asText(null);
+        String image = node.path("image").asText(null);
+        String smallImage = image != null ? image + "/low.webp" : null;
+        String largeImage = image != null ? image + "/high.webp" : smallImage;
 
-        BigDecimal marketPriceUsd = extractMarketPriceUsd(node.path("tcgplayer").path("prices"));
+        BigDecimal marketPriceUsd = extractMarketPriceUsd(node.path("pricing").path("tcgplayer"));
 
         return CardMarketPrice.builder()
                 .cardId(id)
@@ -172,21 +153,21 @@ public class PokemonTcgIoPriceProvider implements PriceProvider {
                 .setName(setName)
                 .cardNumber(number)
                 .imageUrl(smallImage)
-                .largeImageUrl(largeImage != null ? largeImage : smallImage)
+                .largeImageUrl(largeImage)
                 .marketPriceUsd(marketPriceUsd)
                 .source(PROVIDER_NAME)
                 .build();
     }
 
-    private BigDecimal extractMarketPriceUsd(JsonNode pricesNode) {
-        if (pricesNode.isMissingNode() || pricesNode.isNull()) {
+    private BigDecimal extractMarketPriceUsd(JsonNode tcgplayerNode) {
+        if (tcgplayerNode.isMissingNode() || tcgplayerNode.isNull()) {
             return null;
         }
 
         // Ordered priority of price subcategories
         String[] preferredKeys = {"holofoil", "normal", "reverseHolofoil", "1stEditionHolofoil", "unlimitedHolofoil"};
         for (String key : preferredKeys) {
-            JsonNode categoryNode = pricesNode.path(key);
+            JsonNode categoryNode = tcgplayerNode.path(key);
             if (!categoryNode.isMissingNode()) {
                 JsonNode marketNode = categoryNode.path("market");
                 if (marketNode.isNumber()) {
@@ -196,7 +177,7 @@ public class PokemonTcgIoPriceProvider implements PriceProvider {
         }
 
         // Fallback: iterate any subcategory object
-        Iterator<Map.Entry<String, JsonNode>> fields = pricesNode.fields();
+        Iterator<Map.Entry<String, JsonNode>> fields = tcgplayerNode.fields();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> entry = fields.next();
             JsonNode catNode = entry.getValue();
@@ -204,10 +185,6 @@ public class PokemonTcgIoPriceProvider implements PriceProvider {
                 JsonNode marketNode = catNode.path("market");
                 if (marketNode.isNumber()) {
                     return BigDecimal.valueOf(marketNode.asDouble()).setScale(2, RoundingMode.HALF_UP);
-                }
-                JsonNode midNode = catNode.path("mid");
-                if (midNode.isNumber()) {
-                    return BigDecimal.valueOf(midNode.asDouble()).setScale(2, RoundingMode.HALF_UP);
                 }
             }
         }

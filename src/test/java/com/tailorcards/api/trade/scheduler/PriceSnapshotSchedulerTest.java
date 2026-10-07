@@ -58,4 +58,22 @@ class PriceSnapshotSchedulerTest {
 
         assertThat(updated).isEqualTo(0);
     }
+
+    @Test
+    @DisplayName("Logs and skips a card when the provider errors or rate-limits, continuing the rest of the run")
+    void testSyncContinuesAfterProviderErrorOnOneCard() {
+        Product p1 = Product.builder().id(1L).name("Charizard").pokemontcgId("base1-4").build();
+        Product p2 = Product.builder().id(2L).name("Blastoise").pokemontcgId("base1-2").build();
+
+        when(productRepository.findByPokemontcgIdIsNotNull()).thenReturn(List.of(p1, p2));
+        when(cardPriceService.fetchConvertAndSnapshot("base1-4"))
+                .thenThrow(new RuntimeException("429 Too Many Requests"));
+        when(cardPriceService.fetchConvertAndSnapshot("base1-2")).thenReturn(Optional.of(new BigDecimal("120.00")));
+
+        int updated = scheduler.syncListedCardPrices();
+
+        assertThat(updated).isEqualTo(1); // only the healthy card counts; the run did not fail
+        verify(cardPriceService).fetchConvertAndSnapshot("base1-4");
+        verify(cardPriceService).fetchConvertAndSnapshot("base1-2");
+    }
 }

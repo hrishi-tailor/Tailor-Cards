@@ -339,9 +339,12 @@ Every result produces a transparent, tamper-proof JSON rule trace:
 ---
 
 ### 🌐 Price Data & Daily Bank of Canada FX CAD Integration
-- **pokemontcg.io API v2**: Fetches live TCGplayer market prices (USD) and official card artwork.
+- **Pluggable `PriceProvider`** (`app.price-provider`, default `pokemontcg`):
+  - `pokemontcg` — **pokemontcg.io API v2**: Fetches live TCGplayer market prices (USD) and official card artwork. Works without `POKEMONTCG_API_KEY` (calls unauthenticated, subject to a lower rate limit); set the key to raise the limit.
+  - `tcgdex` — **tcgdex.net API v2**: Key-less alternative provider with the same `PriceProvider` contract.
+  - The active provider's name (`POKEMONTCG_IO` / `TCGDEX`) is persisted on every row in `price_snapshots.source`.
 - **Bank of Canada Valet API**: Daily FX rate conversion (`FXUSDCAD`) cached in-memory with automatic stale fallback.
-- **Nightly `@Scheduled` Job**: Daily midnight cron (`0 0 0 * * *`) snapshots all catalog cards into `price_snapshots`.
+- **Nightly `@Scheduled` Job**: Daily midnight cron (`0 0 0 * * *`) snapshots all catalog cards into `price_snapshots`. Each card is fetched independently — a provider error or rate-limit response for one card is logged and skipped, it never aborts the rest of the run.
 - **Database Overrides**: Graded slabs (PSA 10, BGS BL) and sealed products are managed via `manual_price_overrides` and admin endpoints. Unpriced cards return `NEEDS_REVIEW`.
 
 ---
@@ -427,7 +430,8 @@ The repository includes a comprehensive 45-scenario test harness and a historica
    export DEMO_PASSWORD=your_demo_password                # Evaluator password (read-only audit access)
 
    # Pokémon TCG & Anthropic API (Stage 2 & 4 Trade Assistant)
-   export POKEMONTCG_API_KEY=your_pokemontcg_io_api_key   # Optional: free key from pokemontcg.io
+   export PRICE_PROVIDER=pokemontcg                       # Optional: "pokemontcg" (default) or "tcgdex" (no key required)
+   export POKEMONTCG_API_KEY=your_pokemontcg_io_api_key   # Optional: free key from pokemontcg.io; omit to call unauthenticated (lower rate limit)
    export ANTHROPIC_API_KEY=your_anthropic_api_key        # Optional: uses deterministic fallback if blank
    export ANTHROPIC_MODEL=claude-3-5-sonnet-20241022      # Default
    ```
