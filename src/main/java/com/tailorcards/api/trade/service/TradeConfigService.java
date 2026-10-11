@@ -34,6 +34,8 @@ public class TradeConfigService {
     public static final String PARAM_HAIRCUT_HIGH = "DEFAULT_LIQUIDITY_HAIRCUT_HIGH";
     public static final String PARAM_HAIRCUT_MEDIUM = "DEFAULT_LIQUIDITY_HAIRCUT_MEDIUM";
     public static final String PARAM_HAIRCUT_LOW = "DEFAULT_LIQUIDITY_HAIRCUT_LOW";
+    /** Buylist chat: store credit as a fraction of market value (cash rates come from buy rules). */
+    public static final String PARAM_BUYLIST_TRADE_CREDIT_RATE = "BUYLIST_TRADE_CREDIT_RATE";
 
     private static final Map<String, BigDecimal> DEFAULTS = Map.ofEntries(
             Map.entry(PARAM_VARIABLE_RESALE_FEE, BigDecimal.valueOf(0.12)),
@@ -51,7 +53,8 @@ public class TradeConfigService {
             Map.entry(PARAM_MAX_CUSTOMER_CARDS, BigDecimal.valueOf(8)),
             Map.entry(PARAM_HAIRCUT_HIGH, BigDecimal.valueOf(0.00)),
             Map.entry(PARAM_HAIRCUT_MEDIUM, BigDecimal.valueOf(0.03)),
-            Map.entry(PARAM_HAIRCUT_LOW, BigDecimal.valueOf(0.08))
+            Map.entry(PARAM_HAIRCUT_LOW, BigDecimal.valueOf(0.08)),
+            Map.entry(PARAM_BUYLIST_TRADE_CREDIT_RATE, BigDecimal.valueOf(0.80))
     );
 
     private final TradeParameterRepository tradeParameterRepository;
@@ -79,6 +82,8 @@ public class TradeConfigService {
         if (rules.isEmpty()) {
             return List.of(
                     BuyRule.builder().priority(1).categoryCode("PSA10_BGS_BLACK_LABEL").displayName("PSA 10 or BGS Black Label").rate(BigDecimal.valueOf(0.82)).active(true).build(),
+                    BuyRule.builder().priority(1).categoryCode("GRADED_PSA_9").displayName("PSA 9").rate(BigDecimal.valueOf(0.78)).active(true).build(),
+                    BuyRule.builder().priority(1).categoryCode("GRADED_CGC_10").displayName("CGC 10").rate(BigDecimal.valueOf(0.80)).active(true).build(),
                     BuyRule.builder().priority(2).categoryCode("SEALED").displayName("Sealed Product").rate(BigDecimal.valueOf(0.70)).active(true).build(),
                     BuyRule.builder().priority(3).categoryCode("RAW_NEAR_MINT").displayName("Near-Mint Raw Single").rate(BigDecimal.valueOf(0.77)).active(true).build(),
                     BuyRule.builder().priority(4).categoryCode("DEFAULT").displayName("Everything Else").rate(BigDecimal.valueOf(0.75)).active(true).build()

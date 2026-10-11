@@ -10,6 +10,7 @@ import {
   isDemoRole,
 } from '../api/buylistApi'
 import type { BuylistSubmission, BuylistStatus } from '../types'
+import { AdminChatSubmissionPanel } from './AdminChatSubmissionPanel'
 import './AdminBuylist.css'
 
 type SortOption = 'newest' | 'oldest' | 'price_desc' | 'price_asc'
@@ -654,6 +655,11 @@ export function AdminBuylist() {
                       </td>
                       <td className="tc-table-card-name-cell">
                         <span className="tc-card-name-main">{sub.cardName}</span>
+                        {sub.chatDetails && (
+                          <span className="tc-chat-list-chip">
+                            AI chat · {sub.chatDetails.likelihoodPct ?? '—'}% · {sub.chatDetails.totalMarketUsd != null ? `$${sub.chatDetails.totalMarketUsd.toFixed(2)} USD` : 'no price'}
+                          </span>
+                        )}
                         <div className="tc-card-token-sub">
                           <span>Token: <code>{sub.trackingToken.slice(0, 8)}...</code></span>
                           {messageCount > 0 && (
@@ -743,6 +749,9 @@ export function AdminBuylist() {
 
                 <div className="tc-grid-card-body">
                   <h3 className="tc-grid-card-title">{sub.cardName}</h3>
+                  {sub.chatDetails && (
+                    <span className="tc-chat-list-chip">AI chat · {sub.chatDetails.likelihoodPct ?? '—'}%</span>
+                  )}
                   {sub.cardSet && <p className="tc-grid-card-set">{sub.cardSet}</p>}
 
                   <div className="tc-grid-card-meta">
@@ -841,6 +850,16 @@ export function AdminBuylist() {
                 </svg>
               </button>
             </div>
+
+            {selectedSubmission.chatDetails && (
+              <AdminChatSubmissionPanel
+                submission={selectedSubmission}
+                onUpdated={(updated) => {
+                  setSelectedSubmission(updated)
+                  setSubmissions((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
+                }}
+              />
+            )}
 
             {/* Status Update Feedback Alert */}
             {statusFeedback && (

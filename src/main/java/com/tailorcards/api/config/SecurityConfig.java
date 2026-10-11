@@ -49,6 +49,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/buylist/upload").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/buylist/track/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/buylist/*/messages").permitAll()
+                // Public buylist chat (its own email-verified session token is checked in code)
+                .requestMatchers("/api/buylist-chat/**").permitAll()
                 // Public Trade Assistant customer actions
                 .requestMatchers("/api/trade-assistant/**").permitAll()
                 // Public Demo Mode status indicator
@@ -60,6 +62,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/trade-assistant/buy-rules/**").hasRole("ADMIN")
                 .requestMatchers("/api/admin/trade-assistant/liquidity/**").hasRole("ADMIN")
                 .requestMatchers("/api/admin/price-overrides/**").hasRole("ADMIN")
+                // Buylist chat admin controls: ADMIN ONLY
+                .requestMatchers("/api/admin/buylist-chat/**").hasRole("ADMIN")
                 // Listing generator (paid AI calls): ADMIN ONLY, never DEMO
                 .requestMatchers("/api/admin/listing-generator/**").hasRole("ADMIN")
                 // Read-only dashboard access: both ADMIN and DEMO

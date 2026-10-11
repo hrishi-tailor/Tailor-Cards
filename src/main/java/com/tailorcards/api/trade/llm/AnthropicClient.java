@@ -13,6 +13,7 @@ import org.springframework.web.client.RestClientResponseException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +39,7 @@ public class AnthropicClient {
             @Value("${app.anthropic.timeout-seconds:10}") int timeoutSeconds
     ) {
         this.baseUrl = baseUrl;
-        this.apiKey = apiKey != null ? apiKey.trim() : "";
+        this.apiKey = cleanKey(apiKey);
         this.model = model != null && !model.isBlank() ? model.trim() : "claude-haiku-4-5-20251001";
         this.maxTokens = maxTokens > 0 ? maxTokens : 1024;
         this.objectMapper = new ObjectMapper();
@@ -60,6 +61,19 @@ public class AnthropicClient {
         }
 
         return builder.build();
+    }
+
+    /**
+     * Strips terminal bracketed-paste markers (ESC[200~ / ESC[201~), control characters and
+     * whitespace that pasting a key into a shell prompt can leave behind; they cause HTTP 401.
+     */
+    static String cleanKey(String apiKey) {
+        if (apiKey == null) {
+            return "";
+        }
+        return apiKey.replaceAll("\u001B?\\[20[01]~", "")
+                .replaceAll("\\p{Cntrl}", "")
+                .trim();
     }
 
     // Testing constructor
@@ -109,6 +123,25 @@ public class AnthropicClient {
     }
 
     private Optional<AnthropicResponse> send(String systemPrompt, List<? extends Map<String, ?>> messages) {
+        return sendRaw(systemPrompt, messages, null).map(raw -> {
+            String text = "";
+            JsonNode contentArray = raw.root().path("content");
+            if (contentArray.isArray() && !contentArray.isEmpty()) {
+                text = contentArray.get(0).path("text").asText("");
+            }
+            return new AnthropicResponse(text, raw.inputTokens(), raw.outputTokens(), raw.latencyMs(), raw.costUsd());
+        });
+    }
+
+    /** Raw Messages API response with usage and computed cost. */
+    public record RawResponse(JsonNode root, int inputTokens, int outputTokens, long latencyMs, BigDecimal costUsd) {}
+
+    /**
+     * Single Messages API call, optionally with tool definitions. Logs model, latency, tokens and
+     * cost only; request and response bodies are never logged.
+     */
+    public Optional<RawResponse> sendRaw(String systemPrompt, List<? extends Map<String, ?>> messages,
+                                         List<Map<String, Object>> tools) {
         if (!isConfigured()) {
             log.info("Anthropic API key not configured. Using deterministic fallback.");
             return Optional.empty();
@@ -124,6 +157,9 @@ public class AnthropicClient {
                 requestBody.put("system", systemPrompt);
             }
             requestBody.put("messages", messages);
+            if (tools != null && !tools.isEmpty()) {
+                requestBody.put("tools", tools);
+            }
 
             String requestJson = objectMapper.writeValueAsString(requestBody);
 
@@ -142,12 +178,6 @@ public class AnthropicClient {
             }
 
             JsonNode root = objectMapper.readTree(responseBody);
-            String text = "";
-            JsonNode contentArray = root.path("content");
-            if (contentArray.isArray() && !contentArray.isEmpty()) {
-                text = contentArray.get(0).path("text").asText("");
-            }
-
             int inTokens = root.path("usage").path("input_tokens").asInt(0);
             int outTokens = root.path("usage").path("output_tokens").asInt(0);
 
@@ -156,16 +186,128 @@ public class AnthropicClient {
             log.info("Anthropic call completed: model='{}', latency={}ms, inputTokens={}, outputTokens={}, totalTokens={}, actualCostUsd=${}",
                     this.model, latencyMs, inTokens, outTokens, (inTokens + outTokens), estimatedCostUsd);
 
-            return Optional.of(new AnthropicResponse(text, inTokens, outTokens, latencyMs, estimatedCostUsd));
+            return Optional.of(new RawResponse(root, inTokens, outTokens, latencyMs, estimatedCostUsd));
         } catch (Exception ex) {
             long latencyMs = System.currentTimeMillis() - startTime;
-            // Status code or exception type only: error bodies and messages can echo request content
-            String reason = ex instanceof RestClientResponseException rre
-                    ? "HTTP " + rre.getStatusCode().value()
-                    : ex.getClass().getSimpleName();
-            log.warn("Anthropic API call failed after {}ms: {}", latencyMs, reason);
+            log.warn("Anthropic API call failed after {}ms: {}", latencyMs, failureReason(ex));
             return Optional.empty();
         }
+    }
+
+    /** Executes one tool call; the returned string is sent back to the model as the tool result. */
+    @FunctionalInterface
+    public interface ToolExecutor {
+        String execute(String toolName, JsonNode input);
+    }
+
+    /**
+     * Result of a tool-use conversation turn. {@code failed} means an API call failed (text may be
+     * partial or empty); tokens and cost always cover every call that completed.
+     */
+    public record ToolLoopResult(String text, int toolRounds, boolean hitRoundLimit, boolean failed,
+                                 int inputTokens, int outputTokens, BigDecimal costUsd) {}
+
+    /**
+     * Runs the Messages API tool-use loop: the model may call tools for at most {@code maxToolRounds}
+     * rounds; tool results go back as tool_result blocks. Tool names are logged, inputs and results never.
+     */
+    public ToolLoopResult runToolLoop(String systemPrompt, List<Map<String, Object>> messages,
+                                      List<Map<String, Object>> tools, ToolExecutor executor, int maxToolRounds) {
+        List<Map<String, Object>> conversation = new ArrayList<>(messages);
+        int rounds = 0;
+        int inTokens = 0;
+        int outTokens = 0;
+        BigDecimal cost = BigDecimal.ZERO;
+        StringBuilder text = new StringBuilder();
+
+        while (true) {
+            Optional<RawResponse> response = sendRaw(systemPrompt, conversation, tools);
+            if (response.isEmpty()) {
+                return new ToolLoopResult(text.toString().trim(), rounds, false, true, inTokens, outTokens, cost);
+            }
+            RawResponse raw = response.get();
+            inTokens += raw.inputTokens();
+            outTokens += raw.outputTokens();
+            cost = cost.add(raw.costUsd());
+
+            JsonNode content = raw.root().path("content");
+            List<JsonNode> toolUses = new ArrayList<>();
+            text.setLength(0); // keep only the latest assistant text
+            for (JsonNode block : content) {
+                String type = block.path("type").asText();
+                if ("text".equals(type)) {
+                    text.append(block.path("text").asText(""));
+                } else if ("tool_use".equals(type)) {
+                    toolUses.add(block);
+                }
+            }
+
+            boolean wantsTools = "tool_use".equals(raw.root().path("stop_reason").asText()) && !toolUses.isEmpty();
+            if (!wantsTools) {
+                return new ToolLoopResult(text.toString().trim(), rounds, false, false, inTokens, outTokens, cost);
+            }
+            if (rounds >= maxToolRounds) {
+                log.warn("Tool loop stopped at the {}-round limit", maxToolRounds);
+                return new ToolLoopResult(text.toString().trim(), rounds, true, false, inTokens, outTokens, cost);
+            }
+            rounds++;
+
+            conversation.add(Map.of("role", "assistant", "content", objectMapper.convertValue(content, List.class)));
+            List<Map<String, Object>> results = new ArrayList<>();
+            for (JsonNode toolUse : toolUses) {
+                String name = toolUse.path("name").asText();
+                Map<String, Object> result = new HashMap<>();
+                result.put("type", "tool_result");
+                result.put("tool_use_id", toolUse.path("id").asText());
+                try {
+                    result.put("content", executor.execute(name, toolUse.path("input")));
+                } catch (Exception e) {
+                    result.put("content", "{\"error\":\"" + (e.getMessage() == null ? "Tool failed" : e.getMessage().replace("\"", "'")) + "\"}");
+                    result.put("is_error", true);
+                }
+                log.info("Tool executed: {}", name);
+                results.add(result);
+            }
+            conversation.add(Map.of("role", "user", "content", results));
+        }
+    }
+
+    /**
+     * Status plus Anthropic's error type and a short message (e.g. "HTTP 401 authentication_error:
+     * invalid x-api-key"); never the request body. Message is trimmed so request text can't spill into logs.
+     */
+    private String failureReason(Exception ex) {
+        if (ex instanceof RestClientResponseException rre) {
+            String reason = "HTTP " + rre.getStatusCode().value();
+            try {
+                JsonNode error = objectMapper.readTree(rre.getResponseBodyAsString()).path("error");
+                String type = error.path("type").asText("");
+                String message = error.path("message").asText("").replaceAll("\\s+", " ");
+                if (message.length() > 160) {
+                    message = message.substring(0, 160) + "...";
+                }
+                if (!type.isEmpty()) {
+                    reason += " " + type + (message.isEmpty() ? "" : ": " + message);
+                }
+            } catch (Exception ignored) {
+                // body wasn't JSON
+            }
+            return reason;
+        }
+        // Network problems: name the root cause (e.g. SocketTimeoutException, UnknownHostException)
+        Throwable root = ex;
+        while (root.getCause() != null && root.getCause() != root) {
+            root = root.getCause();
+        }
+        String detail = root == ex ? "" : " caused by " + root.getClass().getSimpleName();
+        if (root instanceof java.net.SocketTimeoutException || root instanceof java.net.http.HttpTimeoutException) {
+            detail += " (no answer from api.anthropic.com in time; check the network)";
+        } else if (root instanceof java.net.UnknownHostException) {
+            detail += " (can't resolve api.anthropic.com; check DNS or network)";
+        } else if (root instanceof java.net.ConnectException) {
+            detail += " (connection refused or blocked; check firewall/VPN)";
+        }
+        return ex.getClass().getSimpleName() + detail;
     }
 
     public BigDecimal calculateEstimatedCost(int inTokens, int outTokens) {

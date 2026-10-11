@@ -67,6 +67,60 @@ export interface BuylistSubmission {
   status: BuylistStatus;
   createdAt: string;
   messages: BuylistMessage[];
+  /** Present for submissions from the AI buylist chat. Amounts are USD market references. */
+  chatDetails?: BuylistChatDetails | null;
+}
+
+export interface BuylistChatSubmissionLine {
+  lineNo: number;
+  kind: 'CARD' | 'BULK';
+  name: string;
+  setName?: string | null;
+  cardNumber?: string | null;
+  variant?: string | null;
+  condition?: string | null;
+  grading?: string | null;
+  quantity: number;
+  cardId?: string | null;
+  matchedName?: string | null;
+  matchedSet?: string | null;
+  rarity?: string | null;
+  imageUrl?: string | null;
+  currency: string;
+  unitMarketUsd?: number | null;
+  lineMarketUsd?: number | null;
+  eurTrend?: number | null;
+  priceUpdatedAt?: string | null;
+  priceBasis?: string | null;
+  requestedUnitUsd?: number | null;
+  status: string;
+  statusReason?: string | null;
+  photoUrl?: string | null;
+}
+
+export interface BuylistChatDetails {
+  source: string;
+  currency: string;
+  totalMarketUsd?: number | null;
+  eligibleMarketUsd?: number | null;
+  likelihoodPct?: number | null;
+  likelihoodLabel?: string | null;
+  likelihoodReasons?: string[];
+  quoteExpiresAt?: string | null;
+  lineCount?: number | null;
+  lines?: BuylistChatSubmissionLine[] | null;
+  redFlags?: string[] | null;
+  transcript?: { role: string; content: string; at: string }[] | null;
+  ownerDecision?: string | null;
+  counterAmountUsd?: number | null;
+  dealType?: 'SELL' | 'TRADE' | 'PARTIAL' | null;
+  requestedCashUsd?: number | null;
+  storeCards?: { productId: number; name: string; priceCad: number; priceUsd: number }[] | null;
+  storeTotalUsd?: number | null;
+  cashOfferUsd?: number | null;
+  tradeCreditUsd?: number | null;
+  askRatio?: number | null;
+  usdCadRate?: number | null;
 }
 
 export interface BuylistSubmissionPayload {

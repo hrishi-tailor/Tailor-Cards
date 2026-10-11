@@ -257,6 +257,13 @@ The REST API exposes an interactive **OpenAPI 3.0 / Swagger UI** playground:
 | **Trade Config** | `GET/PUT` | `/api/admin/trade-assistant/parameters` | Admin (Basic Auth) | Manage trade parameters (fees, margins, caps) |
 | **Trade Config** | `GET/PUT` | `/api/admin/trade-assistant/liquidity` | Admin (Basic Auth) | Manage card liquidity tiers and haircuts |
 | **Price Overrides**| `GET/PUT` | `/api/admin/price-overrides` | Admin (Basic Auth) | Set manual overrides for graded/sealed cards |
+| **Buylist Chat** | `GET` | `/api/buylist-chat/status` | Public | Whether the chat is on (`CHATBOT_ENABLED`) and the Turnstile site key |
+| **Buylist Chat** | `POST` | `/api/buylist-chat/otp/request`, `/otp/verify` | Public | Email a 6-digit code; exchange it for a session token |
+| **Buylist Chat** | `POST/GET` | `/api/buylist-chat/drafts[/{id}]` | Chat session | Open/resume the caller's draft; poll statuses and summary |
+| **Buylist Chat** | `POST` | `/api/buylist-chat/drafts/{id}/messages`, `/paste`, `/csv` | Chat session | Chat turn, pasted list, CSV upload (max 1000 lines) |
+| **Buylist Chat** | `PATCH/DELETE/POST` | `/api/buylist-chat/drafts/{id}/lines/{lineId}[/photo]` | Chat session | Edit, remove or add a photo to a line |
+| **Buylist Chat** | `POST` | `/api/buylist-chat/drafts/{id}/confirm` | Chat session | Confirm button: re-checks hash and daily limits, then submits |
+| **Buylist Chat Admin** | `POST` | `/api/admin/buylist-chat/daily-limit/reset` | Admin only (DEMO 403) | Let an email submit again today |
 | **Listing Generator**| `POST` | `/api/admin/listing-generator/draft` | Admin only (DEMO 403) | Draft a listing from 1-2 card photos (multipart `images`, optional `note`) |
 | **Listing Generator**| `GET` | `/api/admin/listing-generator/market-reference` | Admin only (DEMO 403) | Market reference + stock image for a picked candidate (`?cardId=base1-4`) |
 | **Auth** | `GET` | `/api/auth/verify` | Admin (Basic Auth) | Validate administrator credentials |
@@ -393,6 +400,55 @@ The repository includes a comprehensive 45-scenario test harness and a historica
 | **Engine Decision Agreement** | $\ge 90.0\%$ | **100.0%** (45/45) | PASS |
 | **Average Latency** | $< 1000\text{ ms}$ | **0.2 ms** | PASS |
 | **Average Cost per Request** | $< \$0.01\text{ USD}$ | **$0.000915 USD** | PASS |
+
+---
+
+## 💬 AI Buylist Chat (sell intake)
+
+When `CHATBOT_ENABLED=true`, `/sell` becomes a chat: the customer verifies their email, lists cards by chatting, pasting or uploading a CSV, reviews a summary with an estimated chance, and presses **Confirm**. The submission lands in the existing admin buylist queue; **you still approve, counter or decline every one**. With the switch off (default), `/sell` shows the classic form (also reachable with `/sell?form=1`).
+
+**Who decides what**
+* **The model** only converses and normalises item text (name, set, number, quantity, condition, variant), in batches of 100 lines. Its tools are read-only card lookups plus add/remove on the caller's own draft; there is no submit tool. Customer messages, pasted lists, CSV cells and photos are treated as data.
+* **Java** resolves cards against TCGdex (TCGplayer market price, USD; Cardmarket EUR trend as secondary info), filters scrap, computes the likelihood and totals, enforces limits, and creates the submission only from the Confirm button (server-side draft id + content hash). A missing price is shown as "no price", never $0. No rule trace or thresholds are shown to customers.
+
+> **Temporary:** email verification is currently **off** (`BUYLIST_CHAT_REQUIRE_EMAIL=false`, the default for now). Customers start chatting with an anonymous session (`POST /api/buylist-chat/session/guest`, 10 per IP per hour, Turnstile if configured) and type a contact email at Confirm. That email is **not verified**: the one-per-day limit still applies to it, and the submission gets an "Email not verified" red flag. Set `BUYLIST_CHAT_REQUIRE_EMAIL=true` to bring back the email code below; anonymous sessions then stop working.
+
+**Flow**
+1. Email one-time code (when verification is on): 6 digits, stored as an HMAC hash, 10-minute expiry, 5 attempts, 60 s resend cooldown, 5 codes/hour. Optional Cloudflare Turnstile when `TURNSTILE_SECRET` is set.
+2. Items: chat, paste or CSV, up to 1000 lines (quantity capped per line; a bulk lot is one line). Card resolution runs in the background with a 12-minute cache, 4 concurrent lookups and 8 TCGdex requests/second; the page polls progress. Unresolved lines become *Needs review* or *Unidentified*, never errors.
+3. Each line gets a status: `ELIGIBLE`, `BELOW_MINIMUM`, `NEEDS_PHOTO` (value above the photo threshold), `NEEDS_REVIEW` (ambiguous match, no price, damaged, provider outage) or `UNIDENTIFIED`.
+4. Likelihood meter (deterministic, weights in config): eligible value share, identification confidence, photo coverage on high-value lines, liquidity (`card_liquidity`), bulk share, line count; clamped to 5-95 with up to 3 customer-safe reasons, labelled "Estimated chance, not a guarantee". `likelihood_pct` and your eventual decision (`owner_decision`) are stored on the submission for calibration.
+5. Confirm: "You have 1 submission per day. Submit?" The quote is a market reference, valid 48 hours and re-priced when the cards arrive.
+
+**Deals: sell, trade or partial.** Below the list the customer picks *Sell for cash*, *Trade for shop cards* (any available, in-stock product in your shop; CAD prices shown in USD at the Bank of Canada rate) or *Trade + cash*. Your rates are shown to the customer, built from the live settings: cash = your buy rules (75% `DEFAULT` base, 77% raw near mint, 82% PSA 10 / BGS Black Label; edit in `/api/admin/trade-assistant/buy-rules`), store credit = `BUYLIST_TRADE_CREDIT_RATE` (80%; edit in `/api/admin/trade-assistant/parameters`). Customers can enter their own price per card (sell) or the cash they want on top (partial). Java compares the request with the rules as an **ask ratio** (1.0 = exactly at your rates): within the rules the meter is unaffected; above them it scales down linearly to `over-ask-floor` (15%) at `over-ask-span` (+50%), with a reason such as "Your asking price is $51.00 above our cash offer". Requests more than 15% above your rates are red-flagged in admin. The ask, shop cards, offers and exchange rate are stored on the submission.
+
+**Graded cards (PSA/BGS/CGC/SGC/TAG/ACE).** TCGdex has only ungraded prices, so slabs are priced from the **Pokémon TCG API on RapidAPI** (`pokemon-tcg-api.p.rapidapi.com`, median of recent eBay sales for the exact grade) when `RAPIDAPI_KEY` is set. Customers set the grade in the chat, the CSV `grading` column, or the *Raw / PSA / BGS ...* picker on each line. Cards are matched by TCGdex id, falling back to name + number + set. With a graded price the line follows the buy rules: 82% for PSA 10 / BGS Black Label, and any `GRADED_<COMPANY>_<GRADE>` rule (V6 seeds `GRADED_PSA_9` 78% and `GRADED_CGC_10` 80%; add more such as `GRADED_BGS_9_5` in admin buy rules), otherwise the 75% base. Without a graded price (no key, card not found, Black Label / Pristine which have no separate eBay tier, or a 9/10 median below the ungraded price, which signals mixed-up sales data) the line shows the ungraded price as "ungraded ref", is left out of totals and offers, and is *Needs review: priced by hand*. Prices backed by fewer than `min-graded-sales` (3) recent sales lower the estimate and are flagged to the customer. The free RapidAPI plan allows ~100 requests/day; each card is one request, cached for `GRADED_PRICE_CACHE_MINUTES` (12 h).
+
+**Estimated approval rating.** Shown with a disclaimer that it is an estimated guess, not a guaranteed price or acceptance. Photos are optional: cards worth at least `photo-required-above-usd` ($50) stay eligible without one, but the estimate is capped at `max-without-photos` (90%) until they have photos (95% max otherwise). Asking for less than our offer adds up to `under-ask-bonus` (15) points, reached at `under-ask-span` (30%) under; asking for more scales it down as before. Reasons say what would raise the estimate (e.g. "up to +5%"), and each line shows our cash offer per card next to the customer's price.
+
+**Limits**: one confirmed submission per email per America/Toronto day, enforced by the unique index `uk_buylist_email_local_date (customer_email, local_date)` (drafts and chat don't count; admins can release it); 3 per IP per day; 10 chat messages/minute per session; 2000-character messages; 5 tool rounds per turn; a global daily LLM spend ceiling (`BUYLIST_CHAT_DAILY_SPEND_USD`, default $5) after which chat pauses and paste/CSV use the Java parser.
+
+**Admin**: chat submissions show an "AI chat" chip with value and likelihood in the queue; the drawer shows totals, red flags (e.g. high value without photos, many unidentified lines, repeat IP), every line with its status, the full transcript, a USD counter field and a daily-limit reset. Approve = `ACCEPTED`, counter = `OFFERED` (+ amount), decline = `REJECTED`. You get an email for each new submission (`BUYLIST_NOTIFY_EMAIL`) and the customer gets a receipt with their tracking code.
+
+**Environment** (all optional; safe defaults, no secrets in the repo)
+
+| Variable | Default | Purpose |
+| :--- | :--- | :--- |
+| `CHATBOT_ENABLED` | `false` | Kill switch for the whole chat |
+| `BUYLIST_CHAT_REQUIRE_EMAIL` | `false` (temporary) | `true` requires the emailed sign-in code before chatting |
+| `EMAIL_PROVIDER` | `log` | `log` writes codes to the log (development only); `http` sends via a Resend-compatible API |
+| `EMAIL_API_KEY`, `EMAIL_FROM` | — | Required when `EMAIL_PROVIDER=http` (`EMAIL_API_URL` defaults to Resend) |
+| `BUYLIST_NOTIFY_EMAIL` | — | Where new-submission notifications go |
+| `TURNSTILE_SECRET`, `TURNSTILE_SITE_KEY` | — | Cloudflare Turnstile on code requests |
+| `OTP_PEPPER` | random per process | HMAC key for code hashes |
+| `BUYLIST_CHAT_MODEL` | `app.anthropic.model` | Model for chat and list normalisation |
+| `BUYLIST_CHAT_DAILY_SPEND_USD` | `5.00` | Global daily LLM spend ceiling |
+| `RAPIDAPI_KEY` | — | Graded prices from the Pokémon TCG API on RapidAPI (your RapidAPI application key) |
+| `GRADED_PRICE_CACHE_MINUTES` | `720` | How long each card's graded prices are cached (free plan: ~100 requests/day) |
+
+Thresholds and weights live under `app.buylist-chat.scrap.*` and `app.buylist-chat.likelihood.*` in `application.yaml`. Schema changes are in `V3__buylist_chat.sql`, `V4__buylist_grading.sql`, `V5__buylist_deals.sql` and `V6__buylist_graded_rates.sql` (idempotent, tested against the production schema dump).
+
+**Cost**: on Haiku 4.5 a chat turn is typically 2-5k input tokens (system prompt, tools, recent history) and a few hundred output tokens, about $0.003-0.008, up to ~6x that when the model uses all 5 tool rounds. Normalising a 1000-line paste is 10 calls, roughly $0.05-0.10. The daily ceiling caps total spend.
 
 ---
 

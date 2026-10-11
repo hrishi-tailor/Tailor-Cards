@@ -30,7 +30,7 @@ class FlywaySchemaValidationTest {
     @Test
     @DisplayName("Flyway migrations apply cleanly and Hibernate validate passes")
     void flywayMigrationsApplyAndHibernateValidates() {
-        // Started from an empty schema: V1 and V2 were executed, not baselined
+        // Started from an empty schema: V1, V2 and V3 were executed, not baselined
         List<String> types = jdbcTemplate.queryForList(
                 "SELECT \"type\" FROM \"flyway_schema_history\" ORDER BY \"installed_rank\"", String.class);
         assertThat(types).doesNotContain("BASELINE");
@@ -38,7 +38,7 @@ class FlywaySchemaValidationTest {
                 "SELECT \"version\" || ':' || \"type\" || ':' || \"success\" FROM \"flyway_schema_history\" "
                         + "WHERE \"version\" IS NOT NULL ORDER BY \"installed_rank\"",
                 String.class);
-        assertThat(versioned).containsExactly("1:SQL:TRUE", "2:SQL:TRUE");
+        assertThat(versioned).containsExactly("1:SQL:TRUE", "2:SQL:TRUE", "3:SQL:TRUE", "4:SQL:TRUE", "5:SQL:TRUE", "6:SQL:TRUE");
 
         Integer categoryCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM categories", Integer.class);
         assertThat(categoryCount).isNotNull();
@@ -46,7 +46,7 @@ class FlywaySchemaValidationTest {
 
         Integer buyRuleCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM buy_rules", Integer.class);
         assertThat(buyRuleCount).isNotNull();
-        assertThat(buyRuleCount).isEqualTo(4);
+        assertThat(buyRuleCount).isEqualTo(6); // V2 seeds 4, V6 adds PSA 9 and CGC 10
 
         Integer tradeParamCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM trade_parameters", Integer.class);
         assertThat(tradeParamCount).isNotNull();

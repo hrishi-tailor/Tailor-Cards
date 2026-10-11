@@ -91,6 +91,95 @@ app:
     daily-cap: 100
     max-image-bytes: 5242880
     max-note-length: 500
+  buylist-chat:
+    # Kill switch: the chat and its endpoints are off unless CHATBOT_ENABLED=true (the manual sell form stays)
+    enabled: ${CHATBOT_ENABLED:false}
+    # TEMPORARY: email codes are off; customers give an unverified email at Confirm.
+    # Set BUYLIST_CHAT_REQUIRE_EMAIL=true to require the email code again.
+    require-email-verification: ${BUYLIST_CHAT_REQUIRE_EMAIL:false}
+    timezone: America/Toronto
+    model: ${BUYLIST_CHAT_MODEL:${app.anthropic.model}}
+    max-tokens: 1024
+    timeout-seconds: 30
+    quote-valid-hours: 48
+    otp:
+      code-ttl-minutes: 10
+      max-attempts: 5
+      resend-cooldown-seconds: 60
+      max-codes-per-email-per-hour: 5
+      session-ttl-hours: 24
+      pepper: ${OTP_PEPPER:}
+    turnstile:
+      # Verification runs only when TURNSTILE_SECRET is set
+      secret: ${TURNSTILE_SECRET:}
+      site-key: ${TURNSTILE_SITE_KEY:}
+    email:
+      # log (development: codes are written to the log) or http (Resend-compatible API)
+      provider: ${EMAIL_PROVIDER:log}
+      api-key: ${EMAIL_API_KEY:}
+      api-url: ${EMAIL_API_URL:https://api.resend.com/emails}
+      from: ${EMAIL_FROM:}
+      notify-to: ${BUYLIST_NOTIFY_EMAIL:}
+    limits:
+      submissions-per-ip-per-day: 3
+      chat-messages-per-minute: 10
+      max-message-length: 2000
+      max-tool-rounds: 5
+      daily-llm-spend-usd: ${BUYLIST_CHAT_DAILY_SPEND_USD:5.00}
+      max-lines: 1000
+      max-quantity-per-line: 100
+      max-bulk-quantity: 10000
+      max-paste-chars: 100000
+      transcript-history: 20
+      normalize-batch-size: 100
+    graded-prices:
+      # Graded prices (PSA/BGS/CGC/SGC/TAG/ACE): Pokémon TCG API on RapidAPI (eBay sales per grade).
+      # Without a key slabs are priced by hand.
+      api-key: ${RAPIDAPI_KEY:}
+      host: pokemon-tcg-api.p.rapidapi.com
+      base-url: https://pokemon-tcg-api.p.rapidapi.com
+      # The free plan allows ~100 requests/day: card responses are cached this long
+      cache-minutes: ${GRADED_PRICE_CACHE_MINUTES:720}
+    resolution:
+      async: true
+      cache-minutes: 12
+      concurrency: 4
+      requests-per-second: 8
+      search-limit: 250
+      max-candidates: 5
+      max-candidates-with-set-total: 12
+    scrap:
+      min-unit-usd: 1.00
+      min-line-usd: 5.00
+      excluded-categories:
+        - Energy
+      damaged-policy: NEEDS_REVIEW
+      bulk-min-quantity: 100
+      # Photos are optional; lines worth this much raise the estimate with a photo
+      photo-required-above-usd: 50.00
+    likelihood:
+      base: 20
+      eligible-weight: 45
+      identification-weight: 15
+      photo-weight: 10
+      liquidity-weight: 10
+      bulk-penalty: 15
+      line-count-penalty: 10
+      line-count-soft-cap: 300
+      max-liquidity-haircut: 0.08
+      min: 5
+      max: 95
+      # Requests above our rates: the meter scales down linearly to the floor at +50%
+      over-ask-span: 0.5
+      over-ask-floor: 0.15
+      # Requests below our rates: up to +15 points, reached at 30% under
+      under-ask-bonus: 15
+      under-ask-span: 0.3
+      # Highest estimate while a higher-value card has no photo
+      max-without-photos: 90
+      # Graded prices from fewer than min-graded-sales recent sales cost up to this many points
+      thin-graded-data-penalty: 8
+      min-graded-sales: 3
   trade-assistant:
     rate-limit-per-minute: 20
     max-message-length: 2000

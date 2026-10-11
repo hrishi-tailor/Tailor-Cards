@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { Routes, Route, NavLink, Link, useNavigate } from 'react-router-dom'
 import { ProductList } from './components/ProductList'
 import { Cart } from './components/Cart'
-import { SellBuylist } from './components/SellBuylist'
 import { TrackBuylist } from './components/TrackBuylist'
 import { AdminBuylist } from './components/AdminBuylist'
 import { AdminLoginPage } from './components/AdminLoginPage'
 import { ListingGenerator } from './components/ListingGenerator'
+import { SellRoute } from './components/SellRoute'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { CheckoutSuccess } from './components/CheckoutSuccess'
 import { TradeAssistant } from './components/TradeAssistant'
@@ -152,7 +152,7 @@ function AppContent() {
           <Route path="/" element={<ProductList selectedCategory={selectedCategory} />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
-          <Route path="/sell" element={<SellBuylist />} />
+          <Route path="/sell" element={<SellRoute />} />
           <Route path="/sell/track/:token" element={<TrackBuylist />} />
           <Route path="/trade-assistant" element={<TradeAssistant />} />
           <Route path="/admin/login" element={<AdminLoginPage />} />

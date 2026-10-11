@@ -1191,3 +1191,47 @@
     align-items: stretch;
   }
 }
+
+/* ---- AI buylist chat submissions ---- */
+.tc-chat-list-chip {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #d4af37;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: rgba(212, 175, 55, 0.1);
+}
+.tc-chat-admin { display: flex; flex-direction: column; gap: 12px; padding: 0 20px 16px; }
+.tc-chat-admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.tc-chat-admin-stats div { display: flex; flex-direction: column; gap: 2px; padding: 10px; border: 1px solid var(--tc-border); border-radius: 6px; }
+.tc-chat-admin-stats span { font-size: 0.75rem; color: var(--tc-text-secondary); }
+.tc-chat-admin-stats strong { color: #d4af37; font-family: var(--tc-font-mono); }
+.tc-chat-admin-muted { font-size: 0.78rem; color: var(--tc-text-secondary); margin: 0; }
+.tc-chat-admin-flags { border-left: 3px solid var(--tc-status-red); background: var(--tc-status-red-subtle); padding: 8px 12px; border-radius: 4px; font-size: 0.88rem; }
+.tc-chat-admin-flags ul { margin: 4px 0 0; padding-left: 18px; }
+.tc-chat-admin-error { color: var(--tc-status-red); margin: 0; font-size: 0.85rem; }
+.tc-chat-admin-notice { color: var(--tc-status-green); margin: 0; font-size: 0.85rem; }
+.tc-chat-admin-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.tc-chat-admin-actions input { width: 140px; padding: 8px; background: rgba(0, 0, 0, 0.35); color: var(--tc-text-primary); border: 1px solid var(--tc-border-strong); border-radius: 4px; }
+.tc-chat-admin-actions button { padding: 8px 12px; border-radius: 4px; border: 1px solid var(--tc-border-strong); background: transparent; color: var(--tc-text-primary); cursor: pointer; }
+.tc-chat-admin-actions button:hover:not(:disabled) { border-color: #d4af37; color: #d4af37; }
+.tc-chat-admin-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+.tc-chat-admin summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+.tc-chat-admin-table-wrap { overflow-x: auto; max-height: 420px; overflow-y: auto; }
+.tc-chat-admin-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.tc-chat-admin-table th, .tc-chat-admin-table td { padding: 6px 8px; border-bottom: 1px solid var(--tc-border-subtle); text-align: left; vertical-align: top; }
+.tc-chat-admin-table th { position: sticky; top: 0; background: #1c1c1f; color: var(--tc-text-secondary); font-weight: 500; }
+.tc-chat-admin-status { font-size: 0.7rem; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--tc-border-strong); }
+.tc-chat-admin-status.s-eligible { color: var(--tc-status-green); border-color: var(--tc-status-green-border); }
+.tc-chat-admin-status.s-needs_photo, .tc-chat-admin-status.s-needs_review { color: #fbbf24; border-color: rgba(251, 191, 36, 0.4); }
+.tc-chat-admin-status.s-below_minimum, .tc-chat-admin-status.s-unidentified { color: var(--tc-status-red); border-color: var(--tc-status-red-border); }
+.tc-chat-admin-transcript { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; }
+.tc-chat-admin-msg { padding: 8px 10px; border-radius: 6px; border: 1px solid var(--tc-border); font-size: 0.85rem; }
+.tc-chat-admin-msg.customer { background: rgba(212, 175, 55, 0.08); }
+.tc-chat-admin-msg span { font-size: 0.72rem; color: var(--tc-text-secondary); }
+.tc-chat-admin-msg p { margin: 4px 0 0; white-space: pre-wrap; }
+
+.tc-chat-admin-deal { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid rgba(212, 175, 55, 0.45); border-radius: 6px; font-size: 0.86rem; }
+.tc-chat-admin-deal strong { color: #d4af37; }

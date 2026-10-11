@@ -120,4 +120,14 @@ class AnthropicClientTest {
         server.verify();
         assertThat(response).isEmpty();
     }
+
+    @Test
+    @DisplayName("Pasted keys are cleaned of bracketed-paste markers, control characters and whitespace")
+    void cleansPastedKey() {
+        assertThat(AnthropicClient.cleanKey("\u001B[200~sk-ant-abc123\u001B[201~\n")).isEqualTo("sk-ant-abc123");
+        assertThat(AnthropicClient.cleanKey("[200~sk-ant-abc123[201~")).isEqualTo("sk-ant-abc123");
+        assertThat(AnthropicClient.cleanKey("  sk-ant-abc123\r\n")).isEqualTo("sk-ant-abc123");
+        assertThat(AnthropicClient.cleanKey(null)).isEmpty();
+        assertThat(new AnthropicClient("https://api.anthropic.com/v1", "\u001B[200~\u001B[201~", null, 10, 5).isConfigured()).isFalse();
+    }
 }

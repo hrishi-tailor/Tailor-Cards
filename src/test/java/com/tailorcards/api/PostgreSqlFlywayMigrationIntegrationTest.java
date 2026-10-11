@@ -77,7 +77,7 @@ class PostgreSqlFlywayMigrationIntegrationTest {
         // 2. Verify V2 seed data exists
         Integer buyRuleCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM buy_rules", Integer.class);
         assertThat(buyRuleCount).isNotNull();
-        assertThat(buyRuleCount).isEqualTo(4);
+        assertThat(buyRuleCount).isEqualTo(6); // V2 seeds 4, V6 adds PSA 9 and CGC 10
 
         Integer tradeParamCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM trade_parameters", Integer.class);
         assertThat(tradeParamCount).isNotNull();
@@ -91,6 +91,9 @@ class PostgreSqlFlywayMigrationIntegrationTest {
         Integer migrationCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM flyway_schema_history WHERE success = true", Integer.class);
         assertThat(migrationCount).isNotNull();
-        assertThat(migrationCount).isGreaterThanOrEqualTo(2);
+        assertThat(migrationCount).isGreaterThanOrEqualTo(3);
+        Integer v3 = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM flyway_schema_history WHERE version = '3' AND success = true", Integer.class);
+        assertThat(v3).isEqualTo(1);
     }
 }
