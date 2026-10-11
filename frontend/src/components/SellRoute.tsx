@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import { buylistChatApi } from '../api/buylistChatApi'
 import type { ChatStatus } from '../api/buylistChatApi'
 import { BuylistChat } from './BuylistChat'
 import { SellBuylist } from './SellBuylist'
 
-/** /sell: the AI buylist chat when enabled (CHATBOT_ENABLED), otherwise the classic form. */
+/** /sell: the AI buylist chat when enabled (CHATBOT_ENABLED); the classic form only as a fallback when it is off. */
 export function SellRoute() {
-  const [params] = useSearchParams()
   const [status, setStatus] = useState<ChatStatus | null | undefined>(undefined)
 
   useEffect(() => {
@@ -17,7 +15,7 @@ export function SellRoute() {
   if (status === undefined) {
     return null
   }
-  if (!status?.enabled || params.get('form') === '1') {
+  if (!status?.enabled) {
     return <SellBuylist />
   }
   return <BuylistChat status={status} />

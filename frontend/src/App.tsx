@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Routes, Route, NavLink, Link, useNavigate } from 'react-router-dom'
+import { Routes, Route, NavLink, Link, Navigate, useNavigate } from 'react-router-dom'
 import { ProductList } from './components/ProductList'
 import { Cart } from './components/Cart'
 import { TrackBuylist } from './components/TrackBuylist'
@@ -9,7 +9,6 @@ import { ListingGenerator } from './components/ListingGenerator'
 import { SellRoute } from './components/SellRoute'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { CheckoutSuccess } from './components/CheckoutSuccess'
-import { TradeAssistant } from './components/TradeAssistant'
 import { CartProvider, useCart } from './context/CartContext'
 import { API_BASE_URL } from './api/config'
 import logoImg from './assets/logo.jpg'
@@ -84,12 +83,6 @@ function MainNavigation({ onCategorySelect, selectedCategory }: NavigationProps)
           >
             Sell to Us
           </NavLink>
-          <NavLink
-            to="/trade-assistant"
-            className={({ isActive }) => `tc-nav-link ${isActive ? 'active' : ''}`}
-          >
-            Sell or Trade
-          </NavLink>
         </nav>
 
         {/* Search Bar & Cart Actions */}
@@ -154,7 +147,7 @@ function AppContent() {
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/sell" element={<SellRoute />} />
           <Route path="/sell/track/:token" element={<TrackBuylist />} />
-          <Route path="/trade-assistant" element={<TradeAssistant />} />
+          <Route path="/trade-assistant" element={<Navigate to="/sell" replace />} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route
             path="/admin/buylist"
@@ -183,8 +176,6 @@ function AppContent() {
           </div>
 
           <div className="tc-footer-links">
-            <Link to="/trade-assistant" className="tc-footer-link">Sell or Trade</Link>
-            <span className="tc-footer-divider" aria-hidden="true">/</span>
             <Link to="/sell" className="tc-footer-link">Sell to Us</Link>
             <span className="tc-footer-divider" aria-hidden="true">/</span>
             <a

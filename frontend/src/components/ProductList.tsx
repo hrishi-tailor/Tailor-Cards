@@ -1,10 +1,9 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { API_BASE_URL } from '../api/config'
 import { useCart } from '../context/CartContext'
 import type { PageResponse, Product } from '../types'
 import { isGradedOrSealed } from '../types'
-import { WhySellDirectly } from './WhySellDirectly'
 import { PriceHistoryChart } from './PriceHistoryChart'
 import './ProductList.css'
 
@@ -69,18 +68,7 @@ function parseConditionStamp(condition?: string | null, grading?: string | null,
   }
 }
 
-const TEASER_TIERS = [
-  { id: 'gem-mint', label: 'PSA 10 / Black Label · 90%', short: 'PSA 10 (90%)', rate: 0.90, category: 'PSA 10 & BGS Black Label' },
-  { id: 'graded-slab', label: 'Graded Slabs · 85%', short: 'Slabs (85%)', rate: 0.85, category: 'Graded Slabs (PSA, CGC, BGS)' },
-  { id: 'raw-nm', label: 'Raw NM · 80%', short: 'Raw NM (80%)', rate: 0.80, category: 'Raw NM Singles' },
-  { id: 'sealed', label: 'Sealed · 75%', short: 'Sealed (75%)', rate: 0.75, category: 'Sealed Products' },
-  { id: 'played', label: 'Played Binder · 70%', short: 'Played (70%)', rate: 0.70, category: 'Played & Binder Singles' },
-]
-
-const QUICK_VALUES = [100, 300, 500, 1000]
-
 export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
-  const navigate = useNavigate()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
@@ -91,8 +79,6 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
 
   // Editorial Home State
   const [showFullCatalog, setShowFullCatalog] = useState(false)
-  const [teaserTierId, setTeaserTierId] = useState('gem-mint')
-  const [teaserMarketPrice, setTeaserMarketPrice] = useState(300)
 
   // Local Filter & Sort Controls
   const [searchFilter, setSearchFilter] = useState('')
@@ -237,11 +223,6 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
     return list.slice(0, 6)
   }, [products])
 
-  // Calculator Teaser values
-  const activeTeaserTier = TEASER_TIERS.find((t) => t.id === teaserTierId) || TEASER_TIERS[0]
-  const teaserPayoutAmount = teaserMarketPrice * activeTeaserTier.rate
-  const teaserMarketplaceSavings = teaserMarketPrice * 0.1325
-
   // Keyboard navigation for Quick Inspect Modal
   useEffect(() => {
     if (!inspectProduct) return
@@ -320,12 +301,6 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
 
   const scrollToVault = () => {
     document.getElementById('vault-showcase')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-
-  const handleLockInTeaser = () => {
-    navigate(
-      `/sell?tier=${encodeURIComponent(activeTeaserTier.category)}&rate=${activeTeaserTier.rate}&market=${teaserMarketPrice}&payout=${teaserPayoutAmount.toFixed(2)}#buylist-form`
-    )
   }
 
   // Helper to render individual product cards
@@ -517,13 +492,12 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
               <span className="tc-panel-eyebrow tc-mono">[DIRECT LIQUIDITY]</span>
               <h2 className="tc-panel-headline">Turn Cards Into Instant Cash</h2>
               <p className="tc-panel-copy">
-                We acquire collections, grails, and raw singles at up to 90% market value via direct Interac e-Transfer.
-                Skip the 13% platform fees and chargeback risks.
+                Sell or trade your collection. See live market prices and our offer in minutes, then get paid by Interac e-Transfer.
               </p>
             </div>
             <div className="tc-door-action">
               <Link to="/sell" className="tc-panel-cta-btn tc-cta-sell">
-                <span>Calculate Payout &amp; Submit</span>
+                <span>Get an estimate</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                 </svg>
@@ -577,117 +551,6 @@ export function ProductList({ selectedCategory = 'All' }: ProductListProps) {
           </div>
         </div>
       )}
-
-      {/* =========================================================================
-          3. COMPACT INSTANT CASH CALCULATOR TEASER
-          ========================================================================= */}
-      {!isFilteredCategory && (
-        <section className="tc-teaser-calc tc-corner-accent" aria-labelledby="teaser-calc-heading">
-          <div className="tc-teaser-calc-header">
-            <div className="tc-teaser-calc-title-box">
-              <span className="tc-teaser-calc-badge tc-mono">[DIRECT LIQUIDITY ESTIMATOR]</span>
-              <h2 id="teaser-calc-heading" className="tc-teaser-calc-heading">Instant Cash Payout Estimator</h2>
-            </div>
-            <span className="tc-teaser-calc-sub tc-mono">Live e-Transfer Payout Preview</span>
-          </div>
-
-          {/* Tier Pills */}
-          <div className="tc-teaser-pills-row" role="tablist" aria-label="Buylist Category Tier">
-            {TEASER_TIERS.map((tier) => (
-              <button
-                key={tier.id}
-                type="button"
-                className={`tc-teaser-pill ${teaserTierId === tier.id ? 'active' : ''}`}
-                onClick={() => setTeaserTierId(tier.id)}
-              >
-                <span>{tier.label.split(' · ')[0]}</span>
-                <span className="tc-pill-separator" aria-hidden="true"> · </span>
-                <span className="tc-pixel">{(tier.rate * 100).toFixed(0)}%</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Values Row: Slider + Quick Preset Buttons */}
-          <div className="tc-teaser-input-row">
-            <div className="tc-teaser-slider-col">
-              <div className="tc-teaser-slider-header">
-                <span className="tc-teaser-label">Card Market Price (CAD):</span>
-                <span className="tc-teaser-slider-val tc-pixel">${teaserMarketPrice} CAD</span>
-              </div>
-              <input
-                type="range"
-                min="50"
-                max="2000"
-                step="25"
-                value={teaserMarketPrice}
-                onChange={(e) => setTeaserMarketPrice(Number(e.target.value))}
-                className="tc-teaser-slider"
-                aria-label="Market value slider"
-              />
-            </div>
-
-            <div className="tc-teaser-presets-col">
-              <span className="tc-teaser-label">Quick Values:</span>
-              <div className="tc-teaser-preset-btns">
-                {QUICK_VALUES.map((val) => (
-                  <button
-                    key={val}
-                    type="button"
-                    className={`tc-teaser-quick-btn tc-pixel ${teaserMarketPrice === val ? 'active' : ''}`}
-                    onClick={() => setTeaserMarketPrice(val)}
-                  >
-                    ${val}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Instant Payout Breakdown */}
-          <div className="tc-teaser-results-bar">
-            <div className="tc-teaser-metric">
-              <span className="tc-metric-label">Your Market Value</span>
-              <span className="tc-metric-value tc-pixel">${teaserMarketPrice.toFixed(2)} CAD</span>
-            </div>
-
-            <div className="tc-teaser-metric-arrow" aria-hidden="true">→</div>
-
-            <div className="tc-teaser-metric highlight">
-              <div className="tc-metric-label-row">
-                <span className="tc-metric-label gold">TailorCards Instant Cash</span>
-                <span className="tc-rate-tag tc-pixel">{(activeTeaserTier.rate * 100).toFixed(0)}% RATE</span>
-              </div>
-              <span className="tc-metric-value gold tc-pixel">${teaserPayoutAmount.toFixed(2)} CAD</span>
-              <span className="tc-metric-sub">Direct Interac e-Transfer</span>
-            </div>
-
-            <div className="tc-teaser-metric fee-col">
-              <span className="tc-metric-label">Marketplace Fee Savings</span>
-              <span className="tc-metric-value green tc-pixel">+${teaserMarketplaceSavings.toFixed(2)} CAD</span>
-              <span className="tc-metric-sub">Saved vs. eBay (~13.25%) + Zero Fraud Risk</span>
-            </div>
-
-            <button
-              type="button"
-              className="tc-teaser-lock-cta"
-              onClick={handleLockInTeaser}
-            >
-              <span>Lock In Rate &amp; Sell</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-              </svg>
-            </button>
-          </div>
-        </section>
-      )}
-
-      {/* =========================================================================
-          Progressive Disclosure: Why Sell Directly Tabbed Reading Pane
-          ========================================================================= */}
-      {!isFilteredCategory && !isViewingFullCatalog && (
-        <WhySellDirectly />
-      )}
-
 
       {/* =========================================================================
           4. CURATED "VAULT SHOWCASE" ROW

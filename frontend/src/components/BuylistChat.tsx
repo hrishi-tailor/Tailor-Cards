@@ -255,7 +255,6 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
         <h1 className="tc-bc-title">Sell your cards</h1>
         <p className="tc-bc-muted">
           Tell us what you have, review the list, and submit. Prices shown are market references, not offers.
-          {' '}<Link to="/sell?form=1">Prefer the classic form?</Link>
         </p>
       </header>
 
