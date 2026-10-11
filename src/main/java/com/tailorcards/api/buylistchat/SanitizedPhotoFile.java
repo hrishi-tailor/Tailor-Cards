@@ -10,11 +10,11 @@ import java.io.InputStream;
 import java.nio.file.Files;
 
 /** Metadata-stripped photo bytes presented as a MultipartFile for BuylistStorageService. */
-final class SanitizedPhotoFile implements MultipartFile {
+public final class SanitizedPhotoFile implements MultipartFile {
 
     private final SanitizedImage image;
 
-    SanitizedPhotoFile(SanitizedImage image) {
+    public SanitizedPhotoFile(SanitizedImage image) {
         this.image = image;
     }
 

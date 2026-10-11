@@ -84,7 +84,7 @@ abstract class AbstractFlywayBaselineIntegrationTest {
         List<String> history = jdbcTemplate.queryForList(
                 "SELECT version || ':' || type || ':' || success FROM flyway_schema_history ORDER BY installed_rank",
                 String.class);
-        assertThat(history).containsExactly("1:BASELINE:true", "2:SQL:true", "3:SQL:true", "4:SQL:true", "5:SQL:true", "6:SQL:true");
+        assertThat(history).containsExactly("1:BASELINE:true", "2:SQL:true", "3:SQL:true", "4:SQL:true", "5:SQL:true", "6:SQL:true", "7:SQL:true");
 
         for (String table : List.of("buy_rules", "trade_parameters", "card_liquidity",
                 "price_snapshots", "manual_price_overrides", "trade_assistant_requests")) {

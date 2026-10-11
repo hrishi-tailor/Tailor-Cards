@@ -1,6 +1,8 @@
 package com.tailorcards.api.entity;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -8,10 +10,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OrderColumn;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.ColumnDefault;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,6 +25,8 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "products")
@@ -29,7 +35,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = "category")
+@ToString(exclude = {"category", "photoUrls"})
 public class Product {
 
     @Id
@@ -77,6 +83,15 @@ public class Product {
 
     @Column(name = "pokemontcg_id")
     private String pokemontcgId;
+
+    /** The seller's own photos, in display order; shown after the default picture (imageUrl). */
+    @Builder.Default
+    @ElementCollection
+    @CollectionTable(name = "product_photos", joinColumns = @JoinColumn(name = "product_id"))
+    @OrderColumn(name = "position")
+    @Column(name = "url", length = 500, nullable = false)
+    @BatchSize(size = 100)
+    private List<String> photoUrls = new ArrayList<>();
 
     @Builder.Default
     @Column(name = "status")

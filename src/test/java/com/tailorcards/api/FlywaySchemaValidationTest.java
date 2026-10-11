@@ -38,7 +38,7 @@ class FlywaySchemaValidationTest {
                 "SELECT \"version\" || ':' || \"type\" || ':' || \"success\" FROM \"flyway_schema_history\" "
                         + "WHERE \"version\" IS NOT NULL ORDER BY \"installed_rank\"",
                 String.class);
-        assertThat(versioned).containsExactly("1:SQL:TRUE", "2:SQL:TRUE", "3:SQL:TRUE", "4:SQL:TRUE", "5:SQL:TRUE", "6:SQL:TRUE");
+        assertThat(versioned).containsExactly("1:SQL:TRUE", "2:SQL:TRUE", "3:SQL:TRUE", "4:SQL:TRUE", "5:SQL:TRUE", "6:SQL:TRUE", "7:SQL:TRUE");
 
         Integer categoryCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM categories", Integer.class);
         assertThat(categoryCount).isNotNull();

@@ -7,6 +7,10 @@ import com.tailorcards.api.entity.Category;
 import com.tailorcards.api.entity.Product;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+
 @Component
 public class ProductMapper {
 
@@ -37,7 +41,8 @@ public class ProductMapper {
                 product.getCondition(),
                 product.getGrading(),
                 product.getStatus() != null ? product.getStatus() : "AVAILABLE",
-                product.getPokemontcgId()
+                product.getPokemontcgId(),
+                product.getPhotoUrls() == null ? List.of() : List.copyOf(product.getPhotoUrls())
         );
     }
 
@@ -62,6 +67,7 @@ public class ProductMapper {
                 .grading(request.grading())
                 .status(status)
                 .pokemontcgId(blankToNull(request.pokemontcgId()))
+                .photoUrls(cleanPhotos(request.photoUrls()))
                 .build();
     }
 
@@ -88,6 +94,19 @@ public class ProductMapper {
         if (blankToNull(request.pokemontcgId()) != null) {
             product.setPokemontcgId(request.pokemontcgId().trim());
         }
+        if (request.photoUrls() != null) {
+            product.getPhotoUrls().clear();
+            product.getPhotoUrls().addAll(cleanPhotos(request.photoUrls()));
+        }
+    }
+
+    /** Trimmed, de-duplicated photo URLs in their given order. */
+    static List<String> cleanPhotos(List<String> urls) {
+        if (urls == null) {
+            return new ArrayList<>();
+        }
+        return new ArrayList<>(new LinkedHashSet<>(urls.stream()
+                .filter(u -> u != null && !u.isBlank()).map(String::trim).toList()));
     }
 
     private static String blankToNull(String value) {
