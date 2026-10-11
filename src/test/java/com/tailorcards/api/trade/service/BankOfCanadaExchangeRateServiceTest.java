@@ -96,4 +96,23 @@ class BankOfCanadaExchangeRateServiceTest {
         BigDecimal rate = service.getUsdToCadRate();
         assertThat(rate).isEqualByComparingTo(new BigDecimal("1.3650"));
     }
+
+    @Test
+    @DisplayName("EUR to CAD and EUR to USD conversions use cached or fallback rates")
+    void testEurConversions() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("https://test.boc.ca");
+        RestClient restClient = builder.build();
+        BankOfCanadaExchangeRateService service = new BankOfCanadaExchangeRateService(restClient, objectMapper);
+
+        service.setCachedRateForTesting(new BigDecimal("1.3800"), Instant.now());
+        service.setCachedEurRateForTesting(new BigDecimal("1.5000"), Instant.now());
+
+        BigDecimal eur = new BigDecimal("100.00");
+        BigDecimal cad = service.convertEurToCad(eur);
+        assertThat(cad).isEqualByComparingTo(new BigDecimal("150.00"));
+
+        BigDecimal usd = service.convertEurToUsd(eur);
+        // (100 * 1.5000) / 1.3800 = 108.70
+        assertThat(usd).isEqualByComparingTo(new BigDecimal("108.70"));
+    }
 }

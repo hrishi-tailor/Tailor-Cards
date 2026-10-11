@@ -24,23 +24,31 @@ public record LineFacts(
         String cardId,
         String grading,
         String priceBasis,
-        Integer priceSampleSize
+        Integer priceSampleSize,
+        boolean sealed
 ) {
     public LineFacts(long lineId, boolean bulk, String resolveState, String category, String condition, int quantity,
                      BigDecimal unitMarketUsd, BigDecimal idConfidence, boolean hasPhoto, String cardId) {
-        this(lineId, bulk, resolveState, category, condition, quantity, unitMarketUsd, idConfidence, hasPhoto, cardId, null, null, null);
+        this(lineId, bulk, resolveState, category, condition, quantity, unitMarketUsd, idConfidence, hasPhoto, cardId, null, null, null, false);
     }
 
     public LineFacts(long lineId, boolean bulk, String resolveState, String category, String condition, int quantity,
                      BigDecimal unitMarketUsd, BigDecimal idConfidence, boolean hasPhoto, String cardId, String grading) {
-        this(lineId, bulk, resolveState, category, condition, quantity, unitMarketUsd, idConfidence, hasPhoto, cardId, grading, null, null);
+        this(lineId, bulk, resolveState, category, condition, quantity, unitMarketUsd, idConfidence, hasPhoto, cardId, grading, null, null, false);
     }
 
     public LineFacts(long lineId, boolean bulk, String resolveState, String category, String condition, int quantity,
                      BigDecimal unitMarketUsd, BigDecimal idConfidence, boolean hasPhoto, String cardId, String grading,
                      String priceBasis) {
         this(lineId, bulk, resolveState, category, condition, quantity, unitMarketUsd, idConfidence, hasPhoto, cardId, grading,
-                priceBasis, null);
+                priceBasis, null, false);
+    }
+
+    public LineFacts(long lineId, boolean bulk, String resolveState, String category, String condition, int quantity,
+                     BigDecimal unitMarketUsd, BigDecimal idConfidence, boolean hasPhoto, String cardId, String grading,
+                     String priceBasis, Integer priceSampleSize) {
+        this(lineId, bulk, resolveState, category, condition, quantity, unitMarketUsd, idConfidence, hasPhoto, cardId, grading,
+                priceBasis, priceSampleSize, false);
     }
 
     /** A graded price that rests on fewer recent sales than {@code minSales}. */
@@ -50,6 +58,10 @@ public record LineFacts(
 
     public boolean graded() {
         return grading != null && !grading.isBlank();
+    }
+
+    public boolean sealed() {
+        return sealed || "SEALED".equalsIgnoreCase(category);
     }
 
     /** A slab whose only price is for an ungraded copy (no graded market data): priced by hand. */

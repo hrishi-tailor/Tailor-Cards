@@ -436,11 +436,13 @@ function LineRow({ line, money, askable, onChange, onRemove, onPhoto }: {
   const title = line.matchedName ?? line.name
   const detail = [line.matchedSet ?? line.setName, line.matchedNumber ?? line.cardNumber, line.variant].filter(Boolean).join(' · ')
   const [grader, grade] = splitGrading(line.grading)
-  const photoSuggested = line.kind === 'CARD' && line.photoRequired && !line.photoUrl
+  const photoSuggested = (line.kind === 'CARD' || line.kind === 'SEALED') && line.photoRequired && !line.photoUrl
   const thinSales = line.priceBasis === 'GRADED' && (line.priceSampleSize ?? 0) < MIN_GRADED_SALES
-  const priceTitle = line.priceBasis === 'GRADED'
-    ? `Median of ${line.priceSampleSize ?? 'a few'} recent eBay sales for ${line.grading}`
-    : line.priceUpdatedAt ? `TCGplayer market via TCGdex, updated ${line.priceUpdatedAt.slice(0, 10)}` : undefined
+  const priceTitle = line.kind === 'SEALED'
+    ? (line.eurTrend ? `Cardmarket 30-day average: €${line.eurTrend}` : 'Cardmarket reference')
+    : line.priceBasis === 'GRADED'
+      ? `Median of ${line.priceSampleSize ?? 'a few'} recent eBay sales for ${line.grading}`
+      : line.priceUpdatedAt ? `TCGplayer market via TCGdex, updated ${line.priceUpdatedAt.slice(0, 10)}` : undefined
   return (
     <li className={`tc-bc-line status-${line.status.toLowerCase()}`}>
       {line.imageUrl ? <img src={line.imageUrl} alt="" loading="lazy" /> : <div className="tc-bc-line-thumb" />}
@@ -448,6 +450,7 @@ function LineRow({ line, money, askable, onChange, onRemove, onPhoto }: {
         <strong>{line.kind === 'BULK' ? `Bulk: ${line.name}` : title}</strong>
         {detail && <span className="tc-bc-muted">{detail}</span>}
         {line.grading && <span className="tc-bc-grade">{line.grading}</span>}
+        {line.kind === 'SEALED' && <span className="tc-bc-grade">Sealed</span>}
         <span className={`tc-bc-chip chip-${line.status.toLowerCase()}`} title={line.statusReason}>
           {STATUS_LABELS[line.status] ?? line.status}
         </span>
@@ -458,6 +461,9 @@ function LineRow({ line, money, askable, onChange, onRemove, onPhoto }: {
       <div className="tc-bc-line-side">
         <span className="tc-bc-price" title={priceTitle}>
           {line.kind === 'BULK' ? '—' : money.fmt(line.unitMarketUsd)}
+          {line.kind === 'SEALED' && line.unitMarketUsd != null && (
+            <small className="tc-bc-muted"> sealed ref</small>
+          )}
           {line.grading && line.unitMarketUsd != null && (
             <small className="tc-bc-muted"> {line.priceBasis === 'GRADED' ? `${line.grading} market` : 'ungraded ref'}</small>
           )}
@@ -484,10 +490,10 @@ function LineRow({ line, money, askable, onChange, onRemove, onPhoto }: {
             </select>
           )}
         </div>
-        {line.kind === 'CARD' && line.offerUnitUsd != null && (
+        {(line.kind === 'CARD' || line.kind === 'SEALED') && line.offerUnitUsd != null && (
           <span className="tc-bc-offer">Our offer <strong>{money.fmt(line.offerUnitUsd)}</strong>{line.quantity > 1 ? ' each' : ''}</span>
         )}
-        {askable && line.kind === 'CARD' && (
+        {askable && (line.kind === 'CARD' || line.kind === 'SEALED') && (
           <label className="tc-bc-ask">
             <span>Your price ({money.code})</span>
             <input type="number" min={0} step="0.01" inputMode="decimal" value={ask} placeholder="Our rate"
@@ -500,7 +506,7 @@ function LineRow({ line, money, askable, onChange, onRemove, onPhoto }: {
           </label>
         )}
         <div className="tc-bc-line-controls">
-          {(line.photoRequired || line.photoUrl) && line.kind === 'CARD' && (
+          {(line.photoRequired || line.photoUrl) && (line.kind === 'CARD' || line.kind === 'SEALED') && (
             <label className={`tc-bc-link ${line.photoUrl ? '' : 'tc-bc-photo-needed'}`}>
               {line.photoUrl ? 'Replace photo' : 'Add photo (optional)'}
               <input type="file" accept="image/jpeg,image/png,image/webp" hidden

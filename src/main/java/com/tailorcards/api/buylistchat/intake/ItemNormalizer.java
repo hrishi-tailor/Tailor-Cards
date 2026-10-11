@@ -34,14 +34,22 @@ public class ItemNormalizer {
             output prices, values or opinions.
             For each line output one JSON object:
               {"i": <line number>, "name": string, "set": string or null, "number": string or null (as printed, e.g. "4/102"),
-               "quantity": integer >= 1, "condition": "NM"|"LP"|"MP"|"HP"|"DMG"|"UNKNOWN",
+               "quantity": integer >= 1, "condition": "NM"|"LP"|"MP"|"HP"|"DMG"|"UNKNOWN"|"SEALED",
                "variant": "normal"|"holofoil"|"reverse-holofoil"|"1st-edition-holofoil"|null,
                "grading": string or null (graded slabs only, e.g. "PSA 10", "BGS 9.5", "CGC 10"),
-               "bulk": boolean (true for unsorted bulk lots like "500 commons")}
+               "bulk": boolean (true for unsorted bulk lots like "500 commons"),
+               "sealed": boolean (true for sealed products like booster boxes, ETBs, booster bundles, tins)}
             or {"i": <line number>, "skip": true} if the line is not a card or lot.
             "name" is the card name only (no set, number, grade, condition or quantity). Use UNKNOWN when no condition is given.
             Reply with a single JSON array and nothing else.
             """;
+
+    public static final Pattern SEALED_PATTERN = Pattern.compile(
+            "(?i)\\b(sealed|booster\\s*box(?:es)?|booster\\s*pack(?:s)?|booster\\s*bundle(?:s)?|elite\\s*trainer\\s*box(?:es)?|etbs?|upc|ultra[-\\s]*premium\\s*collection|collection\\s*box(?:es)?|premium\\s*collection|special\\s*collection|tins?|mini\\s*tins?|blisters?(?:\\s*packs?)?|display)\\b");
+
+    public static boolean isSealed(String text) {
+        return text != null && SEALED_PATTERN.matcher(text).find();
+    }
 
     private static final Pattern QTY_PREFIX = Pattern.compile("^\\s*(\\d{1,5})\\s*(?:[xX×]\\s*|\\s+)(?=\\D)");
     private static final Pattern QTY_SUFFIX = Pattern.compile("\\s+[xX×]\\s*(\\d{1,5})\\s*$");
@@ -54,7 +62,8 @@ public class ItemNormalizer {
             Map.entry("lightly played", "LP"), Map.entry("lp", "LP"), Map.entry("excellent", "LP"),
             Map.entry("moderately played", "MP"), Map.entry("mp", "MP"),
             Map.entry("heavily played", "HP"), Map.entry("hp", "HP"),
-            Map.entry("damaged", "DMG"), Map.entry("dmg", "DMG"));
+            Map.entry("damaged", "DMG"), Map.entry("dmg", "DMG"),
+            Map.entry("sealed", "SEALED"));
 
     private final AnthropicClient client;
     private final BuylistLlmBudget budget;
@@ -130,14 +139,16 @@ public class ItemNormalizer {
                     continue; // let the heuristic try
                 }
                 boolean bulk = node.path("bulk").asBoolean(false);
+                boolean sealed = !bulk && (node.path("sealed").asBoolean(false) || isSealed(name));
                 int quantity = clampQuantity(node.path("quantity").asInt(1), bulk);
-                results.put(index, Optional.of(new ItemInput(bulk ? "BULK" : "CARD", name,
+                String kind = bulk ? "BULK" : (sealed ? "SEALED" : "CARD");
+                results.put(index, Optional.of(new ItemInput(kind, name,
                         nullIfBlank(cleanText(node.path("set").asText(""), 150)),
-                        nullIfBlank(cleanText(node.path("number").asText(""), 40)),
-                        normalizeVariant(node.path("variant").asText(null)),
-                        normalizeCondition(node.path("condition").asText(null)),
+                        sealed ? null : nullIfBlank(cleanText(node.path("number").asText(""), 40)),
+                        sealed ? null : normalizeVariant(node.path("variant").asText(null)),
+                        sealed ? "SEALED" : normalizeCondition(node.path("condition").asText(null)),
                         quantity, batch.get(index - 1), null,
-                        normalizeGrading(node.path("grading").isTextual() ? node.path("grading").asText() : null))));
+                        sealed ? null : normalizeGrading(node.path("grading").isTextual() ? node.path("grading").asText() : null))));
             }
         } catch (Exception e) {
             log.warn("Item normalisation reply could not be parsed; using the Java parser for this batch");
@@ -146,7 +157,7 @@ public class ItemNormalizer {
         return results;
     }
 
-    /** Deterministic parser: "4x Charizard 4/102 NM", "Pikachu #25 x2", "500 bulk commons". */
+    /** Deterministic parser: "4x Charizard 4/102 NM", "Pikachu #25 x2", "500 bulk commons", "151 Booster Bundle". */
     public Optional<ItemInput> parseHeuristic(String raw) {
         String text = raw.trim();
         if (text.isEmpty()) {
@@ -155,8 +166,11 @@ public class ItemNormalizer {
         int quantity = 1;
         Matcher prefix = QTY_PREFIX.matcher(text);
         if (prefix.find()) {
-            quantity = Integer.parseInt(prefix.group(1));
-            text = text.substring(prefix.end());
+            boolean hasX = prefix.group(0).matches("(?i).*[x×].*");
+            if (hasX || !prefix.group(1).equals("151")) {
+                quantity = Integer.parseInt(prefix.group(1));
+                text = text.substring(prefix.end());
+            }
         } else {
             Matcher suffix = QTY_SUFFIX.matcher(text);
             if (suffix.find()) {
@@ -165,43 +179,50 @@ public class ItemNormalizer {
             }
         }
         boolean bulk = text.toLowerCase(Locale.ROOT).contains("bulk");
+        boolean sealed = !bulk && isSealed(raw);
 
         String grading = null;
-        Matcher gradeMatcher = GRADING.matcher(text);
-        if (gradeMatcher.find()) {
-            grading = normalizeGrading(gradeMatcher.group());
-            text = (text.substring(0, gradeMatcher.start()) + " " + text.substring(gradeMatcher.end())).trim();
+        if (!sealed) {
+            Matcher gradeMatcher = GRADING.matcher(text);
+            if (gradeMatcher.find()) {
+                grading = normalizeGrading(gradeMatcher.group());
+                text = (text.substring(0, gradeMatcher.start()) + " " + text.substring(gradeMatcher.end())).trim();
+            }
         }
 
         String number = null;
-        Matcher numberMatcher = NUMBER.matcher(text);
-        if (numberMatcher.find()) {
-            number = (numberMatcher.group(1) != null ? numberMatcher.group(1) : numberMatcher.group(2)).replace(" ", "");
-            text = (text.substring(0, numberMatcher.start()) + " " + text.substring(numberMatcher.end())).trim();
-        }
+        if (!sealed) {
+            Matcher numberMatcher = NUMBER.matcher(text);
+            if (numberMatcher.find()) {
+                number = (numberMatcher.group(1) != null ? numberMatcher.group(1) : numberMatcher.group(2)).replace(" ", "");
+                text = (text.substring(0, numberMatcher.start()) + " " + text.substring(numberMatcher.end())).trim();
+            }
 
-        if (number == null) {
-            // A bare trailing number is the card number: "Charizard V 154", "Mega Charizard X ex 125"
-            Matcher trailing = TRAILING_NUMBER.matcher(text);
-            if (trailing.find()) {
-                number = trailing.group(1);
-                text = text.substring(0, trailing.start()).trim();
+            if (number == null) {
+                // A bare trailing number is the card number: "Charizard V 154", "Mega Charizard X ex 125"
+                Matcher trailing = TRAILING_NUMBER.matcher(text);
+                if (trailing.find()) {
+                    number = trailing.group(1);
+                    text = text.substring(0, trailing.start()).trim();
+                }
             }
         }
 
-        String condition = "UNKNOWN";
+        String condition = sealed ? "SEALED" : "UNKNOWN";
         String lower = " " + text.toLowerCase(Locale.ROOT).replaceAll("[(),\\[\\]-]", " ") + " ";
-        for (Map.Entry<String, String> entry : CONDITIONS.entrySet().stream()
-                .sorted((a, b) -> b.getKey().length() - a.getKey().length()).toList()) {
-            String token = " " + entry.getKey() + " ";
-            if (lower.contains(token)) {
-                condition = entry.getValue();
-                lower = lower.replace(token, " ");
-                break;
+        if (!sealed) {
+            for (Map.Entry<String, String> entry : CONDITIONS.entrySet().stream()
+                    .sorted((a, b) -> b.getKey().length() - a.getKey().length()).toList()) {
+                String token = " " + entry.getKey() + " ";
+                if (lower.contains(token)) {
+                    condition = entry.getValue();
+                    lower = lower.replace(token, " ");
+                    break;
+                }
             }
         }
         String variant = null;
-        if (lower.contains(" reverse holo ") || lower.contains(" reverse ")) {
+        if (!sealed && (lower.contains(" reverse holo ") || lower.contains(" reverse "))) {
             variant = "reverse-holofoil";
             lower = lower.replace(" reverse holo ", " ").replace(" reverse ", " ");
         }
@@ -210,8 +231,9 @@ public class ItemNormalizer {
             return Optional.empty();
         }
         name = titleCase(name);
-        return Optional.of(new ItemInput(bulk ? "BULK" : "CARD", name, null, number, variant,
-                grading != null ? "UNKNOWN" : condition, clampQuantity(quantity, bulk), raw.trim(), null, grading));
+        String kind = bulk ? "BULK" : (sealed ? "SEALED" : "CARD");
+        return Optional.of(new ItemInput(kind, name, null, number, variant,
+                condition, clampQuantity(quantity, bulk), raw.trim(), null, grading));
     }
 
     public int clampQuantity(int quantity, boolean bulk) {
@@ -229,7 +251,7 @@ public class ItemNormalizer {
         }
         String upper = v.toUpperCase(Locale.ROOT);
         return switch (upper) {
-            case "NM", "LP", "MP", "HP", "DMG" -> upper;
+            case "NM", "LP", "MP", "HP", "DMG", "SEALED" -> upper;
             default -> "UNKNOWN";
         };
     }

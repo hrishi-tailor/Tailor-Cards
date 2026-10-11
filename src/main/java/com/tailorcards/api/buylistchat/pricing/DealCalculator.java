@@ -174,12 +174,15 @@ public class DealCalculator {
                 && (status == LineStatus.ELIGIBLE || status == LineStatus.NEEDS_PHOTO);
     }
 
-    /** Buy-rule category: PSA 10 / Black Label, GRADED_<COMPANY>_<GRADE> (e.g. GRADED_PSA_9) for other slabs, near mint, or DEFAULT. */
+    /** Buy-rule category: PSA 10 / Black Label, GRADED_<COMPANY>_<GRADE> (e.g. GRADED_PSA_9) for other slabs, sealed, near mint, or DEFAULT. */
     static String categoryFor(LineFacts line) {
         if (line.graded()) {
             String g = line.grading().toUpperCase(Locale.ROOT).trim();
             return g.equals("PSA 10") || g.contains("BLACK LABEL") ? "PSA10_BGS_BLACK_LABEL"
                     : "GRADED_" + g.replaceAll("[^A-Z0-9]+", "_");
+        }
+        if (line.sealed()) {
+            return "SEALED";
         }
         return "NM".equalsIgnoreCase(line.condition()) ? "RAW_NEAR_MINT" : "DEFAULT";
     }

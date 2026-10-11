@@ -169,4 +169,48 @@ class ItemIntakeTest {
         assertThat(items.get(2)).extracting(ItemInput::name, ItemInput::cardNumber).containsExactly("Porygon2", null);
         assertThat(items.get(3).cardNumber()).isEqualTo("TG05");
     }
+
+    @Test
+    @DisplayName("Sealed products are detected by heuristic: booster box, ETB, bundle, collection, UPC")
+    void sealedHeuristic() {
+        when(client.isConfigured()).thenReturn(false);
+        List<ItemInput> items = normalizer.normalize(List.of(
+                "151 Booster Bundle",
+                "Scarlet & Violet ETB",
+                "2x Prismatic Evolutions Elite Trainer Box",
+                "Surging Sparks Booster Box",
+                "Charizard Ultra-Premium Collection"));
+
+        assertThat(items).hasSize(5);
+        for (ItemInput item : items) {
+            assertThat(item.kind()).isEqualTo("SEALED");
+            assertThat(item.condition()).isEqualTo("SEALED");
+            assertThat(item.cardNumber()).isNull();
+            assertThat(item.variant()).isNull();
+            assertThat(item.grading()).isNull();
+        }
+        assertThat(items.get(0).name()).isEqualTo("151 Booster Bundle");
+        assertThat(items.get(1).name()).isEqualTo("Scarlet & Violet Etb");
+        assertThat(items.get(2).quantity()).isEqualTo(2);
+        assertThat(items.get(2).name()).isEqualTo("Prismatic Evolutions Elite Trainer Box");
+    }
+
+    @Test
+    @DisplayName("CSV parser identifies sealed products via Kind column or product name")
+    void sealedCsv() {
+        String csv = """
+                Kind,Name,Qty
+                SEALED,151 Booster Bundle,1
+                CARD,Charizard,1
+                ,Scarlet & Violet 151 Elite Trainer Box,2
+                """;
+        CsvItemParser.Parsed parsed = new CsvItemParser().parse(csv.getBytes(StandardCharsets.UTF_8), 1000, normalizer);
+
+        assertThat(parsed.structured()).hasSize(3);
+        assertThat(parsed.structured().get(0)).extracting(ItemInput::kind, ItemInput::name, ItemInput::quantity, ItemInput::condition)
+                .containsExactly("SEALED", "151 Booster Bundle", 1, "SEALED");
+        assertThat(parsed.structured().get(1).kind()).isEqualTo("CARD");
+        assertThat(parsed.structured().get(2)).extracting(ItemInput::kind, ItemInput::name, ItemInput::quantity, ItemInput::condition)
+                .containsExactly("SEALED", "Scarlet & Violet 151 Elite Trainer Box", 2, "SEALED");
+    }
 }

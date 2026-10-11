@@ -7,14 +7,17 @@ import com.tailorcards.api.buylistchat.intake.ItemNormalizer;
 import com.tailorcards.api.buylistchat.repository.BuylistDraftLineRepository;
 import com.tailorcards.api.trade.provider.CardMarketPrice;
 import com.tailorcards.api.trade.provider.TcgdexPriceProvider.ProviderUnavailableException;
+import com.tailorcards.api.trade.service.ExchangeRateService;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -55,12 +58,18 @@ public class CardResolutionService {
             "(?<=\\D)\\s+#?((?:TG|GG|SV|SWSH|SM|XY|BW)?\\d{1,3}[a-z]?)\\s*$", java.util.regex.Pattern.CASE_INSENSITIVE);
 
     private final GradedPriceService gradedPrices;
+    private final SealedPriceService sealedPrices;
+    private final ExchangeRateService exchangeRates;
 
+    @Autowired
     public CardResolutionService(BuylistDraftLineRepository lineRepository, CardLookupService lookup,
                                  BuylistChatProperties properties, PlatformTransactionManager transactionManager,
-                                 GradedPriceService gradedPrices) {
+                                 GradedPriceService gradedPrices, SealedPriceService sealedPrices,
+                                 ExchangeRateService exchangeRates) {
         this.lineRepository = lineRepository;
         this.gradedPrices = gradedPrices;
+        this.sealedPrices = sealedPrices;
+        this.exchangeRates = exchangeRates;
         // Each result is written in its own transaction: inline runs happen in an afterCommit callback,
         // where plain repository writes would join the already-committed transaction and be lost.
         this.saveInNewTransaction = transactionManager == null ? null : new TransactionTemplate(transactionManager);
@@ -72,6 +81,12 @@ public class CardResolutionService {
         this.jobPool = Executors.newFixedThreadPool(2, Thread.ofPlatform().name("buylist-resolve-job-", 0).daemon().factory());
         this.linePool = Executors.newFixedThreadPool(Math.max(1, config.getConcurrency()),
                 Thread.ofPlatform().name("buylist-resolve-line-", 0).daemon().factory());
+    }
+
+    public CardResolutionService(BuylistDraftLineRepository lineRepository, CardLookupService lookup,
+                                 BuylistChatProperties properties, PlatformTransactionManager transactionManager,
+                                 GradedPriceService gradedPrices) {
+        this(lineRepository, lookup, properties, transactionManager, gradedPrices, null, null);
     }
 
     @PreDestroy
@@ -158,9 +173,16 @@ public class CardResolutionService {
         lineRepository.save(target);
     }
 
-    /** Resolves one line in memory (no persistence): card match, then the graded price when it's a slab. */
+    /** Resolves one line in memory (no persistence): sealed product, card match, or graded slab price. */
     BuylistDraftLine resolve(BuylistDraftLine line) {
+        if ("SEALED".equals(line.getKind())) {
+            return resolveSealed(line);
+        }
         BuylistDraftLine result = resolveCard(line);
+        if (NOT_FOUND.equals(result.getResolveState()) && ItemNormalizer.isSealed(line.getName())) {
+            line.setKind("SEALED");
+            return resolveSealed(line);
+        }
         result.setPriceSampleSize(null);
         if (result.getUnitMarketUsd() != null || result.getCardId() != null) {
             result.setPriceBasis("RAW");
@@ -181,6 +203,74 @@ public class CardResolutionService {
                     });
         }
         return result;
+    }
+
+    BuylistDraftLine resolveSealed(BuylistDraftLine line) {
+        if (sealedPrices == null || !sealedPrices.isConfigured()) {
+            line.setResolveState(NOT_FOUND);
+            line.setIdConfidence(BigDecimal.ZERO);
+            return line;
+        }
+        String query = line.getName();
+        if (line.getSetName() != null && !line.getSetName().isBlank()
+                && !query.toLowerCase(Locale.ROOT).contains(line.getSetName().toLowerCase(Locale.ROOT))) {
+            query = line.getSetName() + " " + query;
+        }
+        List<SealedPriceService.SealedProduct> found = sealedPrices.search(query, config.getMaxCandidates());
+        if (found.isEmpty() && line.getSetName() != null && !line.getSetName().isBlank()) {
+            found = sealedPrices.search(line.getName(), config.getMaxCandidates());
+        }
+        if (found.isEmpty()) {
+            line.setResolveState(NOT_FOUND);
+            line.setIdConfidence(BigDecimal.ZERO);
+            return line;
+        }
+        SealedPriceService.SealedProduct top = found.getFirst();
+        boolean matched = top.matchScore() >= 0.75;
+        BigDecimal confidence = BigDecimal.valueOf(Math.min(1.0, top.matchScore())).setScale(3, RoundingMode.HALF_UP);
+        if (matched) {
+            return applySealed(line, top, confidence, RESOLVED, null);
+        }
+        return applySealed(line, top, new BigDecimal("0.350"), AMBIGUOUS, sealedCandidatesJson(found));
+    }
+
+    private BuylistDraftLine applySealed(BuylistDraftLine line, SealedPriceService.SealedProduct product,
+                                        BigDecimal confidence, String state, String candidates) {
+        line.setCardId("sealed-" + product.id());
+        line.setMatchedName(product.name());
+        line.setMatchedSet(product.setName());
+        line.setCategory("SEALED");
+        line.setImageUrl(truncate(product.imageUrl(), 500));
+        line.setEurTrend(product.eur30dAverage());
+        if (product.eur30dAverage() != null) {
+            BigDecimal usd = exchangeRates != null
+                    ? exchangeRates.convertEurToUsd(product.eur30dAverage())
+                    : product.eur30dAverage().multiply(new BigDecimal("1.5000")).divide(new BigDecimal("1.3800"), 2, RoundingMode.HALF_UP);
+            line.setUnitMarketUsd(usd);
+        } else {
+            line.setUnitMarketUsd(null);
+        }
+        line.setPriceSource("CARDMARKET");
+        line.setPriceBasis("SEALED");
+        line.setPriceUpdatedAt(null);
+        line.setIdConfidence(confidence);
+        line.setResolveState(state);
+        line.setCandidatesJson(candidates);
+        return line;
+    }
+
+    private String sealedCandidatesJson(List<SealedPriceService.SealedProduct> products) {
+        try {
+            return objectMapper.writeValueAsString(products.stream().limit(config.getMaxCandidates())
+                    .map(p -> Map.of(
+                            "cardId", "sealed-" + p.id(),
+                            "name", Objects.toString(p.name(), ""),
+                            "setName", Objects.toString(p.setName(), ""),
+                            "cardNumber", ""))
+                    .toList());
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**

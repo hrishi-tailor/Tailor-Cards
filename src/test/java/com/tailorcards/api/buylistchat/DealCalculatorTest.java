@@ -61,6 +61,24 @@ class DealCalculatorTest {
     }
 
     @Test
+    @DisplayName("Sealed product gets the active 70% buy rule rate for cash, and 80% for trade credit")
+    void sealedProductRate() {
+        LineFacts sealedLine = new LineFacts(10, false, "RESOLVED", "SEALED", "SEALED", 1,
+                new BigDecimal("100.00"), BigDecimal.ONE, true, "sealed-1001", null, "SEALED", null, true);
+        Map<Long, LineStatus> statusMap = Map.of(10L, LineStatus.ELIGIBLE);
+
+        DealCalculator.Result r = calculator.calculate(new DealCalculator.Input(
+                DealType.SELL, List.of(sealedLine), statusMap, Map.of(), null, 0, null));
+
+        assertThat(r.cashOfferUsd()).isEqualByComparingTo("70.00");   // 100 * 0.70
+        assertThat(r.tradeCreditUsd()).isEqualByComparingTo("80.00"); // 100 * 0.80
+
+        // Unit cash offer helper
+        BigDecimal unitOffer = calculator.unitCashOffer(sealedLine, LineStatus.ELIGIBLE, rules);
+        assertThat(unitOffer).isEqualByComparingTo("70.00");
+    }
+
+    @Test
     @DisplayName("Sell: asking above the cash offer lowers the meter; asking below adds a bonus")
     void sellAsks() {
         DealCalculator.Result over = run(DealType.SELL, Map.of(1L, new BigDecimal("100"), 2L, new BigDecimal("180")), null, 0, null);

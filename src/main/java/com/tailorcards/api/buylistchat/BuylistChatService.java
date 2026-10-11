@@ -12,15 +12,19 @@ import com.tailorcards.api.buylistchat.intake.ItemInput;
 import com.tailorcards.api.buylistchat.intake.ItemNormalizer;
 import com.tailorcards.api.buylistchat.pricing.StoreCardService;
 import com.tailorcards.api.buylistchat.resolution.CardLookupService;
+import com.tailorcards.api.buylistchat.resolution.SealedPriceService;
 import com.tailorcards.api.trade.llm.AnthropicClient;
 import com.tailorcards.api.trade.llm.AnthropicClient.ToolLoopResult;
 import com.tailorcards.api.trade.llm.LlmRateLimiter;
 import com.tailorcards.api.trade.provider.CardMarketPrice;
 import com.tailorcards.api.trade.provider.TcgdexPriceProvider.ProviderUnavailableException;
+import com.tailorcards.api.trade.service.ExchangeRateService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -104,8 +108,13 @@ public class BuylistChatService {
               "Lost Origin", card_number "TG05"); never swap in a different print of the same Pokemon.
             - If the customer names a specific print and the search returns a different number, say you
               couldn't find that exact card instead of offering the other one.
-            - ETB means Elite Trainer Box (sealed product). Booster box, booster bundle, collection box and
-              tin are sealed products too.
+
+            SEALED PRODUCTS:
+            - ETB means Elite Trainer Box. Booster box, booster bundle, collection box, blister pack, and tin are sealed products.
+            - Use search_sealed_products to find sealed products and their market prices.
+            - When the customer mentions a sealed product, search with search_sealed_products and add it with
+              add_sealed_product_to_draft (or add_item_to_draft with sealed: true).
+            - Sealed products are bought at 70% of market value in cash at our published rates, or 80% in store credit.
             """;
 
     private static final String OFFLINE_REPLY = "The chat assistant is offline right now. You can still paste your list or upload a CSV, then review and confirm.";
@@ -119,19 +128,23 @@ public class BuylistChatService {
     private final ItemNormalizer normalizer;
     private final BuylistChatProperties properties;
     private final StoreCardService storeCards;
+    private final SealedPriceService sealedPrices;
+    private final ExchangeRateService exchangeRates;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     public BuylistChatService(AnthropicClient anthropicClient, BuylistLlmBudget budget, LlmRateLimiter rateLimiter,
                               BuylistDraftService draftService, CardLookupService cardLookup,
-                              ItemNormalizer normalizer, BuylistChatProperties properties, StoreCardService storeCards) {
+                              ItemNormalizer normalizer, BuylistChatProperties properties, StoreCardService storeCards,
+                              SealedPriceService sealedPrices, ExchangeRateService exchangeRates) {
         this(anthropicClient.withSettings(properties.getModel(), properties.getMaxTokens(), properties.getTimeoutSeconds()),
-                budget, rateLimiter, draftService, cardLookup, normalizer, properties, storeCards, true);
+                budget, rateLimiter, draftService, cardLookup, normalizer, properties, storeCards, sealedPrices, exchangeRates, true);
     }
 
     BuylistChatService(AnthropicClient chatClient, BuylistLlmBudget budget, LlmRateLimiter rateLimiter,
                        BuylistDraftService draftService, CardLookupService cardLookup, ItemNormalizer normalizer,
-                       BuylistChatProperties properties, StoreCardService storeCards, boolean ignored) {
+                       BuylistChatProperties properties, StoreCardService storeCards,
+                       SealedPriceService sealedPrices, ExchangeRateService exchangeRates, boolean ignored) {
         this.storeCards = storeCards;
         this.client = chatClient;
         this.budget = budget;
@@ -140,6 +153,14 @@ public class BuylistChatService {
         this.cardLookup = cardLookup;
         this.normalizer = normalizer;
         this.properties = properties;
+        this.sealedPrices = sealedPrices;
+        this.exchangeRates = exchangeRates;
+    }
+
+    BuylistChatService(AnthropicClient chatClient, BuylistLlmBudget budget, LlmRateLimiter rateLimiter,
+                       BuylistDraftService draftService, CardLookupService cardLookup, ItemNormalizer normalizer,
+                       BuylistChatProperties properties, StoreCardService storeCards, boolean ignored) {
+        this(chatClient, budget, rateLimiter, draftService, cardLookup, normalizer, properties, storeCards, null, null, ignored);
     }
 
     public ChatTurnResponse handleTurn(String email, long sessionId, String draftId, String message) {
@@ -215,6 +236,8 @@ public class BuylistChatService {
             Object result = switch (name) {
                 case "search_cards" -> searchCards(input);
                 case "get_card" -> getCard(input);
+                case "search_sealed_products" -> searchSealedProducts(input);
+                case "add_sealed_product_to_draft" -> addSealedProduct(email, draftId, input);
                 case "add_item_to_draft" -> addItem(email, draftId, input);
                 case "remove_item_from_draft" -> removeItem(email, draftId, input);
                 case "get_draft_summary" -> summary(email, draftId);
@@ -354,6 +377,60 @@ public class BuylistChatService {
         return out;
     }
 
+    private Object searchSealedProducts(JsonNode input) {
+        String query = text(input, "query", 100);
+        if (query == null) {
+            query = text(input, "name", 100);
+        }
+        if (query == null || query.isBlank()) {
+            throw new IllegalArgumentException("query is required");
+        }
+        if (sealedPrices == null || !sealedPrices.isConfigured()) {
+            return Map.of("results", List.of(), "note", "Sealed product lookup is not configured or unavailable.");
+        }
+        int limit = Math.max(1, Math.min(10, input.path("limit").asInt(5)));
+        List<SealedPriceService.SealedProduct> products = sealedPrices.search(query, limit);
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (SealedPriceService.SealedProduct p : products) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", p.id());
+            row.put("name", p.name());
+            row.put("set", p.setName());
+            row.put("image", p.imageUrl());
+            if (p.eur30dAverage() != null) {
+                row.put("eur_30d_average", p.eur30dAverage());
+                BigDecimal cad = exchangeRates != null ? exchangeRates.convertEurToCad(p.eur30dAverage())
+                        : p.eur30dAverage().multiply(new BigDecimal("1.5000")).setScale(2, RoundingMode.HALF_UP);
+                row.put("cad_market_reference", cad);
+            } else {
+                row.put("eur_30d_average", "no recent sales");
+                row.put("cad_market_reference", "no price");
+            }
+            rows.add(row);
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("results", rows);
+        out.put("total_matches", rows.size());
+        out.put("note", rows.isEmpty()
+                ? "No sealed products found matching this name. Check the spelling or try simpler search terms."
+                : "Found matching sealed products. Use add_sealed_product_to_draft to add to the customer's list.");
+        return out;
+    }
+
+    private Object addSealedProduct(String email, String draftId, JsonNode input) {
+        BuylistDraft draft = draftService.ownedOpenDraft(draftId, email);
+        String name = text(input, "name", 200);
+        if (name == null) {
+            throw new IllegalArgumentException("name is required");
+        }
+        String setName = text(input, "set_name", 150);
+        int quantity = normalizer.clampQuantity(input.path("quantity").asInt(1), false);
+        ItemInput item = ItemInput.sealed(name, setName, quantity, "chat");
+        BuylistDraftLine line = draftService.addItems(draft, List.of(item)).getFirst();
+        return Map.of("added", true, "line_id", line.getId(), "status", "Checking sealed product data",
+                "note", "Price and status appear in the summary once the product is checked.");
+    }
+
     private Object addItem(String email, String draftId, JsonNode input) {
         BuylistDraft draft = draftService.ownedOpenDraft(draftId, email);
         String name = text(input, "name", 200);
@@ -361,14 +438,18 @@ public class BuylistChatService {
             throw new IllegalArgumentException("name is required");
         }
         boolean bulk = input.path("bulk").asBoolean(false);
-        ItemInput item = new ItemInput(bulk ? "BULK" : "CARD", name, text(input, "set_name", 150),
-                text(input, "card_number", 40), ItemNormalizer.normalizeVariant(text(input, "variant", 40)),
-                ItemNormalizer.normalizeCondition(text(input, "condition", 30)),
-                normalizer.clampQuantity(input.path("quantity").asInt(1), bulk), "chat", text(input, "card_id", 60),
-                ItemNormalizer.normalizeGrading(text(input, "grading", 30)));
+        boolean sealed = !bulk && (input.path("sealed").asBoolean(false) || ItemNormalizer.isSealed(name));
+        ItemInput item = sealed
+                ? ItemInput.sealed(name, text(input, "set_name", 150),
+                        normalizer.clampQuantity(input.path("quantity").asInt(1), false), "chat")
+                : new ItemInput(bulk ? "BULK" : "CARD", name, text(input, "set_name", 150),
+                        text(input, "card_number", 40), ItemNormalizer.normalizeVariant(text(input, "variant", 40)),
+                        ItemNormalizer.normalizeCondition(text(input, "condition", 30)),
+                        normalizer.clampQuantity(input.path("quantity").asInt(1), bulk), "chat", text(input, "card_id", 60),
+                        ItemNormalizer.normalizeGrading(text(input, "grading", 30)));
         BuylistDraftLine line = draftService.addItems(draft, List.of(item)).getFirst();
-        return Map.of("added", true, "line_id", line.getId(), "status", "Checking card data",
-                "note", "Price and status appear in the summary once the card is checked.");
+        return Map.of("added", true, "line_id", line.getId(), "status", "Checking item data",
+                "note", "Price and status appear in the summary once the item is checked.");
     }
 
     private Object removeItem(String email, String draftId, JsonNode input) {
@@ -425,6 +506,7 @@ public class BuylistChatService {
             row.put("name", l.matchedName() != null ? l.matchedName() : l.name());
             row.put("set", l.matchedSet());
             row.put("quantity", l.quantity());
+            row.put("kind", l.kind());
             if (l.grading() != null) {
                 row.put("grading", l.grading());
             }
@@ -479,16 +561,25 @@ public class BuylistChatService {
                                 "limit", prop("integer", "Max results, 1-10")), List.of("name")),
                 tool("get_card", "Get one card's set, number, rarity, image, USD market price by variant (with usd_cad_rate to convert), EUR trend and updated date.",
                         Map.of("card_id", prop("string", "TCGdex card id, e.g. base1-4")), List.of("card_id")),
-                tool("add_item_to_draft", "Add one card (or a bulk lot) to the customer's own list.",
-                        Map.of("name", prop("string", "Card name"),
+                tool("search_sealed_products", "Search Pokemon sealed products (booster boxes, Elite Trainer Boxes / ETBs, booster bundles, collection boxes, tins) by name. Returns product IDs, names, sets, images, Cardmarket EUR prices, and CAD market references.",
+                        Map.of("query", prop("string", "Product name, e.g. '151 Elite Trainer Box', 'Surging Sparks Booster Box', or 'Prismatic Evolutions ETB'"),
+                                "limit", prop("integer", "Max results, 1-10")), List.of("query")),
+                tool("add_sealed_product_to_draft", "Add a sealed product (booster box, ETB, bundle, tin, collection box) to the customer's draft list.",
+                        Map.of("name", prop("string", "Sealed product name, e.g. '151 Elite Trainer Box'"),
+                                "set_name", prop("string", "Set name if known, e.g. '151' or 'Surging Sparks'"),
+                                "quantity", prop("integer", "How many")),
+                        List.of("name", "quantity")),
+                tool("add_item_to_draft", "Add one card (or a bulk lot or sealed product) to the customer's own list.",
+                        Map.of("name", prop("string", "Item name"),
                                 "set_name", prop("string", "Set name if known"),
                                 "card_number", prop("string", "Number as printed, e.g. 4/102"),
                                 "card_id", prop("string", "TCGdex id if you looked it up"),
                                 "quantity", prop("integer", "How many"),
-                                "condition", Map.of("type", "string", "enum", List.of("NM", "LP", "MP", "HP", "DMG", "UNKNOWN")),
+                                "condition", Map.of("type", "string", "enum", List.of("NM", "LP", "MP", "HP", "DMG", "SEALED", "UNKNOWN")),
                                 "variant", prop("string", "normal, holofoil, reverse-holofoil or 1st-edition-holofoil"),
                                 "grading", prop("string", "Graded slabs only, e.g. 'PSA 10', 'BGS 9.5', 'CGC 10'"),
-                                "bulk", prop("boolean", "True for an unsorted bulk lot")),
+                                "bulk", prop("boolean", "True for an unsorted bulk lot"),
+                                "sealed", prop("boolean", "True for a sealed product (booster box, ETB, bundle, collection box, tin)")),
                         List.of("name", "quantity")),
                 tool("remove_item_from_draft", "Remove a line from the customer's own list.",
                         Map.of("line_id", prop("integer", "line_id from get_draft_summary")), List.of("line_id")),

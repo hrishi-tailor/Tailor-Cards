@@ -7,9 +7,11 @@ import com.tailorcards.api.buylistchat.entity.BuylistDraftLine;
 import com.tailorcards.api.buylistchat.intake.ItemInput;
 import com.tailorcards.api.buylistchat.intake.ItemNormalizer;
 import com.tailorcards.api.buylistchat.resolution.CardLookupService;
+import com.tailorcards.api.buylistchat.resolution.SealedPriceService;
 import com.tailorcards.api.trade.llm.AnthropicClient;
 import com.tailorcards.api.trade.llm.LlmRateLimiter;
 import com.tailorcards.api.trade.provider.CardMarketPrice;
+import com.tailorcards.api.trade.service.ExchangeRateService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -41,6 +43,8 @@ class BuylistChatServiceTest {
     private BuylistDraftService drafts;
     private CardLookupService lookup;
     private com.tailorcards.api.buylistchat.pricing.StoreCardService storeCards;
+    private SealedPriceService sealedPrices;
+    private ExchangeRateService exchangeRates;
     private BuylistChatService service;
     private final BuylistDraft draft = BuylistDraft.builder().id("draft-a").email("a@example.com").status("OPEN").build();
 
@@ -50,11 +54,13 @@ class BuylistChatServiceTest {
         drafts = mock(BuylistDraftService.class);
         lookup = mock(CardLookupService.class);
         storeCards = mock(com.tailorcards.api.buylistchat.pricing.StoreCardService.class);
+        sealedPrices = mock(SealedPriceService.class);
+        exchangeRates = mock(ExchangeRateService.class);
         BuylistLlmBudget budget = mock(BuylistLlmBudget.class);
         when(budget.hasBudget()).thenReturn(true);
         BuylistChatProperties props = new BuylistChatProperties();
         ItemNormalizer normalizer = new ItemNormalizer(mock(AnthropicClient.class), budget, props);
-        service = new BuylistChatService(client, budget, new LlmRateLimiter(20), drafts, lookup, normalizer, props, storeCards, true);
+        service = new BuylistChatService(client, budget, new LlmRateLimiter(20), drafts, lookup, normalizer, props, storeCards, sealedPrices, exchangeRates, true);
         when(drafts.ownedOpenDraft("draft-a", "a@example.com")).thenReturn(draft);
         when(drafts.ownedDraft("draft-a", "a@example.com")).thenReturn(draft);
         when(drafts.ownedOpenDraft(eq("draft-b"), anyString()))
@@ -66,7 +72,8 @@ class BuylistChatServiceTest {
     void toolSurface() throws Exception {
         List<Map<String, Object>> tools = BuylistChatService.toolDefinitions();
         assertThat(tools).extracting(t -> t.get("name")).containsExactly(
-                "search_cards", "get_card", "add_item_to_draft", "remove_item_from_draft", "get_draft_summary",
+                "search_cards", "get_card", "search_sealed_products", "add_sealed_product_to_draft",
+                "add_item_to_draft", "remove_item_from_draft", "get_draft_summary",
                 "search_store_cards", "add_store_card_to_trade", "set_deal_type");
         String schema = json.writeValueAsString(tools).toLowerCase();
         assertThat(schema).doesNotContain("submit").doesNotContain("confirm").doesNotContain("draft_id")
@@ -217,5 +224,60 @@ class BuylistChatServiceTest {
         ArgumentCaptor<List<ItemInput>> items = ArgumentCaptor.forClass(List.class);
         verify(drafts).addItems(eq(draft), items.capture());
         assertThat(items.getValue().getFirst().grading()).isEqualTo("PSA 10");
+    }
+
+    @Test
+    @DisplayName("search_sealed_products returns results with Cardmarket EUR price and CAD reference")
+    void searchSealedProducts() throws Exception {
+        when(sealedPrices.isConfigured()).thenReturn(true);
+        SealedPriceService.SealedProduct p = new SealedPriceService.SealedProduct(
+                1001L, "Scarlet & Violet 151 Elite Trainer Box", "151", "https://example.com/etb.jpg",
+                new BigDecimal("94.50"), 0.85);
+        when(sealedPrices.search("151 ETB", 5)).thenReturn(List.of(p));
+        when(exchangeRates.convertEurToCad(new BigDecimal("94.50"))).thenReturn(new BigDecimal("141.75"));
+
+        var result = json.readTree(service.executeTool("a@example.com", "draft-a", "search_sealed_products",
+                json.readTree("{\"query\":\"151 ETB\"}")));
+
+        assertThat(result.path("results")).hasSize(1);
+        var row = result.path("results").get(0);
+        assertThat(row.path("id").asLong()).isEqualTo(1001L);
+        assertThat(row.path("name").asText()).isEqualTo("Scarlet & Violet 151 Elite Trainer Box");
+        assertThat(row.path("eur_30d_average").decimalValue()).isEqualByComparingTo("94.50");
+        assertThat(row.path("cad_market_reference").decimalValue()).isEqualByComparingTo("141.75");
+    }
+
+    @Test
+    @DisplayName("add_sealed_product_to_draft adds a SEALED kind item to the draft")
+    void addSealedProduct() throws Exception {
+        when(drafts.addItems(eq(draft), any())).thenReturn(List.of(BuylistDraftLine.builder().id(15L).build()));
+        var result = json.readTree(service.executeTool("a@example.com", "draft-a", "add_sealed_product_to_draft",
+                json.readTree("{\"name\":\"151 Elite Trainer Box\",\"set_name\":\"151\",\"quantity\":2}")));
+
+        assertThat(result.path("added").asBoolean()).isTrue();
+        assertThat(result.path("line_id").asLong()).isEqualTo(15L);
+
+        ArgumentCaptor<List<ItemInput>> items = ArgumentCaptor.forClass(List.class);
+        verify(drafts).addItems(eq(draft), items.capture());
+        ItemInput item = items.getValue().getFirst();
+        assertThat(item.kind()).isEqualTo("SEALED");
+        assertThat(item.condition()).isEqualTo("SEALED");
+        assertThat(item.quantity()).isEqualTo(2);
+        assertThat(item.name()).isEqualTo("151 Elite Trainer Box");
+    }
+
+    @Test
+    @DisplayName("add_item_to_draft handles sealed: true or sealed product names")
+    void addItemSealedFlag() throws Exception {
+        when(drafts.addItems(eq(draft), any())).thenReturn(List.of(BuylistDraftLine.builder().id(16L).build()));
+        var result = json.readTree(service.executeTool("a@example.com", "draft-a", "add_item_to_draft",
+                json.readTree("{\"name\":\"Surging Sparks Booster Box\",\"quantity\":1,\"sealed\":true}")));
+
+        assertThat(result.path("added").asBoolean()).isTrue();
+        ArgumentCaptor<List<ItemInput>> items = ArgumentCaptor.forClass(List.class);
+        verify(drafts).addItems(eq(draft), items.capture());
+        ItemInput item = items.getValue().getFirst();
+        assertThat(item.kind()).isEqualTo("SEALED");
+        assertThat(item.condition()).isEqualTo("SEALED");
     }
 }

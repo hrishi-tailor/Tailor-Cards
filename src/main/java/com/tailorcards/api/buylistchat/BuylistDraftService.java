@@ -137,12 +137,16 @@ public class BuylistDraftService {
         List<BuylistDraftLine> saved = new ArrayList<>();
         for (ItemInput item : items) {
             boolean bulk = "BULK".equals(item.kind());
+            boolean sealed = "SEALED".equals(item.kind());
+            String kind = bulk ? "BULK" : (sealed ? "SEALED" : "CARD");
             saved.add(lineRepository.save(BuylistDraftLine.builder()
-                    .draftId(draft.getId()).lineNo(nextNo++).kind(bulk ? "BULK" : "CARD")
+                    .draftId(draft.getId()).lineNo(nextNo++).kind(kind)
                     .inputText(truncate(item.inputText(), 500)).name(truncate(item.name(), 200))
-                    .setName(truncate(item.setName(), 150)).cardNumber(truncate(item.cardNumber(), 40))
-                    .variant(truncate(item.variant(), 40)).itemCondition(ItemNormalizer.normalizeCondition(item.condition()))
-                    .grading(truncate(ItemNormalizer.normalizeGrading(item.grading()), 30))
+                    .setName(truncate(item.setName(), 150))
+                    .cardNumber(sealed ? null : truncate(item.cardNumber(), 40))
+                    .variant(sealed ? null : truncate(item.variant(), 40))
+                    .itemCondition(sealed ? "SEALED" : ItemNormalizer.normalizeCondition(item.condition()))
+                    .grading(sealed ? null : truncate(ItemNormalizer.normalizeGrading(item.grading()), 30))
                     .quantity(normalizer.clampQuantity(item.quantity(), bulk)).cardId(truncate(item.cardId(), 60))
                     .resolveState(CardResolutionService.PENDING).createdAt(now).build()));
         }
@@ -387,7 +391,7 @@ public class BuylistDraftService {
         return new LineFacts(line.getId(), "BULK".equals(line.getKind()), line.getResolveState(), line.getCategory(),
                 line.getItemCondition(), line.getQuantity(), line.getUnitMarketUsd(), line.getIdConfidence(),
                 line.getPhotoUrl() != null, line.getCardId(), line.getGrading(), line.getPriceBasis(),
-                line.getPriceSampleSize());
+                line.getPriceSampleSize(), "SEALED".equals(line.getKind()));
     }
 
     public LocalDate today() {
