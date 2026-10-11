@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { ProductList } from './components/ProductList'
+import { HomePage } from './components/HomePage'
 import { ShopPage } from './components/ShopPage'
 import { Cart } from './components/Cart'
 import { TrackBuylist } from './components/TrackBuylist'
@@ -31,7 +31,7 @@ function AppContent() {
       <SiteHeader />
       <main className="tc-main-content">
         <Routes>
-          <Route path="/" element={<ProductList selectedCategory="All" />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/shop/:category" element={<ShopPage />} />
           <Route path="/cart" element={<Cart />} />
