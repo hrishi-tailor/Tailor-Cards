@@ -376,7 +376,7 @@ public class BuylistDraftService {
                 : DealCalculator.DealType.valueOf(draft.getDealType());
         long availablePicks = picked.stream().filter(StoreCardView::available).count();
         DealCalculator.Result r = dealCalculator.calculate(new DealCalculator.Input(type, facts, statuses, requested,
-                storeUsd, (int) availablePicks, draft.getRequestedCashUsd()));
+                storeUsd, (int) availablePicks, draft.getRequestedCashUsd(), rate));
         return new DealComputation(new DealView(r.type().name(), CURRENCY, r.ratesText(), r.offerableMarketUsd(), r.cashOfferUsd(),
                 r.tradeCreditUsd(), picked, r.storeTotalUsd(), storeCad.setScale(2, java.math.RoundingMode.HALF_UP), rate,
                 r.requestedCashUsd(), r.askTotalUsd(), r.askRatio(), r.withinRules(), r.message(), r.needsStoreCards(),

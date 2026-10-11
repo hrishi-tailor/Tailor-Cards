@@ -9,6 +9,8 @@ import {
 } from '../api/buylistChatApi'
 import type { ChatDraft, ChatLine, ChatStatus, ConfirmResult } from '../api/buylistChatApi'
 import { BuylistDealPanel } from './BuylistDealPanel'
+import { makeMoney } from './buylistMoney'
+import type { Money } from './buylistMoney'
 import './BuylistChat.css'
 
 declare global {
@@ -21,9 +23,6 @@ declare global {
 }
 
 type Step = 'start' | 'email' | 'code' | 'workspace' | 'done'
-
-const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
-const money = (value: number | null | undefined) => (value == null ? 'No price' : usd.format(value))
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: 'Checking',
@@ -69,6 +68,7 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
   const [notes, setNotes] = useState('')
   const [result, setResult] = useState<ConfirmResult | null>(null)
 
+  const money = makeMoney(draft?.summary.deal?.usdCadRate)
   const turnstileRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -252,10 +252,14 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
   return (
     <div className="tc-bc-container">
       <header className="tc-bc-header">
+        <span className="tc-eyebrow">Sell or trade</span>
         <h1 className="tc-bc-title">Sell your cards</h1>
-        <p className="tc-bc-muted">
-          Tell us what you have, review the list, and submit. Prices shown are market references, not offers.
-        </p>
+        <ol className="tc-bc-how">
+          <li><b>List your cards</b> by chat, pasted list or CSV</li>
+          <li><b>See our offer</b> at our published rates</li>
+          <li><b>Submit</b> and we'll review it and email you</li>
+        </ol>
+        <p className="tc-bc-muted">Prices are market references in CAD, not offers. Every submission is checked by a person.</p>
       </header>
 
       {error && <div className="tc-bc-alert" role="alert">{error}</div>}
@@ -379,7 +383,7 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
             ) : (
               <ul className="tc-bc-lines">
                 {draft.lines.map((line) => (
-                  <LineRow key={line.id} line={line} askable={(draft.summary.deal?.dealType ?? 'SELL') === 'SELL'}
+                  <LineRow key={line.id} line={line} money={money} askable={(draft.summary.deal?.dealType ?? 'SELL') === 'SELL'}
                     onChange={(changes) => run(() => buylistChatApi.updateLine(draft.draftId, line.id, changes))}
                     onRemove={() => run(() => buylistChatApi.removeLine(draft.draftId, line.id))}
                     onPhoto={(file) => run(() => buylistChatApi.uploadPhoto(draft.draftId, line.id, file))} />
@@ -388,29 +392,44 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
             )}
 
             {draft.lines.length > 0 && draft.summary.deal && (
-              <BuylistDealPanel draft={draft} deal={draft.summary.deal} onDraft={setDraft} onError={fail} />
+              <BuylistDealPanel draft={draft} deal={draft.summary.deal} money={money} onDraft={setDraft} onError={fail} />
             )}
 
             {draft.lines.length > 0 && (
-              <SummaryCard draft={draft} busy={busy} customerName={customerName} notes={notes}
+              <SummaryCard draft={draft} money={money} busy={busy} customerName={customerName} notes={notes}
                 onName={setCustomerName} onNotes={setNotes} onConfirm={confirm}
                 askEmail={!verificationOn} email={email} onEmail={setEmail} />
             )}
           </section>
+
+          {draft.lines.length > 0 && (
+            <div className="tc-bc-sticky" aria-hidden="true">
+              <div>
+                <strong>{money.fmt(draft.summary.deal?.dealType === 'TRADE' ? draft.summary.deal?.tradeCreditUsd
+                  : draft.summary.deal?.cashOfferUsd, '—')}</strong>
+                <span>{Math.max(0, Math.min(100, draft.summary.likelihoodPct))}% estimated approval</span>
+              </div>
+              <button type="button" className="tc-button tc-button-solid" tabIndex={-1}
+                onClick={() => document.getElementById('tc-bc-summary')?.scrollIntoView({ behavior: 'smooth' })}>
+                Review and submit
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
   )
 }
 
-function LineRow({ line, askable, onChange, onRemove, onPhoto }: {
+function LineRow({ line, money, askable, onChange, onRemove, onPhoto }: {
   line: ChatLine
+  money: Money
   askable: boolean
   onChange: (changes: { quantity?: number; condition?: string; requestedUnitUsd?: number; grading?: string }) => void
   onRemove: () => void
   onPhoto: (file: File) => void
 }) {
-  const [ask, setAsk] = useState(line.requestedUnitUsd != null ? String(line.requestedUnitUsd) : '')
+  const [ask, setAsk] = useState(line.requestedUnitUsd != null ? String(money.toDisplay(line.requestedUnitUsd)) : '')
   const title = line.matchedName ?? line.name
   const detail = [line.matchedSet ?? line.setName, line.matchedNumber ?? line.cardNumber, line.variant].filter(Boolean).join(' · ')
   const [grader, grade] = splitGrading(line.grading)
@@ -435,7 +454,7 @@ function LineRow({ line, askable, onChange, onRemove, onPhoto }: {
       </div>
       <div className="tc-bc-line-side">
         <span className="tc-bc-price" title={priceTitle}>
-          {line.kind === 'BULK' ? '—' : money(line.unitMarketUsd)}
+          {line.kind === 'BULK' ? '—' : money.fmt(line.unitMarketUsd)}
           {line.grading && line.unitMarketUsd != null && (
             <small className="tc-bc-muted"> {line.priceBasis === 'GRADED' ? `${line.grading} market` : 'ungraded ref'}</small>
           )}
@@ -463,16 +482,16 @@ function LineRow({ line, askable, onChange, onRemove, onPhoto }: {
           )}
         </div>
         {line.kind === 'CARD' && line.offerUnitUsd != null && (
-          <span className="tc-bc-offer">Our offer <strong>{usd.format(line.offerUnitUsd)}</strong>{line.quantity > 1 ? ' each' : ''}</span>
+          <span className="tc-bc-offer">Our offer <strong>{money.fmt(line.offerUnitUsd)}</strong>{line.quantity > 1 ? ' each' : ''}</span>
         )}
         {askable && line.kind === 'CARD' && (
           <label className="tc-bc-ask">
-            <span>Your price</span>
+            <span>Your price ({money.code})</span>
             <input type="number" min={0} step="0.01" inputMode="decimal" value={ask} placeholder="Our rate"
               aria-label={`Your price for ${title}`}
               onChange={(e) => setAsk(e.target.value)}
               onBlur={() => {
-                const value = ask === '' ? 0 : Number(ask)
+                const value = ask === '' ? 0 : money.fromDisplay(Number(ask))
                 if (value !== (line.requestedUnitUsd ?? 0) && value >= 0) onChange({ requestedUnitUsd: value })
               }} />
           </label>
@@ -492,8 +511,9 @@ function LineRow({ line, askable, onChange, onRemove, onPhoto }: {
   )
 }
 
-function SummaryCard({ draft, busy, customerName, notes, onName, onNotes, onConfirm, askEmail, email, onEmail }: {
+function SummaryCard({ draft, money, busy, customerName, notes, onName, onNotes, onConfirm, askEmail, email, onEmail }: {
   draft: ChatDraft
+  money: Money
   busy: boolean
   customerName: string
   notes: string
@@ -508,14 +528,14 @@ function SummaryCard({ draft, busy, customerName, notes, onName, onNotes, onConf
   const emailMissing = askEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())
   const pct = Math.max(0, Math.min(100, s.likelihoodPct))
   return (
-    <div className="tc-bc-summary">
+    <div className="tc-bc-summary" id="tc-bc-summary">
       <div className="tc-bc-summary-row">
         <span>Market reference total</span>
-        <strong>{money(s.totalMarketUsd)} <small>USD</small></strong>
+        <strong>{money.fmt(s.totalMarketUsd)} <small>{money.code}</small></strong>
       </div>
       <div className="tc-bc-summary-row">
         <span>Eligible items</span>
-        <strong>{money(s.eligibleMarketUsd ?? (s.totalMarketUsd != null ? 0 : null))} <small>USD</small></strong>
+        <strong>{money.fmt(s.eligibleMarketUsd ?? (s.totalMarketUsd != null ? 0 : null))} <small>{money.code}</small></strong>
       </div>
       <div className="tc-bc-counts">
         {Object.entries(s.statusCounts).map(([k, n]) => (

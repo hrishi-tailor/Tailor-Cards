@@ -85,6 +85,15 @@ class DealCalculatorTest {
     }
 
     @Test
+    @DisplayName("Customer messages show CAD when a CAD-per-USD rate is given")
+    void cadMessages() {
+        DealCalculator.Result over = calculator.calculate(new DealCalculator.Input(DealType.SELL, List.of(lp, nm), eligible,
+                Map.of(1L, new BigDecimal("100"), 2L, new BigDecimal("180")), null, 0, null, new BigDecimal("1.40")));
+        assertThat(over.message()).isEqualTo("Your asking price is $71.40 CAD above our cash offer."); // $51 USD x 1.40
+        assertThat(over.overByUsd()).isEqualByComparingTo("51.00"); // amounts stay USD
+    }
+
+    @Test
     @DisplayName("Under-ask bonus grows linearly to the configured maximum at the configured span")
     void underAskBonus() {
         // $100 + $50 asked against a $229 offer: 34% under, past the 30% span

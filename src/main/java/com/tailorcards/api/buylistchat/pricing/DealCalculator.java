@@ -24,9 +24,16 @@ public class DealCalculator {
 
     public enum DealType { SELL, TRADE, PARTIAL }
 
+    /** @param displayRate CAD per USD for amounts in customer messages; null shows USD */
     public record Input(DealType type, List<LineFacts> lines, Map<Long, LineStatus> statuses,
                         Map<Long, BigDecimal> requestedUnitUsd, BigDecimal storeTotalUsd, int storeCardCount,
-                        BigDecimal requestedCashUsd) {}
+                        BigDecimal requestedCashUsd, BigDecimal displayRate) {
+        public Input(DealType type, List<LineFacts> lines, Map<Long, LineStatus> statuses,
+                     Map<Long, BigDecimal> requestedUnitUsd, BigDecimal storeTotalUsd, int storeCardCount,
+                     BigDecimal requestedCashUsd) {
+            this(type, lines, statuses, requestedUnitUsd, storeTotalUsd, storeCardCount, requestedCashUsd, null);
+        }
+    }
 
     /**
      * @param askRatio customer's request / what our rules allow; null when there is nothing to compare
@@ -109,18 +116,18 @@ public class DealCalculator {
             } else if (ratio.compareTo(new BigDecimal("0.995")) < 0) {
                 BigDecimal under = askTotal == null ? BigDecimal.ZERO : (type == DealType.TRADE ? credit : cash).subtract(askTotal);
                 message = switch (type) {
-                    case TRADE -> "Your shop picks are " + money(under) + " under your trade credit, which helps your chances.";
+                    case TRADE -> "Your shop picks are " + money(under, in.displayRate()) + " under your trade credit, which helps your chances.";
                     case PARTIAL -> "Your request is below our rates, which helps your chances.";
-                    default -> "Your asking price is " + money(under) + " below our cash offer, which helps your chances.";
+                    default -> "Your asking price is " + money(under, in.displayRate()) + " below our cash offer, which helps your chances.";
                 };
             } else if (ratio.compareTo(new BigDecimal("1.005")) <= 0) {
                 message = "Your request fits our rates.";
             } else {
                 int pct = ratio.subtract(BigDecimal.ONE).multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP).intValue();
                 message = switch (type) {
-                    case TRADE -> "Your shop picks are " + money(overBy) + " over your trade credit.";
+                    case TRADE -> "Your shop picks are " + money(overBy, in.displayRate()) + " over your trade credit.";
                     case PARTIAL -> "Your request is about " + pct + "% above our rates.";
-                    default -> "Your asking price is " + money(overBy) + " above our cash offer.";
+                    default -> "Your asking price is " + money(overBy, in.displayRate()) + " above our cash offer.";
                 };
             }
         }
@@ -210,7 +217,11 @@ public class DealCalculator {
         return rate.multiply(BigDecimal.valueOf(100)).stripTrailingZeros().toPlainString() + "%";
     }
 
-    private static String money(BigDecimal usd) {
+    /** "$12.34" in USD, or "$16.97 CAD" when a CAD-per-USD rate is given (customers see CAD). */
+    static String money(BigDecimal usd, BigDecimal cadPerUsd) {
+        if (cadPerUsd != null && cadPerUsd.signum() > 0) {
+            return "$" + usd.multiply(cadPerUsd).setScale(2, RoundingMode.HALF_UP).toPlainString() + " CAD";
+        }
         return "$" + usd.setScale(2, RoundingMode.HALF_UP).toPlainString();
     }
 

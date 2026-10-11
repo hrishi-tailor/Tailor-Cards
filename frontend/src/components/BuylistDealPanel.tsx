@@ -1,23 +1,22 @@
 import { useEffect, useState } from 'react'
 import { buylistChatApi } from '../api/buylistChatApi'
 import type { ChatDeal, ChatDraft, DealType, StoreCard } from '../api/buylistChatApi'
-
-const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
-const cad = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' })
-const money = (value: number | null | undefined) => (value == null ? '—' : usd.format(value))
+import type { Money } from './buylistMoney'
 
 const DEAL_LABELS: Record<DealType, string> = { SELL: 'Sell for cash', TRADE: 'Trade for shop cards', PARTIAL: 'Trade + cash' }
 
 /** Sell / trade / partial: rates, shop-card picker, cash ask and the numbers the meter is based on. */
-export function BuylistDealPanel({ draft, deal, onDraft, onError }: {
+export function BuylistDealPanel({ draft, deal, money, onDraft, onError }: {
   draft: ChatDraft
   deal: ChatDeal
+  money: Money
   onDraft: (draft: ChatDraft) => void
   onError: (err: unknown) => void
 }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<StoreCard[]>([])
-  const [cash, setCash] = useState(deal.requestedCashUsd != null ? String(deal.requestedCashUsd) : '')
+  const [cash, setCash] = useState(deal.requestedCashUsd != null ? String(money.toDisplay(deal.requestedCashUsd)) : '')
+  const fmt = (usd: number | null | undefined) => money.fmt(usd, '—')
   const trading = deal.dealType !== 'SELL'
 
   // Shop search (debounced)
@@ -46,21 +45,20 @@ export function BuylistDealPanel({ draft, deal, onDraft, onError }: {
       <p className="tc-bc-rates">{deal.ratesText}</p>
 
       <div className="tc-bc-offer-grid">
-        <div><span>Our cash offer</span><strong>{money(deal.cashOfferUsd)}</strong></div>
-        <div><span>Our trade credit</span><strong>{money(deal.tradeCreditUsd)}</strong></div>
-        {deal.dealType === 'SELL' && <div><span>Your asking total</span><strong>{money(deal.askTotalUsd)}</strong></div>}
-        {trading && <div><span>Shop cards you picked</span><strong>{money(deal.storeTotalUsd)}</strong>
-          {deal.storeTotalCad != null && deal.storeCards.length > 0 && <small>{cad.format(deal.storeTotalCad)} CAD</small>}</div>}
+        <div><span>Our cash offer</span><strong>{fmt(deal.cashOfferUsd)}</strong></div>
+        <div><span>Our trade credit</span><strong>{fmt(deal.tradeCreditUsd)}</strong></div>
+        {deal.dealType === 'SELL' && <div><span>Your asking total</span><strong>{fmt(deal.askTotalUsd)}</strong></div>}
+        {trading && <div><span>Shop cards you picked</span><strong>{fmt(deal.storeTotalUsd)}</strong></div>}
       </div>
       {deal.dealType === 'SELL' && <p className="tc-bc-muted">Set your price per card in the list above to ask for more or less.</p>}
 
       {deal.dealType === 'PARTIAL' && (
         <label className="tc-bc-field">
-          <span>Cash you want on top (USD)</span>
+          <span>Cash you want on top ({money.code})</span>
           <input type="number" min={0} step="0.01" inputMode="decimal" value={cash}
-            placeholder={deal.requestedCashUsd != null ? String(deal.requestedCashUsd) : '0.00'}
+            placeholder={deal.requestedCashUsd != null ? String(money.toDisplay(deal.requestedCashUsd)) : '0.00'}
             onChange={(e) => setCash(e.target.value)}
-            onBlur={() => run(buylistChatApi.setDeal(draft.draftId, 'PARTIAL', cash === '' ? 0 : Number(cash)))} />
+            onBlur={() => run(buylistChatApi.setDeal(draft.draftId, 'PARTIAL', cash === '' ? 0 : money.fromDisplay(Number(cash))))} />
         </label>
       )}
 
@@ -71,7 +69,7 @@ export function BuylistDealPanel({ draft, deal, onDraft, onError }: {
               {deal.storeCards.map((c) => (
                 <li key={c.productId} className={c.available ? '' : 'unavailable'}>
                   <span>{c.name}</span>
-                  <span>{c.available ? `${money(c.priceUsd)} (${cad.format(c.priceCad ?? 0)} CAD)` : 'No longer available'}</span>
+                  <span>{c.available ? fmt(c.priceUsd) : 'No longer available'}</span>
                   <button type="button" className="tc-bc-link" onClick={() => run(buylistChatApi.removeTradeItem(draft.draftId, c.productId))}>Remove</button>
                 </li>
               ))}
@@ -86,13 +84,13 @@ export function BuylistDealPanel({ draft, deal, onDraft, onError }: {
               <li key={c.productId}>
                 {c.imageUrl ? <img src={c.imageUrl} alt="" loading="lazy" /> : <div className="tc-bc-line-thumb" />}
                 <span className="tc-bc-shop-name">{c.name}<small className="tc-bc-muted">{[c.setName, c.grading ?? c.condition].filter(Boolean).join(' · ')}</small></span>
-                <span className="tc-bc-price">{money(c.priceUsd)}</span>
+                <span className="tc-bc-price">{fmt(c.priceUsd)}</span>
                 <button type="button" className="tc-bc-btn tc-bc-btn-ghost tc-bc-small" onClick={() => run(buylistChatApi.addTradeItem(draft.draftId, c.productId))}>Add</button>
               </li>
             ))}
             {results.length === 0 && <li className="tc-bc-muted">No shop cards match.</li>}
           </ul>
-          {deal.usdCadRate != null && <p className="tc-bc-muted">Shop prices are in CAD, shown in USD at {deal.usdCadRate} CAD per USD (Bank of Canada).</p>}
+          {money.code === 'USD' && <p className="tc-bc-muted">Shop prices are set in CAD and shown here in USD.</p>}
         </div>
       )}
 

@@ -53,8 +53,10 @@ public class BuylistChatService {
             - Never say a card, set or product doesn't exist. If a search finds nothing, say you couldn't find
               it in the card database, try again with a shorter card name or the set and number, and otherwise
               ask the customer for the card number printed on the card (e.g. "125/094").
-            - When you mention a price, say it is a market reference (TCGplayer market price in USD via
-              TCGdex) and give the "updated" date from the tool result. Prices are never an offer.
+            - Customers see prices in Canadian dollars. Quote CAD: use the *_cad fields from get_draft_summary,
+              and for get_card convert USD with its usd_cad_rate (USD x rate) and say "about". When you mention
+              a price, say it is a market reference (TCGplayer market price via TCGdex) and give the "updated"
+              date from the tool result. Prices are never an offer.
             - Never estimate, adjust or promise a price, payout, approval or outcome. The summary's status
               and estimated-chance figures come from the store's system; relay them as given, never change them.
             - Whenever you mention the estimated approval rating, say it is an estimated guess, not a guarantee
@@ -320,7 +322,9 @@ public class BuylistChatService {
         if (card.isEmpty()) {
             return Map.of("error", "No card with that id");
         }
-        return trimmedCard(card.get());
+        Map<String, Object> out = trimmedCard(card.get());
+        out.put("usd_cad_rate", storeCards.usdCadRate());
+        return out;
     }
 
     /** Trimmed card for the model: identity, image, USD market by variant, EUR trend, updated date. */
@@ -392,12 +396,18 @@ public class BuylistChatService {
         BuylistDraft draft = draftService.ownedOpenDraft(draftId, email);
         String type = text(input, "deal_type", 10);
         java.math.BigDecimal cash = input.path("cash_usd").isNumber() ? input.path("cash_usd").decimalValue() : null;
+        if (input.path("cash_cad").isNumber()) {
+            cash = input.path("cash_cad").decimalValue().divide(storeCards.usdCadRate(), 2, java.math.RoundingMode.HALF_UP);
+        }
         draftService.setDeal(draft, type, cash);
         return Map.of("deal_type", draft.getDealType());
     }
 
     private Object summary(String email, String draftId) {
         DraftView view = draftService.view(draftService.ownedDraft(draftId, email));
+        java.math.BigDecimal rate = storeCards.usdCadRate();
+        java.util.function.Function<java.math.BigDecimal, Object> cad = usd -> usd == null ? "no price"
+                : usd.multiply(rate).setScale(2, java.math.RoundingMode.HALF_UP);
         List<Map<String, Object>> lines = new ArrayList<>();
         for (LineView l : view.lines().stream().limit(50).toList()) {
             Map<String, Object> row = new LinkedHashMap<>();
@@ -408,7 +418,7 @@ public class BuylistChatService {
             if (l.grading() != null) {
                 row.put("grading", l.grading());
             }
-            row.put("usd_market_each", l.unitMarketUsd() == null ? "no price" : l.unitMarketUsd());
+            row.put("cad_market_each", cad.apply(l.unitMarketUsd()));
             if (l.grading() != null) {
                 row.put("price_basis", l.priceBasis());
                 if (l.priceSampleSize() != null) {
@@ -416,7 +426,7 @@ public class BuylistChatService {
                 }
             }
             if (l.offerUnitUsd() != null) {
-                row.put("our_cash_offer_each_usd", l.offerUnitUsd());
+                row.put("our_cash_offer_each_cad", cad.apply(l.offerUnitUsd()));
             }
             row.put("status", l.status());
             row.put("status_reason", l.statusReason());
@@ -425,8 +435,9 @@ public class BuylistChatService {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("line_count", view.progress().total());
         out.put("still_checking", view.progress().pending());
-        out.put("currency", "USD");
-        out.put("total_market_reference", view.summary().totalMarketUsd() == null ? "no price" : view.summary().totalMarketUsd());
+        out.put("currency", "CAD");
+        out.put("usd_cad_rate", rate);
+        out.put("total_market_reference_cad", cad.apply(view.summary().totalMarketUsd()));
         out.put("status_counts", view.summary().statusCounts());
         out.put("estimated_chance_pct", view.summary().likelihoodPct());
         out.put("estimated_chance_label", view.summary().likelihoodLabel());
@@ -437,11 +448,11 @@ public class BuylistChatService {
         Map<String, Object> dealOut = new LinkedHashMap<>();
         dealOut.put("deal_type", deal.dealType());
         dealOut.put("rates", deal.ratesText());
-        dealOut.put("our_cash_offer_usd", deal.cashOfferUsd());
-        dealOut.put("our_trade_credit_usd", deal.tradeCreditUsd());
-        dealOut.put("shop_cards_picked", deal.storeCards().stream().map(c -> c.name() + " ($" + c.priceUsd() + " USD)").toList());
-        dealOut.put("shop_cards_total_usd", deal.storeTotalUsd());
-        dealOut.put("customer_request_usd", deal.askTotalUsd());
+        dealOut.put("our_cash_offer_cad", cad.apply(deal.cashOfferUsd()));
+        dealOut.put("our_trade_credit_cad", cad.apply(deal.tradeCreditUsd()));
+        dealOut.put("shop_cards_picked", deal.storeCards().stream().map(c -> c.name() + " ($" + c.priceCad() + " CAD)").toList());
+        dealOut.put("shop_cards_total_cad", deal.storeTotalCad());
+        dealOut.put("customer_request_cad", cad.apply(deal.askTotalUsd()));
         dealOut.put("fits_our_rates", deal.withinRules());
         dealOut.put("message", deal.message());
         out.put("deal", dealOut);
@@ -456,7 +467,7 @@ public class BuylistChatService {
                                 "set_name", prop("string", "Set name if known, e.g. 'Phantasmal Flames'"),
                                 "card_number", prop("string", "Number as printed, e.g. '125' or '125/094'"),
                                 "limit", prop("integer", "Max results, 1-10")), List.of("name")),
-                tool("get_card", "Get one card's set, number, rarity, image, USD market price by variant, EUR trend and updated date.",
+                tool("get_card", "Get one card's set, number, rarity, image, USD market price by variant (with usd_cad_rate to convert), EUR trend and updated date.",
                         Map.of("card_id", prop("string", "TCGdex card id, e.g. base1-4")), List.of("card_id")),
                 tool("add_item_to_draft", "Add one card (or a bulk lot) to the customer's own list.",
                         Map.of("name", prop("string", "Card name"),
@@ -471,7 +482,7 @@ public class BuylistChatService {
                         List.of("name", "quantity")),
                 tool("remove_item_from_draft", "Remove a line from the customer's own list.",
                         Map.of("line_id", prop("integer", "line_id from get_draft_summary")), List.of("line_id")),
-                tool("get_draft_summary", "The customer's list with statuses, USD market references, the deal (sell/trade/partial) with our offer at our published rates, and the estimated chance.",
+                tool("get_draft_summary", "The customer's list with statuses, CAD market references, the deal (sell/trade/partial) with our offer at our published rates, and the estimated chance.",
                         Map.of(), List.of()),
                 tool("search_store_cards", "Search cards available in our shop that the customer can take in a trade.",
                         Map.of("query", prop("string", "Card name, set or number; empty lists the top cards")), List.of()),
@@ -479,7 +490,7 @@ public class BuylistChatService {
                         Map.of("product_id", prop("integer", "product_id from search_store_cards")), List.of("product_id")),
                 tool("set_deal_type", "Set how the customer wants to be paid: SELL (cash), TRADE (shop cards) or PARTIAL (shop cards plus cash).",
                         Map.of("deal_type", Map.of("type", "string", "enum", List.of("SELL", "TRADE", "PARTIAL")),
-                                "cash_usd", prop("number", "PARTIAL only: cash the customer wants on top of the shop cards")),
+                                "cash_cad", prop("number", "PARTIAL only: cash in CAD the customer wants on top of the shop cards")),
                         List.of("deal_type")));
     }
 

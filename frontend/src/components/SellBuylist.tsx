@@ -326,7 +326,7 @@ export function SellBuylist() {
       {/* Hero Header */}
       <section className="tc-sell-hero">
         <div className="tc-sell-hero-content">
-          <div className="tc-sell-badge">[BUYLIST] Tailor Cards Vault Acquisition</div>
+          <div className="tc-sell-badge">Sell to us</div>
           <h1 className="tc-sell-hero-title">Turn Your Cards into Instant Cash (CAD)</h1>
           <p className="tc-sell-hero-subtitle">
             We acquire vintage holos, modern chase singles, factory-sealed boxes, and graded slabs (PSA, BGS, CGC).
