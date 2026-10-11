@@ -259,6 +259,36 @@
   border-bottom-left-radius: 4px;
 }
 
+/* Formatted assistant replies: paragraphs, bullet lists and bold */
+.tc-bc-msg.theirs {
+  white-space: normal;
+}
+
+.tc-bc-msg.theirs p,
+.tc-bc-msg.theirs ul {
+  margin: 0;
+  font-size: inherit;
+  color: inherit;
+}
+
+.tc-bc-msg.theirs p + p,
+.tc-bc-msg.theirs p + ul,
+.tc-bc-msg.theirs ul + p {
+  margin-top: 8px;
+}
+
+.tc-bc-msg.theirs ul {
+  padding-left: 18px;
+}
+
+.tc-bc-msg.theirs li + li {
+  margin-top: 2px;
+}
+
+.tc-bc-msg.theirs strong {
+  font-weight: 600;
+}
+
 .tc-bc-typing {
   color: var(--tc-text-secondary);
   font-style: italic;

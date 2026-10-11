@@ -10,6 +10,7 @@ import {
 import type { ChatDraft, ChatLine, ChatStatus, ConfirmResult } from '../api/buylistChatApi'
 import { BuylistDealPanel } from './BuylistDealPanel'
 import { makeMoney } from './buylistMoney'
+import { ChatText } from './ChatText'
 import type { Money } from './buylistMoney'
 import './BuylistChat.css'
 
@@ -329,7 +330,9 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
                     <p className="tc-bc-muted">Try: "I have a Base Set Charizard 4/102 and 3 Pikachu from 151".</p>
                   )}
                   {draft.messages.map((m, i) => (
-                    <div key={i} className={`tc-bc-msg ${m.role === 'CUSTOMER' ? 'mine' : 'theirs'}`}>{m.content}</div>
+                    <div key={i} className={`tc-bc-msg ${m.role === 'CUSTOMER' ? 'mine' : 'theirs'}`}>
+                      {m.role === 'CUSTOMER' ? m.content : <ChatText text={m.content} />}
+                    </div>
                   ))}
                   {chatBusy && <div className="tc-bc-msg theirs tc-bc-typing">Thinking…</div>}
                   <div ref={messagesEndRef} />

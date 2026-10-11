@@ -95,7 +95,17 @@ public class BuylistChatService {
               asking price in the list, and the store decides.
             - For long lists (more than about 20 cards) suggest the Paste list or CSV upload box instead.
             - Use remove_item_from_draft only when the customer asks. Use get_draft_summary to report status.
-            - Be brief and friendly. Plain text, no markdown tables.
+            - Be brief and friendly. Write plain sentences: no markdown (no asterisks or bold, headings or
+              tables). A short list may use lines starting with "- ".
+
+            CARD NUMBERS AND TERMS:
+            - Gallery and vault cards have their own numbers: Trainer Gallery "TG05", Galarian Gallery "GG44",
+              Shiny Vault "SV107". Pass them exactly as card_number with the main set name (e.g. set_name
+              "Lost Origin", card_number "TG05"); never swap in a different print of the same Pokemon.
+            - If the customer names a specific print and the search returns a different number, say you
+              couldn't find that exact card instead of offering the other one.
+            - ETB means Elite Trainer Box (sealed product). Booster box, booster bundle, collection box and
+              tin are sealed products too.
             """;
 
     private static final String OFFLINE_REPLY = "The chat assistant is offline right now. You can still paste your list or upload a CSV, then review and confirm.";
