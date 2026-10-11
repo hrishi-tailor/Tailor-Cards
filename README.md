@@ -272,6 +272,8 @@ The REST API exposes an interactive **OpenAPI 3.0 / Swagger UI** playground:
 
 ## ⚖️ "Sell or Trade?" Assistant & Deterministic Pricing Engine
 
+> The customer-facing "Sell or Trade" page has been retired in favour of the AI buylist at `/sell` (old links redirect there). The pricing engine and `/api/trade-assistant` API below are unchanged.
+
 A conversational AI assistant allowing customers to describe Pokémon cards they want to **Sell for Cash** or **Trade for Store Cards**, receiving automated, instant quotes powered by live market rates and an immutable mathematical pricing engine.
 
 ### 🛡️ Core Principle: Zero LLM Price Authority
@@ -610,6 +612,17 @@ flowchart LR
 
 4. **Open the Application**:
    Navigate to [http://localhost:5173](http://localhost:5173). The Vite reverse proxy forwards all `/api/*` calls to `http://localhost:8080`, completely eliminating CORS issues during development.
+
+5. **Storefront settings (optional)**: set these on the frontend build (Render: the static site's environment). Anything left empty is hidden.
+
+   | Variable | Shows |
+   | --- | --- |
+   | `VITE_ANNOUNCEMENT` | Thin bar above the header, e.g. `Free tracked shipping across Canada over $150` |
+   | `VITE_CONTACT_EMAIL` | Contact email in the footer |
+   | `VITE_INSTAGRAM_URL` | Instagram link in the footer |
+   | `VITE_TIKTOK_URL` | TikTok link in the footer |
+
+**Look and feel**: navy ink on paper cream (from the logo) with a brass accent, and a dark navy theme. The site follows the visitor's system setting; the sun/moon button in the header saves their choice. Theme tokens live in `frontend/src/index.css`. Pages: `/` (home), `/shop` and `/shop/singles|slabs|sealed` (filters, search, quick view), `/sell` (AI buylist, prices in CAD), `/track` (submission lookup), `/cart`. The homepage photos in `frontend/src/assets/home` are web-sized copies of the shop's own photos in `frontend/public/images`.
 
 ---
 
