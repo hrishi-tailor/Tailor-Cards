@@ -200,7 +200,7 @@ export function HomePage() {
       </section>
 
       {quickView && (
-        <ProductQuickView product={quickView} siblings={arrivals} onNavigate={setQuickView} onClose={() => setQuickView(null)} />
+        <ProductQuickView key={quickView.id} product={quickView} siblings={arrivals} onNavigate={setQuickView} onClose={() => setQuickView(null)} />
       )}
     </div>
   )

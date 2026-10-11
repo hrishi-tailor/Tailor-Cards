@@ -21,16 +21,14 @@ export function SiteHeader() {
   const { totalItems } = useCart()
   const navigate = useNavigate()
   const location = useLocation()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [searchOpen, setSearchOpen] = useState(false)
+  // Menu and search remember the page they were opened on, so they close when the page changes
+  const [menuOn, setMenuOn] = useState<string | null>(null)
+  const [searchOn, setSearchOn] = useState<string | null>(null)
+  const menuOpen = menuOn === location.key
+  const searchOpen = searchOn === location.key
+  const setMenuOpen = (open: boolean) => setMenuOn(open ? location.key : null)
   const [query, setQuery] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
-
-  // Close the mobile menu and search whenever the page changes
-  useEffect(() => {
-    setMenuOpen(false)
-    setSearchOpen(false)
-  }, [location.pathname, location.search])
 
   useEffect(() => {
     if (searchOpen) searchRef.current?.focus()
@@ -83,7 +81,7 @@ export function SiteHeader() {
 
           <div className="tc-header-tools">
             <button type="button" className="tc-icon-btn" aria-label="Search" aria-expanded={searchOpen}
-              onClick={() => setSearchOpen((o) => !o)}>
+              onClick={() => setSearchOn(searchOpen ? null : location.key)}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
             </button>
             <ThemeToggle className="tc-hide-sm" />
@@ -100,7 +98,7 @@ export function SiteHeader() {
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
               <label htmlFor="tc-site-search" className="tc-sr-only">Search cards</label>
               <input id="tc-site-search" ref={searchRef} type="search" value={query} placeholder="Search by card, set or grade"
-                onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === 'Escape') setSearchOpen(false) }} />
+                onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === 'Escape') setSearchOn(null) }} />
               <button type="submit" className="tc-button tc-button-solid">Search</button>
             </div>
           </form>

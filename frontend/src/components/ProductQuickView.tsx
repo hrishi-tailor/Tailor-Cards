@@ -24,7 +24,10 @@ interface QuickViewProps {
   onClose: () => void
 }
 
-/** Product details in a dialog: photo with corner zoom, specs, add to cart, and raw price history. */
+/**
+ * Product details in a dialog: photo with corner zoom, specs, add to cart, and raw price history.
+ * Render it with key={product.id} so zoom and tab reset when the visitor steps to another product.
+ */
 export function ProductQuickView({ product, siblings, onNavigate, onClose }: QuickViewProps) {
   const [zoom, setZoom] = useState<Zoom>('full')
   const [tab, setTab] = useState<'photo' | 'history'>('photo')
@@ -35,11 +38,6 @@ export function ProductQuickView({ product, siblings, onNavigate, onClose }: Qui
   const outOfStock = !sold && product.stock <= 0
   const hasHistory = !isGradedOrSealed(product)
   const origin = ZOOMS.find((z) => z.id === zoom)?.origin ?? '50% 50%'
-
-  useEffect(() => {
-    setZoom('full')
-    setTab('photo')
-  }, [product.id])
 
   useEffect(() => {
     closeRef.current?.focus()
