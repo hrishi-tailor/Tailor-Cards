@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { uploadBuylistImage, submitBuylist } from '../api/buylistApi'
 import type { BuylistSubmission } from '../types'
-import { BuylistPayoutMatrix } from './BuylistPayoutMatrix'
 import './SellBuylist.css'
 
 interface SelectedFile {
@@ -16,7 +15,6 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 export function SellBuylist() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Form Fields
@@ -26,7 +24,6 @@ export function SellBuylist() {
   const [customerName, setCustomerName] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [additionalComments, setAdditionalComments] = useState('')
-  const [lockedTierBadge, setLockedTierBadge] = useState<string | null>(null)
 
   // Files & Previews
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([])
@@ -40,41 +37,6 @@ export function SellBuylist() {
   const [uploadPercent, setUploadPercent] = useState(0)
   const [submissionSuccess, setSubmissionSuccess] = useState<BuylistSubmission | null>(null)
   const [copiedLink, setCopiedLink] = useState(false)
-
-  // Read URL search params from Estimator on other pages
-  useEffect(() => {
-    const tierParam = searchParams.get('tier')
-    const payoutParam = searchParams.get('payout')
-    const marketParam = searchParams.get('market')
-
-    if (payoutParam) {
-      setAskingPrice(payoutParam)
-    }
-    if (tierParam && payoutParam) {
-      const badgeText = `${tierParam} · $${payoutParam} CAD Payout`
-      setLockedTierBadge(badgeText)
-      setAdditionalComments((prev) => {
-        const note = `[Buylist Locked Rate: ${tierParam} | Market: $${marketParam || ''} CAD | Cash Payout: $${payoutParam} CAD]`
-        return prev && prev.includes(tierParam) ? prev : prev ? `${prev}\n${note}` : note
-      })
-      setTimeout(() => {
-        document.getElementById('buylist-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }, 200)
-    }
-  }, [searchParams])
-
-  // In-page rate lock handler from BuylistPayoutMatrix
-  const handleLockRate = (tierName: string, rate: number, marketPrice: number, payoutAmount: number) => {
-    setAskingPrice(payoutAmount.toFixed(2))
-    setLockedTierBadge(`${tierName} (${(rate * 100).toFixed(0)}%) · $${payoutAmount.toFixed(2)} CAD Payout`)
-    setAdditionalComments((prev) => {
-      const note = `[Buylist Locked Rate: ${tierName} (${(rate * 100).toFixed(0)}%) | Market: $${marketPrice.toFixed(2)} CAD | Cash Payout: $${payoutAmount.toFixed(2)} CAD]`
-      return prev ? `${prev}\n${note}` : note
-    })
-    setTimeout(() => {
-      document.getElementById('buylist-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 100)
-  }
 
   // Clean up object URLs on unmount
   useEffect(() => {
@@ -364,11 +326,11 @@ export function SellBuylist() {
       {/* Hero Header */}
       <section className="tc-sell-hero">
         <div className="tc-sell-hero-content">
-          <div className="tc-sell-badge">[BUYLIST] Tailor Cards Vault Acquisition</div>
+          <div className="tc-sell-badge">Sell to us</div>
           <h1 className="tc-sell-hero-title">Turn Your Cards into Instant Cash (CAD)</h1>
           <p className="tc-sell-hero-subtitle">
             We acquire vintage holos, modern chase singles, factory-sealed boxes, and graded slabs (PSA, BGS, CGC).
-            Submit your photos for a fast, guaranteed valuation with zero seller fees and immediate payment.
+            Send us photos and we'll review them and reply with an offer. No seller fees.
           </p>
         </div>
         <div className="tc-sell-hero-stats">
@@ -383,28 +345,8 @@ export function SellBuylist() {
         </div>
       </section>
 
-      {/* Direct Payout Matrix & Interactive Estimator */}
-      <BuylistPayoutMatrix showCta={false} onLockRate={handleLockRate} />
-
       {/* Main Form Container */}
       <form className="tc-sell-form" id="buylist-form" onSubmit={handleSubmit} noValidate>
-        {lockedTierBadge && (
-          <div className="tc-locked-rate-banner" role="status">
-            <div className="tc-locked-rate-info">
-              <span className="tc-locked-badge-pill tc-mono">[LOCKED BUYLIST RATE]</span>
-              <span className="tc-locked-text">{lockedTierBadge} — Pre-filled into Asking Price below.</span>
-            </div>
-            <button
-              type="button"
-              className="tc-locked-dismiss-btn"
-              onClick={() => setLockedTierBadge(null)}
-              title="Clear locked rate banner"
-            >
-              Dismiss ✕
-            </button>
-          </div>
-        )}
-
         {generalError && (
           <div className="tc-sell-error-banner" role="alert">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="tc-alert-svg">

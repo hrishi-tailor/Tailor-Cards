@@ -34,5 +34,8 @@ stripe:
   cancel-url: ${STRIPE_CANCEL_URL:${frontend.url}/cart}
 
 app:
+  buylist-chat:
+    resolution:
+      async: false
   demo-user:
     password: test-demo-password

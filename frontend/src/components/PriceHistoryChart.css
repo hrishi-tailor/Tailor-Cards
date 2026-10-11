@@ -6,12 +6,12 @@
 .tc-price-tracker {
   display: flex;
   flex-direction: column;
-  background: #111114;
-  border: 1px solid #28282d;
+  background: var(--tc-bg-sunken);
+  border: 1px solid var(--tc-border);
   border-radius: 8px;
   padding: 1.25rem;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
-  color: #ededed;
+  box-shadow: 0 12px 36px rgba(var(--tc-shadow-rgb), 0.45);
+  color: var(--tc-text-primary);
   width: 100%;
   box-sizing: border-box;
 }
@@ -24,7 +24,7 @@
   flex-wrap: wrap;
   gap: 1rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #232328;
+  border-bottom: 1px solid var(--tc-border);
 }
 
 .tc-tracker-title-box {
@@ -39,7 +39,7 @@
   gap: 0.5rem;
   font-size: 0.65rem;
   letter-spacing: 0.08em;
-  color: #92929e;
+  color: var(--tc-text-secondary);
   text-transform: uppercase;
 }
 
@@ -47,8 +47,8 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: #4ade80;
-  box-shadow: 0 0 6px rgba(74, 222, 128, 0.8);
+  background-color: var(--tc-success);
+  box-shadow: 0 0 6px rgba(var(--tc-shadow-rgb), 0.8);
   display: inline-block;
   animation: pulse-dot 2s infinite ease-in-out;
 }
@@ -65,7 +65,7 @@
 }
 
 .tc-live-text {
-  color: #4ade80;
+  color: var(--tc-success);
   font-weight: 600;
 }
 
@@ -73,7 +73,7 @@
   margin: 0;
   font-size: 1.15rem;
   font-weight: 700;
-  color: #f7f7f8;
+  color: var(--tc-text-primary);
   letter-spacing: -0.01em;
 }
 
@@ -88,23 +88,23 @@
   font-size: 0.65rem;
   padding: 0.15rem 0.45rem;
   border-radius: 3px;
-  background: #1b1b20;
-  border: 1px solid #32323a;
-  color: #b5b5c0;
+  background: var(--tc-surface-raised);
+  border: 1px solid var(--tc-border);
+  color: var(--tc-text-secondary);
 }
 
 .tc-meta-chip.gold {
-  background: rgba(212, 175, 55, 0.12);
-  border-color: rgba(212, 175, 55, 0.4);
-  color: #f3e8b0;
+  background: rgba(var(--tc-brand-rgb), 0.12);
+  border-color: rgba(var(--tc-brand-rgb), 0.4);
+  color: var(--tc-brand-text);
   font-weight: 600;
 }
 
 /* Range Selector Pills */
 .tc-range-selector {
   display: inline-flex;
-  background: #17171c;
-  border: 1px solid #2a2a32;
+  background: var(--tc-surface-raised);
+  border: 1px solid var(--tc-border);
   border-radius: 6px;
   padding: 3px;
   gap: 3px;
@@ -114,7 +114,7 @@
   background: transparent;
   border: none;
   outline: none;
-  color: #8c8c99;
+  color: var(--tc-text-secondary);
   font-size: 0.72rem;
   font-weight: 600;
   padding: 0.35rem 0.75rem;
@@ -125,15 +125,15 @@
 }
 
 .tc-range-btn:hover:not(:disabled) {
-  color: #f0f0f4;
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--tc-text-primary);
+  background: rgba(var(--tc-fg-rgb), 0.05);
 }
 
 .tc-range-btn.active {
-  background: #d4af37;
-  color: #0b0b0e;
+  background: var(--tc-btn-bg);
+  color: var(--tc-btn-fg);
   font-weight: 700;
-  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.35);
+  box-shadow: 0 2px 8px rgba(var(--tc-shadow-rgb), 0.35);
 }
 
 .tc-range-btn:disabled {
@@ -149,8 +149,8 @@
   margin-top: 1rem;
   margin-bottom: 0.75rem;
   padding: 0.75rem 1rem;
-  background: #151519;
-  border: 1px solid #232329;
+  background: var(--tc-surface-raised);
+  border: 1px solid var(--tc-border);
   border-radius: 6px;
 }
 
@@ -162,14 +162,14 @@
 
 .tc-metric-label {
   font-size: 0.62rem;
-  color: #80808c;
+  color: var(--tc-text-muted);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .tc-metric-val {
   font-size: 1.25rem;
-  color: #f4f4f6;
+  color: var(--tc-text-primary);
   font-weight: 700;
   display: flex;
   align-items: baseline;
@@ -178,12 +178,12 @@
 
 .tc-cur-label {
   font-size: 0.7rem;
-  color: #9f9fa9;
+  color: var(--tc-text-secondary);
 }
 
 .tc-metric-subval {
   font-size: 0.95rem;
-  color: #d1d1db;
+  color: var(--tc-text-primary);
   font-weight: 600;
 }
 
@@ -196,11 +196,11 @@
 }
 
 .tc-metric-change.positive {
-  color: #4ade80;
+  color: var(--tc-success);
 }
 
 .tc-metric-change.negative {
-  color: #f87171;
+  color: var(--tc-danger);
 }
 
 .tc-change-arrow {
@@ -212,8 +212,8 @@
   position: relative;
   width: 100%;
   height: 240px;
-  background: #0d0d10;
-  border: 1px solid #1f1f24;
+  background: var(--tc-bg-sunken);
+  border: 1px solid var(--tc-border);
   border-radius: 6px;
   overflow: visible;
   margin-top: 0.5rem;
@@ -234,9 +234,9 @@
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  background: rgba(13, 13, 16, 0.85);
+  background: rgba(var(--tc-scrim-rgb), 0.85);
   backdrop-filter: blur(4px);
-  color: #d4af37;
+  color: var(--tc-brand-text);
   font-size: 0.75rem;
   letter-spacing: 0.05em;
   z-index: 5;
@@ -245,8 +245,8 @@
 .tc-spinner {
   width: 24px;
   height: 24px;
-  border: 2px solid rgba(212, 175, 55, 0.2);
-  border-top-color: #d4af37;
+  border: 2px solid rgba(var(--tc-brand-rgb), 0.2);
+  border-top-color: var(--tc-brand);
   border-radius: 50%;
   animation: tc-spin 0.8s linear infinite;
 }
@@ -261,12 +261,12 @@
 .tc-chart-tooltip {
   position: absolute;
   transform: translate(-50%, -120%);
-  background: #1a1a22;
-  border: 1px solid #d4af37;
+  background: var(--tc-surface-raised);
+  border: 1px solid var(--tc-brand);
   border-radius: 5px;
   padding: 0.45rem 0.65rem;
   pointer-events: none;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 4px 16px rgba(var(--tc-shadow-rgb), 0.7);
   z-index: 10;
   white-space: nowrap;
   display: flex;
@@ -276,18 +276,18 @@
 
 .tc-tooltip-date {
   font-size: 0.65rem;
-  color: #9d9da8;
+  color: var(--tc-text-secondary);
 }
 
 .tc-tooltip-price {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #d4af37;
+  color: var(--tc-brand-text);
 }
 
 .tc-tooltip-vol {
   font-size: 0.62rem;
-  color: #4ade80;
+  color: var(--tc-success);
 }
 
 /* Footer Assurance */
@@ -298,7 +298,7 @@
   gap: 0.75rem;
   margin-top: 1rem;
   padding-top: 0.75rem;
-  border-top: 1px solid #232328;
+  border-top: 1px solid var(--tc-border);
 }
 
 .tc-footer-item {
@@ -309,13 +309,13 @@
 
 .tc-footer-label {
   font-size: 0.62rem;
-  color: #72727e;
+  color: var(--tc-text-muted);
   letter-spacing: 0.05em;
 }
 
 .tc-footer-val {
   font-size: 0.65rem;
-  color: #c5c5d0;
+  color: var(--tc-text-secondary);
   font-weight: 600;
 }
 

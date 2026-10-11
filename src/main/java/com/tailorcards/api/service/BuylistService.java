@@ -67,7 +67,7 @@ public class BuylistService {
             }
         }
 
-        return buylistMapper.toResponse(submission);
+        return buylistMapper.toAdminResponse(submission, true);
     }
 
     @Transactional(readOnly = true)
@@ -88,7 +88,7 @@ public class BuylistService {
         } else {
             page = buylistSubmissionRepository.findAll(pageable);
         }
-        return page.map(buylistMapper::toResponse);
+        return page.map(submission -> buylistMapper.toAdminResponse(submission, false));
     }
 
     @Transactional
@@ -106,8 +106,24 @@ public class BuylistService {
         }
 
         submission.setStatus(normalizedStatus);
+        if (submission.getSource() != null) {
+            // Record the owner's decision on chatbot submissions to calibrate the likelihood meter
+            String decision = switch (normalizedStatus) {
+                case "ACCEPTED" -> "APPROVED";
+                case "OFFERED" -> "COUNTERED";
+                case "REJECTED" -> "DECLINED";
+                default -> null;
+            };
+            if (decision != null) {
+                submission.setOwnerDecision(decision);
+                submission.setOwnerDecidedAt(Instant.now());
+            }
+            if ("OFFERED".equals(normalizedStatus) && request.counterAmountUsd() != null) {
+                submission.setCounterAmountUsd(request.counterAmountUsd());
+            }
+        }
         BuylistSubmission saved = buylistSubmissionRepository.save(submission);
-        return buylistMapper.toResponse(saved);
+        return buylistMapper.toAdminResponse(saved, true);
     }
 
     @Transactional

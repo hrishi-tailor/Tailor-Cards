@@ -1,77 +1,191 @@
 /* ==========================================================================
-   Tailor Cards — Pokemon Gen 5 Black & White Sleek Aesthetic
-   Main Background: Rich dark slate (#161618)
-   Panels & Containers: Sleek translucent Gen 5 panels (rgba(0, 0, 0, 0.4))
-   Borders: Sharp, faint 1px hairlines (rgba(255, 255, 255, 0.1) / #1f2937)
-   Typography: Inter for paragraphs; Press Start 2P strictly for prices, percentages, [ARCHIVE]
+   Tailor Cards theme
+   Light (default): navy ink on paper cream, taken from the logo, with a brass
+   foil accent used sparingly. Dark: deep navy surfaces with cream text.
+   The theme follows the system setting unless the visitor picks one with the
+   header toggle, which sets data-theme on <html> (see index.html).
    ========================================================================== */
 
 :root {
+  /* Brand */
+  --tc-ink: #1f2e4d;
+  --tc-paper: #f7f4ee;
+
   /* Surfaces */
-  --tc-bg: #161618;
-  --tc-surface: rgba(0, 0, 0, 0.4);
-  --tc-card: rgba(0, 0, 0, 0.4);
-  --tc-card-hover: rgba(0, 0, 0, 0.6);
-  --tc-card-active: rgba(0, 0, 0, 0.75);
+  --tc-bg: #f7f4ee;
+  --tc-bg-sunken: #efeae0;
+  --tc-surface: #ffffff;
+  --tc-surface-raised: #ffffff;
+  --tc-surface-3: #f2eee6;
+  --tc-card: #ffffff;
+  --tc-card-hover: #fbf9f5;
+  --tc-card-active: #f2eee6;
+  --tc-field: #ffffff;
 
-  /* Hairlines & Borders */
-  --tc-border: rgba(255, 255, 255, 0.1);
-  --tc-border-subtle: rgba(255, 255, 255, 0.05);
-  --tc-border-strong: rgba(255, 255, 255, 0.2);
-  --tc-border-highlight: rgba(255, 255, 255, 0.25);
+  /* Hairlines */
+  --tc-border: #dcd5c7;
+  --tc-border-subtle: #e8e2d6;
+  --tc-border-strong: #c4baa6;
+  --tc-border-highlight: #1f2e4d;
 
-  /* Typography Colors */
-  --tc-text-primary: #f4f4f5;
-  --tc-text-secondary: #a1a1aa;
-  --tc-text-muted: #71717a;
+  /* Text */
+  --tc-text-primary: #1f2e4d;
+  --tc-text-secondary: #4a5672;
+  --tc-text-muted: #7a8399;
 
-  /* Minimalist Accents */
-  --tc-accent: #e4e4e7;
-  --tc-accent-hover: #ffffff;
-  --tc-accent-subtle: rgba(255, 255, 255, 0.06);
-  --tc-accent-border: rgba(255, 255, 255, 0.2);
-  --tc-accent-strong: rgba(255, 255, 255, 0.35);
+  /* Accents: --tc-accent is the ink used for primary actions; --tc-brand is the brass foil */
+  --tc-accent: #1f2e4d;
+  --tc-accent-hover: #15213a;
+  --tc-accent-subtle: rgba(31, 46, 77, 0.06);
+  --tc-accent-border: rgba(31, 46, 77, 0.2);
+  --tc-accent-strong: rgba(31, 46, 77, 0.35);
+  --tc-brand: #b08a4a;
+  --tc-brand-text: #84652f;
+  --tc-brand-rgb: 176, 138, 74;
+  --tc-btn-bg: #1f2e4d;
+  --tc-btn-bg-hover: #15213a;
+  --tc-btn-fg: #f7f4ee;
 
-  /* Functional Status (Strictly for grading/orders, never decoration) */
-  --tc-status-green: #10b981;
-  --tc-status-green-subtle: rgba(16, 185, 129, 0.1);
-  --tc-status-green-border: rgba(16, 185, 129, 0.35);
+  /* Channels for translucent overlays */
+  --tc-fg-rgb: 31, 46, 77;
+  --tc-scrim-rgb: 17, 24, 40;
+  --tc-shadow-rgb: 31, 46, 77;
 
-  --tc-status-blue: #38bdf8;
-  --tc-status-blue-subtle: rgba(56, 189, 248, 0.1);
-  --tc-status-blue-border: rgba(56, 189, 248, 0.35);
+  /* Status (text-safe on the theme background) */
+  --tc-success: #2f7a4f;
+  --tc-warning: #9a6a12;
+  --tc-danger: #b3412f;
+  --tc-info: #2b63a8;
+  --tc-status-green: var(--tc-success);
+  --tc-status-green-subtle: rgba(47, 122, 79, 0.1);
+  --tc-status-green-border: rgba(47, 122, 79, 0.35);
+  --tc-status-blue: var(--tc-info);
+  --tc-status-blue-subtle: rgba(43, 99, 168, 0.1);
+  --tc-status-blue-border: rgba(43, 99, 168, 0.35);
+  --tc-status-red: var(--tc-danger);
+  --tc-status-red-subtle: rgba(179, 65, 47, 0.1);
+  --tc-status-red-border: rgba(179, 65, 47, 0.35);
 
-  --tc-status-red: #ef4444;
-  --tc-status-red-subtle: rgba(239, 68, 68, 0.1);
-  --tc-status-red-border: rgba(239, 68, 68, 0.35);
-
-  /* Typography System: Display & Body (Inter), Pixel (Press Start 2P), Data (Space Mono) */
-  --tc-font-display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --tc-font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --tc-font-pixel: 'Press Start 2P', monospace;
-  --tc-font-mono: 'Space Mono', ui-monospace, SFMono-Regular, monospace;
+  /* Type: Archivo for display (wide), Instrument Sans for text, JetBrains Mono for card data */
+  --tc-font-display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --tc-font-body: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
+  --tc-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --tc-font-pixel: var(--tc-font-display);
   --tc-font-sans: var(--tc-font-body);
 
-  /* Standardized Border Radii */
+  /* Shape and spacing */
   --tc-radius-sm: 4px;
   --tc-radius: 6px;
-
-  /* Strict 8-Point Spatial Grid */
+  --tc-radius-lg: 10px;
+  --tc-wrap: 1240px;
+  --tc-gutter: clamp(16px, 4vw, 40px);
   --tc-space-1: 8px;
   --tc-space-2: 16px;
   --tc-space-3: 24px;
   --tc-space-4: 32px;
   --tc-space-6: 48px;
   --tc-space-8: 64px;
+  --tc-shadow-lift: 0 30px 60px -28px rgba(var(--tc-shadow-rgb), 0.45), 0 2px 6px rgba(var(--tc-shadow-rgb), 0.08);
 
   font-family: var(--tc-font-body);
-  line-height: 1.6;
-  color-scheme: dark;
+  line-height: 1.55;
+  color-scheme: light;
   color: var(--tc-text-primary);
   background-color: var(--tc-bg);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Dark theme: system preference unless light was chosen, or an explicit dark choice */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --tc-bg: #0e1524;
+    --tc-bg-sunken: #0a101c;
+    --tc-surface: #151e31;
+    --tc-surface-raised: #182238;
+    --tc-surface-3: #1d2840;
+    --tc-card: #151e31;
+    --tc-card-hover: #1a2439;
+    --tc-card-active: #1f2b44;
+    --tc-field: #111a2b;
+    --tc-border: rgba(238, 233, 223, 0.12);
+    --tc-border-subtle: rgba(238, 233, 223, 0.07);
+    --tc-border-strong: rgba(238, 233, 223, 0.22);
+    --tc-border-highlight: #eee9df;
+    --tc-text-primary: #eee9df;
+    --tc-text-secondary: #aab2c4;
+    --tc-text-muted: #7c869c;
+    --tc-accent: #eee9df;
+    --tc-accent-hover: #ffffff;
+    --tc-accent-subtle: rgba(238, 233, 223, 0.06);
+    --tc-accent-border: rgba(238, 233, 223, 0.2);
+    --tc-accent-strong: rgba(238, 233, 223, 0.35);
+    --tc-brand: #d2b072;
+    --tc-brand-text: #dcbd84;
+    --tc-brand-rgb: 210, 176, 114;
+    --tc-btn-bg: #eee9df;
+    --tc-btn-bg-hover: #ffffff;
+    --tc-btn-fg: #14203a;
+    --tc-fg-rgb: 238, 233, 223;
+    --tc-scrim-rgb: 5, 9, 18;
+    --tc-shadow-rgb: 0, 0, 0;
+    --tc-success: #6cc28f;
+    --tc-warning: #e0b65a;
+    --tc-danger: #ef8a78;
+    --tc-info: #7fb0ec;
+    --tc-status-green-subtle: rgba(108, 194, 143, 0.12);
+    --tc-status-green-border: rgba(108, 194, 143, 0.35);
+    --tc-status-blue-subtle: rgba(127, 176, 236, 0.12);
+    --tc-status-blue-border: rgba(127, 176, 236, 0.35);
+    --tc-status-red-subtle: rgba(239, 138, 120, 0.12);
+    --tc-status-red-border: rgba(239, 138, 120, 0.35);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --tc-bg: #0e1524;
+  --tc-bg-sunken: #0a101c;
+  --tc-surface: #151e31;
+  --tc-surface-raised: #182238;
+  --tc-surface-3: #1d2840;
+  --tc-card: #151e31;
+  --tc-card-hover: #1a2439;
+  --tc-card-active: #1f2b44;
+  --tc-field: #111a2b;
+  --tc-border: rgba(238, 233, 223, 0.12);
+  --tc-border-subtle: rgba(238, 233, 223, 0.07);
+  --tc-border-strong: rgba(238, 233, 223, 0.22);
+  --tc-border-highlight: #eee9df;
+  --tc-text-primary: #eee9df;
+  --tc-text-secondary: #aab2c4;
+  --tc-text-muted: #7c869c;
+  --tc-accent: #eee9df;
+  --tc-accent-hover: #ffffff;
+  --tc-accent-subtle: rgba(238, 233, 223, 0.06);
+  --tc-accent-border: rgba(238, 233, 223, 0.2);
+  --tc-accent-strong: rgba(238, 233, 223, 0.35);
+  --tc-brand: #d2b072;
+  --tc-brand-text: #dcbd84;
+  --tc-brand-rgb: 210, 176, 114;
+  --tc-btn-bg: #eee9df;
+  --tc-btn-bg-hover: #ffffff;
+  --tc-btn-fg: #14203a;
+  --tc-fg-rgb: 238, 233, 223;
+  --tc-scrim-rgb: 5, 9, 18;
+  --tc-shadow-rgb: 0, 0, 0;
+  --tc-success: #6cc28f;
+  --tc-warning: #e0b65a;
+  --tc-danger: #ef8a78;
+  --tc-info: #7fb0ec;
+  --tc-status-green-subtle: rgba(108, 194, 143, 0.12);
+  --tc-status-green-border: rgba(108, 194, 143, 0.35);
+  --tc-status-blue-subtle: rgba(127, 176, 236, 0.12);
+  --tc-status-blue-border: rgba(127, 176, 236, 0.35);
+  --tc-status-red-subtle: rgba(239, 138, 120, 0.12);
+  --tc-status-red-border: rgba(239, 138, 120, 0.35);
+  color-scheme: dark;
 }
 
 *, *::before, *::after {
@@ -83,171 +197,190 @@ html, body {
   padding: 0;
   width: 100%;
   min-height: 100%;
-  background-color: #161618;
+  background-color: var(--tc-bg);
   color: var(--tc-text-primary);
   font-family: var(--tc-font-body);
-  line-height: 1.6;
+  font-size: 16px;
+  line-height: 1.55;
 }
 
 #root {
   width: 100%;
   min-height: 100vh;
-  margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
-  background-color: transparent;
 }
 
-/* Typographic Rhythm — Modern Inter Sans for Display & Headings */
+img {
+  max-width: 100%;
+}
+
 h1, h2, h3, h4, .tc-display-heading {
   font-family: var(--tc-font-display);
-  letter-spacing: -0.025em;
-  font-stretch: normal;
+  font-stretch: 112%;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+  color: var(--tc-text-primary);
+  margin: 0;
 }
 
-h1 {
-  font-size: 32px;
-  line-height: 40px;
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  font-stretch: normal;
-  margin: 0;
-  color: var(--tc-text-primary);
-}
-
-h2 {
-  font-size: 24px;
-  line-height: 32px;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  font-stretch: normal;
-  margin: 0;
-  color: var(--tc-text-primary);
-}
-
-h3 {
-  font-size: 20px;
-  line-height: 28px;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  font-stretch: normal;
-  margin: 0;
-  color: var(--tc-text-primary);
-}
-
-h4 {
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  font-stretch: normal;
-  margin: 0;
-  color: var(--tc-text-primary);
-}
+h1 { font-size: clamp(30px, 3.4vw, 44px); line-height: 1.08; font-weight: 700; }
+h2 { font-size: clamp(24px, 2.6vw, 34px); line-height: 1.15; font-weight: 700; }
+h3 { font-size: 20px; line-height: 1.3; font-weight: 650; }
+h4 { font-size: 16px; line-height: 1.4; font-weight: 650; }
 
 p {
-  font-family: var(--tc-font-body);
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.6;
-  font-weight: 400;
   color: var(--tc-text-secondary);
   margin: 0;
 }
 
-/* Monospace & Tabular Data Elements */
+a {
+  color: inherit;
+}
+
 code, pre, .tc-mono {
   font-family: var(--tc-font-mono);
-  font-feature-settings: "tnum";
   font-variant-numeric: tabular-nums;
-  letter-spacing: normal;
   font-size: 12px;
   line-height: 1.5;
 }
 
-/* Pokemon Gen 5 Retro Pixel Typography (strictly prices, percentages, [ARCHIVE] tags) */
+/* Former pixel-font helper: now plain tabular figures in the display face */
 .tc-pixel {
-  font-family: var(--tc-font-pixel), monospace !important;
-  letter-spacing: -0.04em;
-  font-size: 0.72em;
-  line-height: 1.2;
-  text-rendering: pixelated;
-  -webkit-font-smoothing: none;
+  font-family: var(--tc-font-display);
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: 0;
 }
 
-/* Focus State */
+/* Shared building blocks */
+.tc-wrap {
+  max-width: var(--tc-wrap);
+  margin: 0 auto;
+  padding-inline: var(--tc-gutter);
+  width: 100%;
+}
+
+.tc-eyebrow {
+  font-family: var(--tc-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tc-brand-text);
+}
+
+.tc-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 24px;
+  border-radius: var(--tc-radius);
+  border: 1.5px solid var(--tc-btn-bg);
+  font: 600 15px/1 var(--tc-font-body);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.tc-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.tc-button-solid {
+  background: var(--tc-btn-bg);
+  color: var(--tc-btn-fg);
+}
+
+.tc-button-solid:hover {
+  background: var(--tc-btn-bg-hover);
+  border-color: var(--tc-btn-bg-hover);
+}
+
+.tc-button-ghost {
+  background: transparent;
+  color: var(--tc-text-primary);
+  border-color: var(--tc-text-primary);
+}
+
+.tc-button-ghost:hover {
+  background: var(--tc-btn-bg);
+  color: var(--tc-btn-fg);
+}
+
+.tc-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.tc-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: var(--tc-text-primary);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.tc-icon-btn:hover {
+  background: var(--tc-accent-subtle);
+}
+
+.tc-icon-btn svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tc-link-underline {
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  border-bottom: 1.5px solid currentColor;
+  padding-bottom: 2px;
+}
+
+.tc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 :focus-visible {
-  outline: 1px solid var(--tc-border-highlight);
-  outline-offset: 2px;
+  outline: 2px solid var(--tc-brand);
+  outline-offset: 3px;
 }
 
-/* Minimalist Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #161618;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #27272a;
-  border-radius: var(--tc-radius-sm);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
-}
-
-/* Selection */
 ::selection {
-  background-color: rgba(255, 255, 255, 0.15);
-  color: #ffffff;
+  background-color: rgba(var(--tc-brand-rgb), 0.3);
+  color: var(--tc-text-primary);
 }
 
-/* Subtle 1px Gen 5 Panel Edge Accent (no thick colored glows) */
-.tc-corner-accent {
-  position: relative;
-}
-
-.tc-corner-accent::before {
-  content: '';
-  position: absolute;
-  top: -1px;
-  left: -1px;
-  width: 8px;
-  height: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.25);
-  border-left: 1px solid rgba(255, 255, 255, 0.25);
-  border-top-left-radius: var(--tc-radius);
-  pointer-events: none;
-}
-
-.tc-corner-accent::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  right: -1px;
-  width: 8px;
-  height: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
-  border-right: 1px solid rgba(255, 255, 255, 0.25);
-  border-bottom-right-radius: var(--tc-radius);
-  pointer-events: none;
-}
-
-
-/* Metallic Shimmer for Active/Featured Cards */
+/* Legacy decorative helpers, kept quiet so older markup still renders cleanly */
+.tc-corner-accent,
 .tc-shimmer-card {
   position: relative;
-  overflow: hidden;
 }
 
-.tc-shimmer-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.08), transparent 70%);
-  pointer-events: none;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
 }

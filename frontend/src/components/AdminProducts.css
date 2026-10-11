@@ -1,0 +1,152 @@
+/* Admin: product photos */
+
+.tc-ap {
+  padding-block: 32px 96px;
+  display: grid;
+  gap: 18px;
+}
+
+.tc-ap-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tc-ap-head p {
+  max-width: 60ch;
+  margin-top: 8px;
+}
+
+.tc-ap-filter {
+  max-width: 360px;
+  height: 44px;
+  padding: 0 14px;
+  border: 1.5px solid var(--tc-border);
+  border-radius: var(--tc-radius);
+  background: var(--tc-field);
+  color: var(--tc-text-primary);
+  font: 15px var(--tc-font-body);
+}
+
+.tc-ap-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--tc-border);
+}
+
+.tc-ap-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(0, 2fr) auto;
+  gap: 20px;
+  align-items: center;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--tc-border);
+}
+
+.tc-ap-info {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tc-ap-info span {
+  font: 500 12px/1.4 var(--tc-font-mono);
+  color: var(--tc-text-secondary);
+}
+
+.tc-ap-images {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 0;
+}
+
+.tc-ap-images figure {
+  position: relative;
+  flex: none;
+  width: 72px;
+  margin: 0;
+}
+
+.tc-ap-images img {
+  width: 72px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--tc-bg-sunken);
+  display: block;
+}
+
+.tc-ap-images img.is-official {
+  object-fit: contain;
+  padding: 4px;
+}
+
+.tc-ap-images figcaption {
+  margin-top: 4px;
+  font-size: 11px;
+  text-align: center;
+  color: var(--tc-text-secondary);
+}
+
+.tc-ap-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tc-danger);
+  color: #fff;
+  font-size: 15px;
+  line-height: 22px;
+  cursor: pointer;
+}
+
+.tc-ap-empty {
+  font-size: 14px;
+  color: var(--tc-text-muted);
+}
+
+.tc-ap-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.tc-ap-actions .tc-button {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.tc-ap-actions .is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.tc-ap-note {
+  font-size: 13px;
+  color: var(--tc-success);
+}
+
+.tc-ap-error {
+  font-size: 13px;
+  color: var(--tc-danger);
+}
+
+@media (max-width: 860px) {
+  .tc-ap-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tc-ap-actions {
+    justify-content: flex-start;
+  }
+}

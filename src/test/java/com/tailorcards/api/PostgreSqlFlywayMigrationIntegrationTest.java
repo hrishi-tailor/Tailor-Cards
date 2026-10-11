@@ -40,10 +40,13 @@ class PostgreSqlFlywayMigrationIntegrationTest {
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         if (postgres != null && postgres.isRunning()) {
-            registry.add("spring.datasource.url", () -> postgres.getJdbcUrl() + "?prepareThreshold=0");
+            registry.add("spring.datasource.url",
+                    () -> AbstractFlywayBaselineIntegrationTest.withPrepareThresholdZero(postgres.getJdbcUrl()));
             registry.add("spring.datasource.username", postgres::getUsername);
             registry.add("spring.datasource.password", postgres::getPassword);
             registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
+            // The shared test config sets H2Dialect; validate against PostgreSQL types
+            registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
             registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
             registry.add("spring.flyway.enabled", () -> "true");
             registry.add("spring.flyway.baseline-on-migrate", () -> "true");
@@ -65,14 +68,16 @@ class PostgreSqlFlywayMigrationIntegrationTest {
         assertThat(categoryCount).isNotNull();
         assertThat(categoryCount).isGreaterThanOrEqualTo(2);
 
+        // Migrations seed no products (only DemoDataSeeder does, and only with DEMO_MODE=true),
+        // so on an empty database the table exists and is empty
         Integer productCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM products", Integer.class);
         assertThat(productCount).isNotNull();
-        assertThat(productCount).isGreaterThanOrEqualTo(4);
+        assertThat(productCount).isZero();
 
         // 2. Verify V2 seed data exists
         Integer buyRuleCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM buy_rules", Integer.class);
         assertThat(buyRuleCount).isNotNull();
-        assertThat(buyRuleCount).isEqualTo(4);
+        assertThat(buyRuleCount).isEqualTo(6); // V2 seeds 4, V6 adds PSA 9 and CGC 10
 
         Integer tradeParamCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM trade_parameters", Integer.class);
         assertThat(tradeParamCount).isNotNull();
@@ -86,6 +91,9 @@ class PostgreSqlFlywayMigrationIntegrationTest {
         Integer migrationCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM flyway_schema_history WHERE success = true", Integer.class);
         assertThat(migrationCount).isNotNull();
-        assertThat(migrationCount).isGreaterThanOrEqualTo(2);
+        assertThat(migrationCount).isGreaterThanOrEqualTo(3);
+        Integer v3 = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM flyway_schema_history WHERE version = '3' AND success = true", Integer.class);
+        assertThat(v3).isEqualTo(1);
     }
 }

@@ -292,7 +292,8 @@ export async function getAdminBuylistSubmissions(
  */
 export async function updateBuylistStatus(
   submissionId: number,
-  status: BuylistStatus
+  status: BuylistStatus,
+  counterAmountUsd?: number
 ): Promise<BuylistSubmission> {
   const auth = getAdminAuthHeader();
   if (!auth) {
@@ -305,7 +306,7 @@ export async function updateBuylistStatus(
       'Content-Type': 'application/json',
       'Authorization': `Basic ${auth}`,
     },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(counterAmountUsd !== undefined ? { status, counterAmountUsd } : { status }),
   });
 
   if (!response.ok) {
@@ -324,6 +325,47 @@ export async function updateBuylistStatus(
   }
 
   return response.json();
+}
+
+/**
+ * Full admin view of one submission (chat submissions include lines and transcript).
+ */
+export async function getAdminBuylistSubmission(submissionId: number): Promise<BuylistSubmission> {
+  const auth = getAdminAuthHeader();
+  if (!auth) {
+    throw new Error('Unauthorized: Admin credentials required.');
+  }
+  const response = await fetch(`${API_BASE_URL}/api/buylist/admin/submissions/${submissionId}`, {
+    headers: { 'Authorization': `Basic ${auth}` },
+  });
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      clearAdminAuth();
+      throw new Error('Unauthorized: Admin credentials required.');
+    }
+    throw new Error(`Failed to load submission (${response.status})`);
+  }
+  return response.json();
+}
+
+/**
+ * Admin: lets a customer submit through the chat again today.
+ */
+export async function resetBuylistChatDailyLimit(email: string): Promise<number> {
+  const auth = getAdminAuthHeader();
+  if (!auth) {
+    throw new Error('Unauthorized: Admin credentials required.');
+  }
+  const response = await fetch(`${API_BASE_URL}/api/admin/buylist-chat/daily-limit/reset`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${auth}` },
+    body: JSON.stringify({ email }),
+  });
+  if (!response.ok) {
+    throw new Error(response.status === 403 ? 'Only admins can reset limits.' : `Reset failed (${response.status})`);
+  }
+  const data = await response.json();
+  return data.released ?? 0;
 }
 
 /**

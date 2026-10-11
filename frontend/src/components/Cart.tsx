@@ -94,7 +94,7 @@ export function Cart() {
         <div className="tc-status-box">
           <h2>Unable to load cart</h2>
           <p>{error}</p>
-          <Link to="/" className="tc-browse-btn">
+          <Link to="/shop" className="tc-browse-btn">
             Return to Catalog
           </Link>
         </div>
@@ -118,8 +118,8 @@ export function Cart() {
             </svg>
           </div>
           <h2>Your Cart is Empty</h2>
-          <p>You haven't added any cards or collectibles yet. Explore our vault of rare holographic singles, PSA slabs, and supplies!</p>
-          <Link to="/" className="tc-browse-btn">
+          <p>You haven't added any cards yet. Browse singles, graded slabs and sealed product in the shop.</p>
+          <Link to="/shop" className="tc-browse-btn">
             Browse All Cards
           </Link>
         </div>
@@ -218,7 +218,7 @@ export function Cart() {
 
           {/* Left Column Subtotal */}
           <div className="tc-cart-left-footer">
-            <Link to="/" className="tc-continue-link">
+            <Link to="/shop" className="tc-continue-link">
               ← Continue Shopping
             </Link>
             <div className="tc-cart-left-subtotal">
@@ -307,7 +307,7 @@ export function Cart() {
                 onClick={handleDemoCheckout}
                 disabled={isCheckingOut || removingId !== null}
               >
-                ⚡ Instant Demo Checkout (Simulate Acquisition)
+                Demo checkout (no payment)
               </button>
               <div className="tc-cart-demo-stripe-note">
                 <span>Or test hosted Stripe with sandbox card:</span>

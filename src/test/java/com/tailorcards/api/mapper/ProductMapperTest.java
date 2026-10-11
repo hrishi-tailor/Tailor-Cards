@@ -163,4 +163,19 @@ class ProductMapperTest {
         assertEquals("PSA 9", product.getGrading());
         assertEquals("SOLD", product.getStatus());
     }
+
+    @Test
+    void pokemontcgId_isMappedOnCreateAndKeptWhenUpdateOmitsIt() {
+        Category category = Category.builder().id(1L).name("Singles").build();
+        ProductRequest create = new ProductRequest("Charizard", null, BigDecimal.TEN, null, 1, 1L,
+                "4/102", "Base Set", "Near Mint", null, null, " base1-4 ");
+
+        Product product = productMapper.toEntity(create, category);
+        assertEquals("base1-4", product.getPokemontcgId());
+
+        ProductRequest updateWithoutId = new ProductRequest("Charizard", null, BigDecimal.ONE, null, 1, 1L,
+                "4/102", "Base Set", "Near Mint", null, null);
+        productMapper.updateEntity(product, updateWithoutId, category);
+        assertEquals("base1-4", product.getPokemontcgId());
+    }
 }

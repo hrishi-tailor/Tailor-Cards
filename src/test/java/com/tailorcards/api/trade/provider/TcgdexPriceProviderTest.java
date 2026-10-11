@@ -49,9 +49,19 @@ class TcgdexPriceProviderTest {
                   },
                   "pricing": {
                     "tcgplayer": {
+                      "unit": "USD",
+                      "updated": "2026-10-08T22:54:34.137Z",
                       "holofoil": {
-                        "market": 285.50
+                        "lowPrice": 199.99,
+                        "marketPrice": 285.50
+                      },
+                      "reverse-holofoil": {
+                        "marketPrice": 12.25
                       }
+                    },
+                    "cardmarket": {
+                      "unit": "EUR",
+                      "trend": 240.10
                     }
                   }
                 }
@@ -74,6 +84,13 @@ class TcgdexPriceProviderTest {
         assertThat(card.largeImageUrl()).isEqualTo("https://assets.tcgdex.net/en/base/base1/4/high.webp");
         assertThat(card.marketPriceUsd()).isEqualByComparingTo(new BigDecimal("285.50"));
         assertThat(card.source()).isEqualTo("TCGDEX");
+        // Real TCGdex shape: hyphenated variant keys with "marketPrice"
+        assertThat(card.variantPricesUsd())
+                .containsEntry("holofoil", new BigDecimal("285.50"))
+                .containsEntry("reverse-holofoil", new BigDecimal("12.25"))
+                .doesNotContainKeys("unit", "updated");
+        assertThat(card.eurTrend()).isEqualByComparingTo("240.10");
+        assertThat(card.pricesUpdatedAt()).isEqualTo("2026-10-08T22:54:34.137Z");
         mockServer.verify();
     }
 
