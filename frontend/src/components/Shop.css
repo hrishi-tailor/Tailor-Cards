@@ -14,14 +14,20 @@
 
 .tc-product-media {
   position: relative;
-  display: block;
   width: 100%;
   aspect-ratio: 4 / 5;
-  padding: 0;
-  border: 0;
   border-radius: 8px;
   overflow: hidden;
   background: var(--tc-bg-sunken);
+}
+
+.tc-product-open {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
   cursor: pointer;
 }
 
@@ -30,9 +36,113 @@
   inset: 0;
   width: 100%;
   height: 100%;
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  animation: tc-fade 0.25s ease;
+}
+
+/* Official card scans sit on the backdrop; the seller's photos fill the frame */
+.tc-product-media img.is-official {
   object-fit: contain;
   padding: 8%;
-  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.tc-product-media img.is-photo {
+  object-fit: cover;
+}
+
+@keyframes tc-fade {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+.tc-product-actual {
+  position: absolute;
+  top: 44px;
+  left: 12px;
+  z-index: 2;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: rgba(var(--tc-scrim-rgb), 0.72);
+  color: #f7f4ee;
+  font: 500 11px/1 var(--tc-font-body);
+  pointer-events: none;
+}
+
+.tc-gallery-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  width: 36px;
+  height: 36px;
+  margin-top: -18px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--tc-border);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--tc-surface) 92%, transparent);
+  color: var(--tc-text-primary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 4px 14px -6px rgba(var(--tc-shadow-rgb), 0.45);
+}
+
+.tc-gallery-arrow svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tc-gallery-arrow.is-prev { left: 10px; }
+.tc-gallery-arrow.is-next { right: 10px; }
+
+.tc-product:hover .tc-gallery-arrow,
+.tc-gallery-arrow:focus-visible {
+  opacity: 1;
+}
+
+.tc-gallery-arrow:hover {
+  transform: scale(1.06);
+}
+
+.tc-gallery-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  pointer-events: none;
+}
+
+.tc-gallery-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(var(--tc-fg-rgb), 0.25);
+  transition: background-color 0.2s, width 0.2s;
+}
+
+.tc-gallery-dots span.on {
+  width: 16px;
+  border-radius: 3px;
+  background: var(--tc-text-primary);
+}
+
+/* Touch screens have no hover: keep the arrows visible */
+@media (hover: none) {
+  .tc-gallery-arrow {
+    opacity: 1;
+    width: 32px;
+    height: 32px;
+    margin-top: -16px;
+  }
 }
 
 .tc-product:hover .tc-product-media img {
@@ -88,9 +198,9 @@
 
 .tc-product-quick {
   position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 12px;
+  left: 52px;
+  right: 52px;
+  bottom: 24px;
   z-index: 2;
   padding: 10px;
   border-radius: var(--tc-radius);
@@ -103,7 +213,7 @@
 }
 
 .tc-product:hover .tc-product-quick,
-.tc-product-media:focus-visible .tc-product-quick {
+.tc-product-open:focus-visible .tc-product-quick {
   opacity: 1;
   transform: none;
 }
@@ -376,6 +486,55 @@
   height: 100%;
   object-fit: contain;
   transition: transform 0.35s ease, transform-origin 0s;
+  animation: tc-fade 0.25s ease;
+}
+
+.tc-qv-photo .tc-gallery-arrow {
+  opacity: 1;
+  width: 42px;
+  height: 42px;
+  margin-top: -21px;
+}
+
+.tc-qv-photo .tc-product-actual {
+  top: 12px;
+}
+
+.tc-qv-thumbs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.tc-qv-thumbs button {
+  flex: none;
+  width: 56px;
+  height: 70px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--tc-surface);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s, border-color 0.2s;
+}
+
+.tc-qv-thumbs button.active {
+  border-color: var(--tc-text-primary);
+  opacity: 1;
+}
+
+.tc-qv-thumbs img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tc-qv-thumbs img.is-official {
+  object-fit: contain;
+  padding: 4px;
 }
 
 .tc-qv-tabs,

@@ -17,6 +17,10 @@ export interface Product {
   condition?: string;
   grading?: string;
   status?: 'AVAILABLE' | 'SOLD';
+  /** Linked card id (TCGdex), used for the official image and prices. */
+  pokemontcgId?: string | null;
+  /** The seller's own photos, shown after the default picture (imageUrl). */
+  photoUrls?: string[];
 }
 
 export interface PageResponse<T> {
@@ -345,4 +349,6 @@ export interface CreateProductPayload {
   condition: string | null;
   grading: string | null;
   pokemontcgId: string | null;
+  /** The seller's own photos, shown after the stock image. */
+  photoUrls?: string[];
 }

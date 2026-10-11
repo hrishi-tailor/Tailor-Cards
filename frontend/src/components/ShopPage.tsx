@@ -135,7 +135,7 @@ export function ShopPage() {
       </div>
 
       {quickView && (
-        <ProductQuickView key={quickView.id} product={quickView} siblings={visible} onNavigate={setQuickView} onClose={() => setQuickView(null)} />
+        <ProductQuickView key={quickView.id} product={quickView} onClose={() => setQuickView(null)} />
       )}
     </div>
   )

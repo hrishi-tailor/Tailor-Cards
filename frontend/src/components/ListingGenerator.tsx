@@ -5,6 +5,7 @@ import { isDemoRole } from '../api/buylistApi'
 import {
   ListingApiError,
   createProduct,
+  uploadProductPhoto,
   generateListingDraft,
   getCategories,
   getListingMarketReference,
@@ -88,6 +89,7 @@ export function ListingGenerator() {
   const [product, setProduct] = useState<ProductFields>({ categoryId: '', price: '', stock: '', imageUrl: '', pokemontcgId: '' })
   const [conditionChecked, setConditionChecked] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [attachPhotos, setAttachPhotos] = useState(true)
   const [created, setCreated] = useState<Product | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -241,6 +243,8 @@ export function ListingGenerator() {
     setSubmitting(true)
     setError(null)
     try {
+      // Your photos go on the listing after the stock image
+      const photoUrls = attachPhotos ? await Promise.all(photos.map((p) => uploadProductPhoto(p.file))) : []
       const result = await createProduct({
         name: draft.title.trim(),
         description: productDescription,
@@ -253,6 +257,7 @@ export function ListingGenerator() {
         condition: draft.isSealed ? 'Sealed' : graded ? null : CONDITION_LABELS[draft.condition],
         grading: graded ? `${draft.gradingCompany!.trim()} ${draft.grade!.trim()}` : null,
         pokemontcgId: textOrNull(product.pokemontcgId),
+        photoUrls,
       })
       setCreated(result)
       setPhase('created')
@@ -506,6 +511,10 @@ export function ListingGenerator() {
                 <figcaption className="tc-lg-muted">Stock image</figcaption>
               </figure>
             )}
+            <label className="tc-lg-check">
+              <input type="checkbox" checked={attachPhotos} onChange={(e) => setAttachPhotos(e.target.checked)} />
+              <span>Show my {photos.length === 1 ? 'photo' : `${photos.length} photos`} on the listing, after the stock image</span>
+            </label>
           </section>
 
           <div className="tc-lg-actions tc-lg-sticky">

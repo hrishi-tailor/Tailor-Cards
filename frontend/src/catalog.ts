@@ -64,6 +64,16 @@ export function conditionLabel(p: Product): string {
   return p.condition!.trim()
 }
 
+/** Default picture first (normally the official card image), then the seller's own photos. */
+export function productImages(p: Product): string[] {
+  return [...new Set([p.imageUrl, ...(p.photoUrls ?? [])].filter((u): u is string => Boolean(u && u.trim())))]
+}
+
+/** True for card-database images, as opposed to the seller's own photos. */
+export function isOfficialImage(url: string | undefined): boolean {
+  return Boolean(url && /tcgdex\.net|pokemontcg\.io|tcggo\.com/i.test(url))
+}
+
 /** Product names without the internal "[DEMO]" prefix used by the demo dataset. */
 export function displayName(p: Product): string {
   return p.name.replace(/^\[DEMO\]\s*/i, '')

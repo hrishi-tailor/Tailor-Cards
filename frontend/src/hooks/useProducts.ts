@@ -1,14 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { API_BASE_URL } from '../api/config'
 import type { PageResponse, Product } from '../types'
 
 const PAGE_SIZE = 100
 
-/** All products, every page of /api/products, loaded once per mount. */
+/** All products, every page of /api/products, loaded once per mount (and on reload()). */
 export function useProducts() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [version, setVersion] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -30,9 +31,12 @@ export function useProducts() {
     }
     load()
     return () => { cancelled = true }
-  }, [])
+  }, [version])
 
-  return { products, loading, error }
+  /** Loads the products again (e.g. after an admin change). */
+  const reload = useCallback(() => setVersion((v) => v + 1), [])
+
+  return { products, loading, error, reload }
 }
 
 async function fetchPage(page: number): Promise<PageResponse<Product>> {

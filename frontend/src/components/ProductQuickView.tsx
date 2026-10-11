@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Product } from '../types'
 import { isGradedOrSealed } from '../types'
-import { conditionLabel, displayName, formatCad, gradeOf } from '../catalog'
+import { conditionLabel, displayName, formatCad, gradeOf, isOfficialImage, productImages } from '../catalog'
 import { useAddToCart } from '../hooks/useAddToCart'
 import { PriceHistoryChart } from './PriceHistoryChart'
 
@@ -18,17 +18,17 @@ const ZOOMS: { id: Zoom; label: string; origin: string }[] = [
 
 interface QuickViewProps {
   product: Product
-  /** Products the arrow keys step through (the grid the visitor came from). */
-  siblings: Product[]
-  onNavigate: (product: Product) => void
   onClose: () => void
 }
 
 /**
- * Product details in a dialog: photo with corner zoom, specs, add to cart, and raw price history.
- * Render it with key={product.id} so zoom and tab reset when the visitor steps to another product.
+ * Product details in a dialog: the default picture (official card image) and the seller's photos with
+ * arrows, thumbnails and corner zoom; specs, add to cart, and raw price history.
+ * Render it with key={product.id} so the gallery resets for each product.
  */
-export function ProductQuickView({ product, siblings, onNavigate, onClose }: QuickViewProps) {
+export function ProductQuickView({ product, onClose }: QuickViewProps) {
+  const images = productImages(product)
+  const [index, setIndex] = useState(0)
   const [zoom, setZoom] = useState<Zoom>('full')
   const [tab, setTab] = useState<'photo' | 'history'>('photo')
   const { add, state } = useAddToCart()
@@ -38,6 +38,12 @@ export function ProductQuickView({ product, siblings, onNavigate, onClose }: Qui
   const outOfStock = !sold && product.stock <= 0
   const hasHistory = !isGradedOrSealed(product)
   const origin = ZOOMS.find((z) => z.id === zoom)?.origin ?? '50% 50%'
+  const current = images[index]
+
+  const show = (next: number) => {
+    setIndex((next + images.length) % images.length)
+    setZoom('full')
+  }
 
   useEffect(() => {
     closeRef.current?.focus()
@@ -49,13 +55,19 @@ export function ProductQuickView({ product, siblings, onNavigate, onClose }: Qui
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
-      const i = siblings.findIndex((p) => p.id === product.id)
-      if (e.key === 'ArrowRight' && i >= 0 && i < siblings.length - 1) onNavigate(siblings[i + 1])
-      if (e.key === 'ArrowLeft' && i > 0) onNavigate(siblings[i - 1])
+      if (images.length < 2) return
+      if (e.key === 'ArrowRight') {
+        setIndex((i) => (i + 1) % images.length)
+        setZoom('full')
+      }
+      if (e.key === 'ArrowLeft') {
+        setIndex((i) => (i - 1 + images.length) % images.length)
+        setZoom('full')
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [product.id, siblings, onNavigate, onClose])
+  }, [images.length, onClose])
 
   const specs: [string, string | undefined][] = [
     ['Set', product.set],
@@ -89,14 +101,37 @@ export function ProductQuickView({ product, siblings, onNavigate, onClose }: Qui
           ) : (
             <>
               <div className="tc-qv-photo">
-                {product.imageUrl ? (
-                  <img src={product.imageUrl} alt={name}
+                {current ? (
+                  <img key={current} src={current} alt={index === 0 ? name : `${name}, photo ${index}`}
                     style={{ transform: zoom === 'full' ? 'none' : 'scale(2.5)', transformOrigin: origin }} />
                 ) : (
                   <span className="tc-product-noimg">Photo coming soon</span>
                 )}
+                {index > 0 && !isOfficialImage(current) && <span className="tc-product-actual">Actual card</span>}
+                {images.length > 1 && (
+                  <>
+                    <button type="button" className="tc-gallery-arrow is-prev" onClick={() => show(index - 1)}
+                      aria-label="Previous photo">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6" /></svg>
+                    </button>
+                    <button type="button" className="tc-gallery-arrow is-next" onClick={() => show(index + 1)}
+                      aria-label="Next photo">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
+                    </button>
+                  </>
+                )}
               </div>
-              {product.imageUrl && (
+              {images.length > 1 && (
+                <div className="tc-qv-thumbs" aria-label="Photos">
+                  {images.map((src, i) => (
+                    <button key={src} type="button" className={i === index ? 'active' : ''} aria-pressed={i === index}
+                      aria-label={i === 0 ? 'Card image' : `Photo ${i}`} onClick={() => show(i)}>
+                      <img src={src} alt="" loading="lazy" className={isOfficialImage(src) ? 'is-official' : ''} />
+                    </button>
+                  ))}
+                </div>
+              )}
+              {current && (
                 <div className="tc-qv-zooms" aria-label="Zoom">
                   {ZOOMS.map((z) => (
                     <button key={z.id} type="button" className={zoom === z.id ? 'active' : ''} aria-pressed={zoom === z.id}
@@ -129,7 +164,7 @@ export function ProductQuickView({ product, siblings, onNavigate, onClose }: Qui
             ))}
           </dl>
           {product.description && <p className="tc-qv-desc">{product.description}</p>}
-          {siblings.length > 1 && <p className="tc-qv-keys">Use the arrow keys to browse, Esc to close.</p>}
+          {images.length > 1 && <p className="tc-qv-keys">Use the arrows or arrow keys to see every photo. Esc closes.</p>}
         </div>
       </div>
     </div>

@@ -355,6 +355,11 @@ export function AdminBuylist() {
               <span>Listing Generator</span>
             </Link>
           )}
+          {!isDemoRole() && (
+            <Link to="/admin/products" className="tc-admin-refresh-btn" title="Official card images and your photos for each listing">
+              <span>Product Photos</span>
+            </Link>
+          )}
           <button
             type="button"
             className="tc-admin-refresh-btn"

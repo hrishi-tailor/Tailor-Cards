@@ -33,7 +33,7 @@ async function readError(response: Response, fallback: string): Promise<ListingA
     return new ListingApiError('Your session expired. Please log in again.', 401);
   }
   if (response.status === 403) {
-    return new ListingApiError('Only admins can use the listing generator.', 403);
+    return new ListingApiError('Only admins can do this.', 403);
   }
   let message = fallback;
   try {
@@ -98,6 +98,22 @@ export async function getCategories(): Promise<Category[]> {
   return Array.isArray(data) ? data : data.content ?? [];
 }
 
+/** Stores one product photo (location data stripped) and returns its URL: POST /api/products/photos (ADMIN). */
+export async function uploadProductPhoto(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetch(`${API_BASE_URL}/api/products/photos`, {
+    method: 'POST',
+    headers: { Authorization: authHeader() },
+    body: formData,
+  });
+  if (!response.ok) {
+    throw await readError(response, `Photo upload failed (${response.status})`);
+  }
+  const data: { url: string } = await response.json();
+  return data.url;
+}
+
 /** Existing product endpoint: POST /api/products (ADMIN). */
 export async function createProduct(payload: CreateProductPayload): Promise<Product> {
   const response = await fetch(`${API_BASE_URL}/api/products`, {
@@ -107,6 +123,62 @@ export async function createProduct(payload: CreateProductPayload): Promise<Prod
   });
   if (!response.ok) {
     throw await readError(response, `Could not create product (${response.status})`);
+  }
+  return response.json();
+}
+
+/** Adds photos to an existing product, after its current ones: POST /api/products/{id}/photos (ADMIN). */
+export async function addProductPhotos(productId: number, files: File[]): Promise<Product> {
+  const formData = new FormData();
+  files.forEach((f) => formData.append('files', f));
+  const response = await fetch(`${API_BASE_URL}/api/products/${productId}/photos`, {
+    method: 'POST',
+    headers: { Authorization: authHeader() },
+    body: formData,
+  });
+  if (!response.ok) {
+    throw await readError(response, `Photo upload failed (${response.status})`);
+  }
+  return response.json();
+}
+
+/** Removes the photo at a position: DELETE /api/products/{id}/photos/{index} (ADMIN). */
+export async function removeProductPhoto(productId: number, index: number): Promise<Product> {
+  const response = await fetch(`${API_BASE_URL}/api/products/${productId}/photos/${index}`, {
+    method: 'DELETE',
+    headers: { Authorization: authHeader() },
+  });
+  if (!response.ok) {
+    throw await readError(response, `Could not remove the photo (${response.status})`);
+  }
+  return response.json();
+}
+
+/** Makes the official card image the default picture: POST /api/products/{id}/official-image (ADMIN). */
+export async function applyOfficialProductImage(productId: number): Promise<Product> {
+  const response = await fetch(`${API_BASE_URL}/api/products/${productId}/official-image`, {
+    method: 'POST',
+    headers: { Authorization: authHeader() },
+  });
+  if (!response.ok) {
+    throw await readError(response, `No official image found (${response.status})`);
+  }
+  return response.json();
+}
+
+export interface OfficialImageBackfill {
+  updated: number;
+  unmatched: string[];
+}
+
+/** Official images for every product that doesn't show one yet: POST /api/products/official-images (ADMIN). */
+export async function applyOfficialImagesForAll(): Promise<OfficialImageBackfill> {
+  const response = await fetch(`${API_BASE_URL}/api/products/official-images`, {
+    method: 'POST',
+    headers: { Authorization: authHeader() },
+  });
+  if (!response.ok) {
+    throw await readError(response, `Could not update images (${response.status})`);
   }
   return response.json();
 }

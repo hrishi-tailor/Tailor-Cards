@@ -8,6 +8,7 @@ import { TrackLookup } from './components/TrackLookup'
 import { AdminBuylist } from './components/AdminBuylist'
 import { AdminLoginPage } from './components/AdminLoginPage'
 import { ListingGenerator } from './components/ListingGenerator'
+import { AdminProducts } from './components/AdminProducts'
 import { SellRoute } from './components/SellRoute'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { CheckoutSuccess } from './components/CheckoutSuccess'
@@ -54,6 +55,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <ListingGenerator />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/products"
+            element={
+              <ProtectedRoute>
+                <AdminProducts />
               </ProtectedRoute>
             }
           />
