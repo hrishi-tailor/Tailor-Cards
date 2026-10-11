@@ -33,6 +33,10 @@ public class CardLookupService {
     private volatile Entry<List<TcgdexPriceProvider.SetInfo>> setsCache;
     private long nextSlotNanos = System.nanoTime();
 
+    /** Subsets TCGdex lists as their own sets: Trainer Gallery (TG), Galarian Gallery (GG), Shiny Vault (SV). */
+    private static final java.util.regex.Pattern SUBSET = java.util.regex.Pattern.compile(
+            "(?i)(trainer gallery|galarian gallery|shiny vault)$");
+
     @org.springframework.beans.factory.annotation.Autowired
     public CardLookupService(TcgdexPriceProvider tcgdex, BuylistChatProperties properties) {
         this(tcgdex, properties, Clock.systemUTC());
@@ -101,17 +105,30 @@ public class CardLookupService {
         return List.of();
     }
 
-    /** TCGdex set ids whose name matches (exact name first, then partial), e.g. "phantasmal flames" -> [me02]. */
+    /**
+     * TCGdex set ids whose name matches (exact name first, then partial), e.g. "phantasmal flames" -> [me02].
+     * An exact match also brings its gallery and vault subsets, which TCGdex keeps as separate sets:
+     * "Lost Origin" -> [swsh11, swsh11tg] so Trainer Gallery cards like TG05 are found.
+     */
     public List<String> setIdsFor(String setName) {
         if (setName == null || setName.isBlank()) {
             return List.of();
         }
         String wanted = setName.trim().toLowerCase(Locale.ROOT);
         List<TcgdexPriceProvider.SetInfo> all = sets();
-        List<String> exact = all.stream().filter(s -> s.name().equalsIgnoreCase(wanted) || s.id().equalsIgnoreCase(wanted))
-                .map(TcgdexPriceProvider.SetInfo::id).toList();
-        if (!exact.isEmpty()) {
-            return exact;
+        List<TcgdexPriceProvider.SetInfo> exactSets = all.stream()
+                .filter(s -> s.name().equalsIgnoreCase(wanted) || s.id().equalsIgnoreCase(wanted)).toList();
+        if (!exactSets.isEmpty()) {
+            List<String> ids = new java.util.ArrayList<>(exactSets.stream().map(TcgdexPriceProvider.SetInfo::id).toList());
+            for (TcgdexPriceProvider.SetInfo base : exactSets) {
+                String prefix = base.name().toLowerCase(Locale.ROOT) + " ";
+                all.stream()
+                        .filter(s -> s.name().toLowerCase(Locale.ROOT).startsWith(prefix) && SUBSET.matcher(s.name()).find())
+                        .map(TcgdexPriceProvider.SetInfo::id)
+                        .filter(id -> !ids.contains(id))
+                        .forEach(ids::add);
+            }
+            return List.copyOf(ids);
         }
         return all.stream().filter(s -> {
             String n = s.name().toLowerCase(Locale.ROOT);
