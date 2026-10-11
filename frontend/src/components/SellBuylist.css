@@ -1,10 +1,4 @@
-/* ==========================================================================
-   SellBuylist — Japanese Vault Collector Styling
-   Palette: Matte ink black (#0c0d10), Charcoal slate (#13151a),
-   Uniform 1px hairlines (rgba(255, 255, 255, 0.08)),
-   Chalk white (#f4f4f5), Muted stone (#a1a1aa).
-   Accent: Pale Champagne / Antique Gold (#d4af37).
-   ========================================================================== */
+/* Colors and type come from the theme tokens in index.css (light and dark). */
 
 .tc-sell-wrapper {
   max-width: 1360px;
@@ -83,8 +77,8 @@
 
 /* ==================== Embedded Photo Guidelines Box (Gen 5) ==================== */
 .tc-photo-guidelines-box {
-  background-color: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: var(--tc-field);
+  border: 1px solid rgba(var(--tc-fg-rgb), 0.08);
   border-radius: var(--tc-radius-sm);
   padding: 16px 18px;
   margin-bottom: 18px;
@@ -96,13 +90,13 @@
   gap: 12px;
   margin-bottom: 12px;
   padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(var(--tc-fg-rgb), 0.06);
 }
 
 .tc-photo-guidelines-icon {
   width: 18px;
   height: 18px;
-  color: #e4e4e7;
+  color: var(--tc-text-primary);
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -137,17 +131,17 @@
   font-family: var(--tc-font-body);
   font-size: 12px;
   line-height: 1.5;
-  color: #a1a1aa;
+  color: var(--tc-text-secondary);
 }
 
 .tc-photo-guideline-item strong {
-  color: #f4f4f5;
+  color: var(--tc-text-primary);
 }
 
 .tc-photo-guideline-item .tc-tip-check-svg {
   width: 13px;
   height: 13px;
-  color: #10b981;
+  color: var(--tc-success);
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -171,7 +165,7 @@
 
 /* ==================== Locked Rate Banner ==================== */
 .tc-locked-rate-banner {
-  background: linear-gradient(90deg, rgba(212, 175, 55, 0.12), rgba(212, 175, 55, 0.03));
+  background: linear-gradient(90deg, rgba(var(--tc-brand-rgb), 0.12), rgba(var(--tc-brand-rgb), 0.03));
   border: 1px solid var(--tc-accent-border);
   border-radius: var(--tc-radius);
   padding: 14px 18px;
@@ -193,7 +187,7 @@
   font-size: 11px;
   font-weight: 700;
   color: var(--tc-accent);
-  background: rgba(212, 175, 55, 0.15);
+  background: rgba(var(--tc-brand-rgb), 0.15);
   border: 1px solid var(--tc-accent-border);
   padding: 2px 8px;
   border-radius: var(--tc-radius-sm);
@@ -237,7 +231,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #f87171;
+  color: var(--tc-danger);
   font-size: 13px;
 }
 
@@ -265,12 +259,12 @@
   border: 1px solid var(--tc-border);
   border-radius: var(--tc-radius);
   padding: 28px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 20px rgba(var(--tc-shadow-rgb), 0.3);
   transition: border-color 0.2s ease;
 }
 
 .tc-form-section-card:hover {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(var(--tc-fg-rgb), 0.12);
 }
 
 .tc-section-title-wrap {
@@ -356,13 +350,13 @@
 
 .tc-text-input:focus {
   border-color: var(--tc-accent);
-  background-color: #0f1116;
-  box-shadow: 0 0 0 1px var(--tc-accent), 0 0 14px rgba(212, 175, 55, 0.2);
+  background-color: var(--tc-bg-sunken);
+  box-shadow: 0 0 0 1px var(--tc-accent), 0 0 14px rgba(var(--tc-shadow-rgb), 0.2);
 }
 
 .tc-text-input.tc-input-error {
   border-color: var(--tc-status-red);
-  box-shadow: 0 0 0 1px var(--tc-status-red), 0 0 10px rgba(239, 68, 68, 0.2);
+  box-shadow: 0 0 0 1px var(--tc-status-red), 0 0 10px rgba(var(--tc-shadow-rgb), 0.2);
 }
 
 .tc-textarea {
@@ -383,8 +377,8 @@
 
 .tc-textarea:focus {
   border-color: var(--tc-accent);
-  background-color: #0f1116;
-  box-shadow: 0 0 0 1px var(--tc-accent), 0 0 14px rgba(212, 175, 55, 0.2);
+  background-color: var(--tc-bg-sunken);
+  box-shadow: 0 0 0 1px var(--tc-accent), 0 0 14px rgba(var(--tc-shadow-rgb), 0.2);
 }
 
 /* Price Input Wrap */
@@ -402,8 +396,8 @@
 
 .tc-price-input-wrap:focus-within {
   border-color: var(--tc-accent);
-  background-color: #0f1116;
-  box-shadow: 0 0 0 1px var(--tc-accent), 0 0 14px rgba(212, 175, 55, 0.2);
+  background-color: var(--tc-bg-sunken);
+  box-shadow: 0 0 0 1px var(--tc-accent), 0 0 14px rgba(var(--tc-shadow-rgb), 0.2);
 }
 
 .tc-currency-symbol {
@@ -460,9 +454,9 @@
 }
 
 .tc-dropzone {
-  border: 1.5px dashed rgba(255, 255, 255, 0.16);
+  border: 1.5px dashed rgba(var(--tc-fg-rgb), 0.16);
   border-radius: var(--tc-radius);
-  background-color: #0c0d10;
+  background-color: var(--tc-bg-sunken);
   padding: 36px 20px;
   text-align: center;
   cursor: pointer;
@@ -472,15 +466,15 @@
 }
 
 .tc-dropzone:hover {
-  border-color: rgba(212, 175, 55, 0.5);
-  background-color: rgba(212, 175, 55, 0.03);
+  border-color: rgba(var(--tc-brand-rgb), 0.5);
+  background-color: rgba(var(--tc-brand-rgb), 0.03);
 }
 
 /* Distinct Drop-Target Dragging State */
 .tc-dropzone.dragging {
   border: 2px dashed var(--tc-accent);
-  background-color: rgba(212, 175, 55, 0.09);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  background-color: rgba(var(--tc-brand-rgb), 0.09);
+  box-shadow: 0 4px 20px rgba(var(--tc-shadow-rgb), 0.4);
   transform: scale(1.01);
 }
 
@@ -562,7 +556,7 @@
   position: relative;
   width: 100%;
   height: 100px;
-  background-color: #050507;
+  background-color: var(--tc-bg-sunken);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -578,7 +572,7 @@
   position: absolute;
   top: 4px;
   left: 4px;
-  background-color: rgba(9, 9, 11, 0.85);
+  background-color: rgba(var(--tc-scrim-rgb), 0.85);
   border: 1px solid var(--tc-border);
   color: var(--tc-text-muted);
   font-family: var(--tc-font-mono);
@@ -591,7 +585,7 @@
   position: absolute;
   top: 4px;
   right: 4px;
-  background-color: rgba(9, 9, 11, 0.85);
+  background-color: rgba(var(--tc-scrim-rgb), 0.85);
   border: 1px solid var(--tc-border);
   color: var(--tc-text-secondary);
   width: 20px;
@@ -656,9 +650,9 @@
 }
 
 .tc-submit-buylist-btn:hover:not(:disabled) {
-  background: rgba(212, 175, 55, 0.16);
+  background: rgba(var(--tc-brand-rgb), 0.16);
   border-color: var(--tc-accent);
-  color: #ffffff;
+  color: var(--tc-text-primary);
 }
 
 .tc-upload-progress-box {
@@ -691,7 +685,7 @@
 .tc-progress-bar-track {
   width: 100%;
   height: 4px;
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: rgba(var(--tc-fg-rgb), 0.08);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -896,9 +890,9 @@
 }
 
 .tc-track-portal-btn:hover {
-  background: rgba(212, 175, 55, 0.16);
+  background: rgba(var(--tc-brand-rgb), 0.16);
   border-color: var(--tc-accent);
-  color: #ffffff;
+  color: var(--tc-text-primary);
 }
 
 .tc-submit-another-btn {

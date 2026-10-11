@@ -1,10 +1,10 @@
-/* Listing Generator: obsidian panels with antique gold (#d4af37) accents, matching the admin portal */
+/* Listing Generator: theme surfaces with the brass accent, matching the admin portal */
 
 .tc-lg-container {
-  --tc-lg-gold: #d4af37;
-  --tc-lg-gold-subtle: rgba(212, 175, 55, 0.12);
-  --tc-lg-gold-border: rgba(212, 175, 55, 0.45);
-  --tc-lg-amber: #fbbf24;
+  --tc-lg-gold: var(--tc-brand);
+  --tc-lg-gold-subtle: rgba(var(--tc-brand-rgb), 0.12);
+  --tc-lg-gold-border: rgba(var(--tc-brand-rgb), 0.45);
+  --tc-lg-amber: var(--tc-warning);
   max-width: 880px;
   margin: 0 auto;
   padding: var(--tc-space-3) var(--tc-space-2) var(--tc-space-8);
@@ -144,7 +144,7 @@
   height: 28px;
   border-radius: 50%;
   border: 1px solid var(--tc-border-strong);
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(var(--tc-scrim-rgb), 0.75);
   color: var(--tc-text-primary);
   font-size: 1.1rem;
   line-height: 1;
@@ -173,7 +173,7 @@
 .tc-lg-field textarea {
   width: 100%;
   box-sizing: border-box;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--tc-field);
   border: 1px solid var(--tc-border-strong);
   border-radius: var(--tc-radius-sm);
   color: var(--tc-text-primary);
@@ -282,7 +282,7 @@
   flex-direction: column;
   gap: 4px;
   padding: 8px;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--tc-field);
   border: 1px solid var(--tc-border);
   border-radius: var(--tc-radius);
   color: var(--tc-text-primary);
@@ -356,7 +356,7 @@
 
 .tc-lg-btn-gold {
   background: var(--tc-lg-gold);
-  color: #161618;
+  color: var(--tc-border-subtle);
 }
 
 .tc-lg-btn-gold:hover:not(:disabled) {

@@ -10,6 +10,7 @@ import { SellRoute } from './components/SellRoute'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { CheckoutSuccess } from './components/CheckoutSuccess'
 import { CartProvider, useCart } from './context/CartContext'
+import { ThemeToggle } from './components/ThemeToggle'
 import { API_BASE_URL } from './api/config'
 import logoImg from './assets/logo.jpg'
 import './App.css'
@@ -110,6 +111,7 @@ function MainNavigation({ onCategorySelect, selectedCategory }: NavigationProps)
             />
           </form>
 
+          <ThemeToggle />
           <NavLink to="/cart" className="tc-cart-btn" aria-label={`Shopping cart with ${totalItems} items`}>
             <svg
               className="tc-cart-svg"

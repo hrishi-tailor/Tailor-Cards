@@ -16,7 +16,7 @@
   z-index: 100;
   width: 100%;
   height: 56px;
-  background-color: rgba(12, 13, 16, 0.88);
+  background-color: color-mix(in srgb, var(--tc-bg) 90%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--tc-border);
@@ -82,12 +82,12 @@
   position: absolute;
   width: 14px;
   height: 14px;
-  background: radial-gradient(circle, #ffffff 20%, #facc15 65%, #ca8a04 100%);
+  background: radial-gradient(circle, var(--tc-text-primary) 20%, var(--tc-warning) 65%, #ca8a04 100%);
   clip-path: polygon(50% 0%, 63% 37%, 100% 50%, 63% 63%, 50% 100%, 37% 63%, 0% 50%, 37% 37%);
   opacity: 0;
   transform: scale(0) rotate(0deg);
   animation: gen5ShinySparkle 9s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-  filter: drop-shadow(0 0 3px #ffffff) drop-shadow(0 0 8px #facc15);
+  filter: drop-shadow(0 0 3px var(--tc-text-primary)) drop-shadow(0 0 8px var(--tc-warning));
 }
 
 @keyframes gen5ShinySparkle {
@@ -102,7 +102,7 @@
   6% {
     opacity: 1;
     transform: scale(1.35) rotate(60deg);
-    filter: drop-shadow(0 0 6px #ffffff) drop-shadow(0 0 12px #facc15);
+    filter: drop-shadow(0 0 6px var(--tc-text-primary)) drop-shadow(0 0 12px var(--tc-warning));
   }
   10% {
     opacity: 0.9;
@@ -225,7 +225,7 @@
 
 .tc-cart-badge {
   background-color: var(--tc-accent);
-  color: #09090b;
+  color: var(--tc-border-subtle);
   font-family: var(--tc-font-mono);
   font-size: 11px;
   font-weight: 700;

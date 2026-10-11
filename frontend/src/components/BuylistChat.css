@@ -1,9 +1,9 @@
 /* Buylist chat: obsidian panels with antique gold accents, matching the admin and listing pages */
 
 .tc-bc-container {
-  --tc-bc-gold: #d4af37;
-  --tc-bc-gold-subtle: rgba(212, 175, 55, 0.12);
-  --tc-bc-amber: #fbbf24;
+  --tc-bc-gold: var(--tc-brand);
+  --tc-bc-gold-subtle: rgba(var(--tc-brand-rgb), 0.12);
+  --tc-bc-amber: var(--tc-warning);
   max-width: 1180px;
   margin: 0 auto;
   padding: var(--tc-space-3) var(--tc-space-2) var(--tc-space-8);
@@ -39,7 +39,7 @@
 
 .tc-bc-field { display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; color: var(--tc-text-secondary); }
 .tc-bc-field input, .tc-bc-field textarea, .tc-bc-composer input, .tc-bc-line-controls input, .tc-bc-line-controls select {
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--tc-field);
   border: 1px solid var(--tc-border-strong);
   border-radius: var(--tc-radius-sm);
   color: var(--tc-text-primary);
@@ -61,7 +61,7 @@
   font: inherit; font-weight: 600; font-size: 0.92rem; cursor: pointer; text-decoration: none;
 }
 .tc-bc-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-.tc-bc-btn-gold { background: var(--tc-bc-gold); color: #161618; }
+.tc-bc-btn-gold { background: var(--tc-bc-gold); color: var(--tc-border-subtle); }
 .tc-bc-btn-ghost { background: transparent; color: var(--tc-text-primary); border-color: var(--tc-border-strong); }
 .tc-bc-btn-ghost:hover:not(:disabled) { border-color: var(--tc-bc-gold); color: var(--tc-bc-gold); }
 .tc-bc-link { background: none; border: none; padding: 0; font: inherit; font-size: 0.85rem; cursor: pointer; text-decoration: underline; }
@@ -78,22 +78,22 @@
 
 .tc-bc-messages { display: flex; flex-direction: column; gap: 8px; min-height: 280px; max-height: 55vh; overflow-y: auto; padding-right: 4px; }
 .tc-bc-msg { max-width: 85%; padding: 10px 12px; border-radius: 12px; white-space: pre-wrap; line-height: 1.4; font-size: 0.93rem; }
-.tc-bc-msg.mine { align-self: flex-end; background: var(--tc-bc-gold-subtle); border: 1px solid rgba(212, 175, 55, 0.4); }
-.tc-bc-msg.theirs { align-self: flex-start; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--tc-border); }
+.tc-bc-msg.mine { align-self: flex-end; background: var(--tc-bc-gold-subtle); border: 1px solid rgba(var(--tc-brand-rgb), 0.4); }
+.tc-bc-msg.theirs { align-self: flex-start; background: rgba(var(--tc-fg-rgb), 0.05); border: 1px solid var(--tc-border); }
 .tc-bc-typing { color: var(--tc-text-secondary); font-style: italic; }
 .tc-bc-composer { display: flex; gap: 8px; }
 
 .tc-bc-list-head { display: flex; justify-content: space-between; align-items: center; }
-.tc-bc-progress { position: relative; height: 26px; border-radius: 13px; background: rgba(255, 255, 255, 0.06); overflow: hidden; }
+.tc-bc-progress { position: relative; height: 26px; border-radius: 13px; background: rgba(var(--tc-fg-rgb), 0.06); overflow: hidden; }
 .tc-bc-progress div { height: 100%; background: var(--tc-bc-gold-subtle); transition: width 0.4s ease; }
 .tc-bc-progress span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; }
 
 .tc-bc-lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow-y: auto; }
 .tc-bc-line {
   display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; align-items: center;
-  padding: 8px; border: 1px solid var(--tc-border); border-radius: var(--tc-radius); background: rgba(0, 0, 0, 0.25);
+  padding: 8px; border: 1px solid var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-field);
 }
-.tc-bc-line img, .tc-bc-line-thumb { width: 44px; aspect-ratio: 5 / 7; object-fit: cover; border-radius: 3px; background: rgba(255, 255, 255, 0.05); }
+.tc-bc-line img, .tc-bc-line-thumb { width: 44px; aspect-ratio: 5 / 7; object-fit: cover; border-radius: 3px; background: rgba(var(--tc-fg-rgb), 0.05); }
 .tc-bc-line-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .tc-bc-line-main strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tc-bc-reason { font-size: 0.78rem; color: var(--tc-text-secondary); }
@@ -117,11 +117,11 @@
 
 .tc-bc-meter-bar {
   position: relative; height: 12px; border-radius: 6px;
-  background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #10b981 100%);
+  background: linear-gradient(90deg, var(--tc-danger) 0%, var(--tc-warning) 50%, var(--tc-success) 100%);
 }
 .tc-bc-meter-mark {
   position: absolute; top: -4px; width: 4px; height: 20px; margin-left: -2px;
-  background: var(--tc-text-primary); border-radius: 2px; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6);
+  background: var(--tc-text-primary); border-radius: 2px; box-shadow: 0 0 0 2px rgba(var(--tc-shadow-rgb), 0.6);
 }
 .tc-bc-meter-label { margin-top: 8px; font-size: 0.9rem; }
 .tc-bc-meter-label strong { font-size: 1.2rem; color: var(--tc-text-primary); }
@@ -153,7 +153,7 @@
   font-size: 0.72rem;
   padding: 2px 8px;
   border-radius: 4px;
-  color: #161618;
+  color: var(--tc-border-subtle);
   background: var(--tc-bc-gold);
 }
 
@@ -165,7 +165,7 @@
   border: 1px solid var(--tc-border-strong); background: transparent; color: var(--tc-text-primary);
   font: inherit; font-size: 0.88rem; cursor: pointer;
 }
-.tc-bc-deal-type.active { border-color: var(--tc-bc-gold); color: #161618; background: var(--tc-bc-gold); font-weight: 600; }
+.tc-bc-deal-type.active { border-color: var(--tc-bc-gold); color: var(--tc-border-subtle); background: var(--tc-bc-gold); font-weight: 600; }
 .tc-bc-rates { margin: 0; font-size: 0.85rem; color: var(--tc-bc-gold); }
 .tc-bc-offer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
 .tc-bc-offer-grid div { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid var(--tc-border); border-radius: var(--tc-radius); }
@@ -175,7 +175,7 @@
 .tc-bc-shop { display: flex; flex-direction: column; gap: 8px; }
 .tc-bc-picked, .tc-bc-shop-results { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .tc-bc-picked li { display: flex; gap: 8px; justify-content: space-between; align-items: center; font-size: 0.86rem;
-  padding: 6px 10px; border: 1px solid rgba(212, 175, 55, 0.4); border-radius: var(--tc-radius); background: var(--tc-bc-gold-subtle); }
+  padding: 6px 10px; border: 1px solid rgba(var(--tc-brand-rgb), 0.4); border-radius: var(--tc-radius); background: var(--tc-bc-gold-subtle); }
 .tc-bc-picked li.unavailable { border-color: var(--tc-status-red-border); background: var(--tc-status-red-subtle); }
 .tc-bc-shop-results li { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; }
 .tc-bc-shop-results img, .tc-bc-shop-results .tc-bc-line-thumb { width: 32px; aspect-ratio: 5 / 7; object-fit: cover; border-radius: 3px; }
@@ -186,6 +186,6 @@
 .tc-bc-deal-msg.over { color: var(--tc-status-red); }
 .tc-bc-ask { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--tc-text-secondary); }
 .tc-bc-ask input {
-  width: 84px; padding: 4px 6px; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--tc-border-strong);
+  width: 84px; padding: 4px 6px; background: var(--tc-field); border: 1px solid var(--tc-border-strong);
   border-radius: var(--tc-radius-sm); color: var(--tc-text-primary); font: inherit; font-size: 0.85rem;
 }
