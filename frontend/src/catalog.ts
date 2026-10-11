@@ -19,6 +19,12 @@ export function categoryBySlug(slug: string | undefined): ShopCategory | undefin
   return CATEGORIES.find((c) => c.slug === slug)
 }
 
+/** The slab grade, e.g. "PSA 10"; empty for raw cards (grading may be stored as "RAW"). */
+export function gradeOf(p: Product): string {
+  const g = p.grading?.trim() ?? ''
+  return /^(raw|ungraded|none|n\/a)?$/i.test(g) ? '' : g
+}
+
 export function isSealed(p: Product): boolean {
   const cat = p.category?.name?.toLowerCase() ?? ''
   return cat.includes('seal') || (p.condition?.toUpperCase().includes('SEALED') ?? false)
@@ -27,7 +33,7 @@ export function isSealed(p: Product): boolean {
 
 export function isSlab(p: Product): boolean {
   const cat = p.category?.name?.toLowerCase() ?? ''
-  return Boolean(p.grading?.trim()) || cat.includes('graded') || cat.includes('slab')
+  return Boolean(gradeOf(p)) || cat.includes('graded') || cat.includes('slab')
     || /\b(psa|bgs|cgc|sgc|tag|ace)\s*\d/i.test(p.name)
 }
 
@@ -47,12 +53,13 @@ export function matchesSearch(p: Product, query: string): boolean {
 /** Short customer-facing label: the grade for slabs, Sealed, or the raw condition. */
 export function conditionLabel(p: Product): string {
   if (isSealed(p)) return 'Sealed'
-  if (p.grading?.trim()) return p.grading.trim()
-  const c = p.condition?.trim().toUpperCase() ?? ''
+  const grade = gradeOf(p)
+  if (grade) return grade
+  const c = p.condition?.trim().toUpperCase().replace(/_/g, ' ') ?? ''
   if (!c || c === 'NM' || c.includes('NEAR MINT') || c === 'MINT' || c.includes('GEM')) return 'Near mint'
-  if (c === 'LP' || c.includes('LIGHTLY')) return 'Lightly played'
-  if (c === 'MP' || c.includes('MODERATELY')) return 'Moderately played'
-  if (c === 'HP' || c.includes('HEAVILY')) return 'Heavily played'
+  if (c === 'LP' || c.includes('LIGHT')) return 'Lightly played'
+  if (c === 'MP' || c.includes('MODERATE')) return 'Moderately played'
+  if (c === 'HP' || c.includes('HEAV')) return 'Heavily played'
   if (c === 'DMG' || c.includes('DAMAGED')) return 'Damaged'
   return p.condition!.trim()
 }

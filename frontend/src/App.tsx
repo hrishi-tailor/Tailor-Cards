@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
-import { Routes, Route, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { ProductList } from './components/ProductList'
+import { ShopPage } from './components/ShopPage'
 import { Cart } from './components/Cart'
 import { TrackBuylist } from './components/TrackBuylist'
 import { TrackLookup } from './components/TrackLookup'
@@ -13,18 +14,6 @@ import { CheckoutSuccess } from './components/CheckoutSuccess'
 import { SiteHeader } from './components/SiteHeader'
 import { SiteFooter } from './components/SiteFooter'
 import { CartProvider } from './context/CartContext'
-import { categoryBySlug } from './catalog'
-
-const LEGACY_CATEGORY: Record<string, string> = { singles: 'Singles', slabs: 'Slabs', sealed: 'Sealed' }
-
-function ShopRoute() {
-  const { category } = useParams()
-  const [params] = useSearchParams()
-  if (category && !categoryBySlug(category)) {
-    return <Navigate to="/shop" replace />
-  }
-  return <ProductList key={`${category}-${params.get('q') ?? ''}`} selectedCategory={category ? LEGACY_CATEGORY[category] : 'All'} />
-}
 
 /** Scrolls to the top on page changes (but not on in-page #anchors). */
 function ScrollToTop() {
@@ -43,8 +32,8 @@ function AppContent() {
       <main className="tc-main-content">
         <Routes>
           <Route path="/" element={<ProductList selectedCategory="All" />} />
-          <Route path="/shop" element={<ShopRoute />} />
-          <Route path="/shop/:category" element={<ShopRoute />} />
+          <Route path="/shop" element={<ShopPage />} />
+          <Route path="/shop/:category" element={<ShopPage />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/sell" element={<SellRoute />} />
