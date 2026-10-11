@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ import java.util.Optional;
 @Slf4j
 @Service
 @ConditionalOnProperty(prefix = "app", name = "price-provider", havingValue = "pokemontcg", matchIfMissing = true)
+@Primary // TcgdexPriceProvider is always registered too; this wins injection of PriceProvider when selected
 public class PokemonTcgIoPriceProvider implements PriceProvider {
 
     public static final String PROVIDER_NAME = "POKEMONTCG_IO";

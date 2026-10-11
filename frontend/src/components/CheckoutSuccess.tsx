@@ -32,7 +32,7 @@ export function CheckoutSuccess() {
         </div>
 
         <div className="tc-success-badge tc-mono">
-          {isDemo ? '[RECRUITER DEMO VERIFIED]' : '[ACQUISITION CONFIRMED]'}
+          {isDemo ? 'Demo order confirmed' : 'Order confirmed'}
         </div>
 
         <h1 className="tc-success-title">
@@ -42,13 +42,11 @@ export function CheckoutSuccess() {
         <p className="tc-success-subtitle">
           {isDemo ? (
             <>
-              Thank you for evaluating <strong>Tailor Cards</strong>! This order was processed via our instant recruiter demo bypass.
-              The cart checkout flow, order state lifecycle, and vault ledger transitions are simulated with zero financial cost.
+              Thank you for evaluating <strong>Tailor Cards</strong>! This was a demo order, so no payment was taken.
             </>
           ) : (
             <>
-              Thank you for your purchase. Your acquired singles and slabs have been officially locked in the vault ledger
-              and marked as <strong>SOLD ARCHIVE</strong>.
+              Thank you for your order. We'll pack your cards and email you when they ship.
             </>
           )}
         </p>
@@ -68,8 +66,8 @@ export function CheckoutSuccess() {
           </div>
 
           <div className="tc-dossier-row">
-            <span className="tc-dossier-label">Vault Fulfillment</span>
-            <span className="tc-dossier-value">Corner Loupe Verification &amp; Toploader Packaging</span>
+            <span className="tc-dossier-label">Packing</span>
+            <span className="tc-dossier-value">Checked and packed in a top loader</span>
           </div>
 
           <div className="tc-dossier-row">
@@ -88,8 +86,8 @@ export function CheckoutSuccess() {
 
         {/* Actions */}
         <div className="tc-success-actions">
-          <Link to="/" className="tc-success-primary-btn">
-            Return to Vault Catalog
+          <Link to="/shop" className="tc-success-primary-btn">
+            Continue shopping
           </Link>
           <Link to="/sell" className="tc-success-secondary-btn">
             Sell to Us &rarr;

@@ -171,15 +171,15 @@ export function TrackBuylist() {
   const getStatusBadge = (status: BuylistStatus) => {
     switch (status) {
       case 'PENDING':
-        return <span className="tc-status-badge badge-pending">[PENDING REVIEW]</span>
+        return <span className="tc-status-badge badge-pending">Pending review</span>
       case 'UNDER_REVIEW':
-        return <span className="tc-status-badge badge-review">[UNDER REVIEW]</span>
+        return <span className="tc-status-badge badge-review">Under review</span>
       case 'OFFERED':
-        return <span className="tc-status-badge badge-offered">[OFFER MADE]</span>
+        return <span className="tc-status-badge badge-offered">Offer made</span>
       case 'ACCEPTED':
-        return <span className="tc-status-badge badge-accepted">[OFFER ACCEPTED]</span>
+        return <span className="tc-status-badge badge-accepted">Offer accepted</span>
       case 'REJECTED':
-        return <span className="tc-status-badge badge-rejected">[OFFER DECLINED]</span>
+        return <span className="tc-status-badge badge-rejected">Offer declined</span>
       default:
         return <span className="tc-status-badge">{status}</span>
     }

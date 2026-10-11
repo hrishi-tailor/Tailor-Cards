@@ -102,4 +102,18 @@ class ProductRequestTest {
         assertEquals(1, violations.size());
         assertEquals("Status must be either AVAILABLE or SOLD", violations.iterator().next().getMessage());
     }
+
+    @Test
+    void pokemontcgId_acceptsCatalogIdsAndRejectsOtherFormats() {
+        for (String valid : new String[]{"base1-4", "swsh7-215", "sv3pt5-151", "sv03.5-151", "swsh45sv-SV107", null}) {
+            ProductRequest request = new ProductRequest("Charizard", null, BigDecimal.TEN, null, 1, 1L,
+                    null, null, null, null, null, valid);
+            assertTrue(validator.validate(request).isEmpty(), "Expected valid: " + valid);
+        }
+        for (String invalid : new String[]{"base1", "base1-4; DROP TABLE products", "../etc-4", "a b-1", "-4"}) {
+            ProductRequest request = new ProductRequest("Charizard", null, BigDecimal.TEN, null, 1, 1L,
+                    null, null, null, null, null, invalid);
+            assertFalse(validator.validate(request).isEmpty(), "Expected invalid: " + invalid);
+        }
+    }
 }

@@ -1,10 +1,4 @@
-/* ==========================================================================
-   Cart — Japanese Vault Collector Styling
-   Palette: Matte ink black (#0c0d10), Charcoal slate (#13151a),
-   Uniform 1px hairlines (rgba(255, 255, 255, 0.08)),
-   Chalk white (#f4f4f5), Muted stone (#a1a1aa).
-   Accent: Pale Champagne / Antique Gold (#d4af37).
-   ========================================================================== */
+/* Colors and type come from the theme tokens in index.css (light and dark). */
 
 .tc-cart-wrapper {
   max-width: 1360px;
@@ -52,7 +46,7 @@
 }
 
 .tc-cart-session-info code {
-  background-color: rgba(255, 255, 255, 0.04);
+  background-color: rgba(var(--tc-fg-rgb), 0.04);
   border: 1px solid var(--tc-border);
   color: var(--tc-text-secondary);
   padding: 2px 6px;
@@ -80,7 +74,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #09090b;
+  background-color: var(--tc-bg-sunken);
   border: 1px solid var(--tc-border);
   border-radius: var(--tc-radius-sm);
   padding: 6px;
@@ -124,7 +118,7 @@
 }
 
 .tc-cart-qty-pill {
-  background-color: rgba(255, 255, 255, 0.04);
+  background-color: rgba(var(--tc-fg-rgb), 0.04);
   border: 1px solid var(--tc-border);
   color: var(--tc-text-secondary);
   padding: 2px 6px;
@@ -274,9 +268,9 @@
 }
 
 .tc-checkout-btn:hover:not(:disabled) {
-  background: rgba(212, 175, 55, 0.16);
+  background: rgba(var(--tc-brand-rgb), 0.16);
   border-color: var(--tc-accent);
-  color: #ffffff;
+  color: var(--tc-text-primary);
 }
 
 .tc-checkout-btn:disabled {
@@ -315,8 +309,8 @@
 /* Recruiter Demo Mode Box in Cart */
 .tc-cart-demo-box {
   margin-top: 14px;
-  background: rgba(212, 175, 55, 0.04);
-  border: 1px dashed rgba(212, 175, 55, 0.3);
+  background: rgba(var(--tc-brand-rgb), 0.04);
+  border: 1px dashed rgba(var(--tc-brand-rgb), 0.3);
   border-radius: var(--tc-radius, 6px);
   padding: 12px;
 }
@@ -332,13 +326,13 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: var(--tc-accent, #d4af37);
+  color: var(--tc-accent, var(--tc-brand-text));
   font-family: var(--tc-font-mono, monospace);
 }
 
 .tc-cart-demo-pill {
   font-size: 10px;
-  color: var(--tc-green, #4ade80);
+  color: var(--tc-green, var(--tc-success));
   background: rgba(74, 222, 128, 0.1);
   padding: 2px 6px;
   border-radius: 999px;
@@ -348,17 +342,17 @@
 .tc-cart-demo-desc {
   font-size: 11px;
   line-height: 15px;
-  color: var(--tc-text-secondary, #a3a3a3);
+  color: var(--tc-text-secondary, var(--tc-text-secondary));
   margin: 0 0 8px;
 }
 
 .tc-cart-demo-instant-btn {
   width: 100%;
   padding: 8px 10px;
-  background: rgba(212, 175, 55, 0.12);
-  border: 1px solid var(--tc-accent, #d4af37);
+  background: rgba(var(--tc-brand-rgb), 0.12);
+  border: 1px solid var(--tc-accent, var(--tc-brand));
   border-radius: var(--tc-radius, 4px);
-  color: var(--tc-accent, #d4af37);
+  color: var(--tc-accent, var(--tc-brand-text));
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
@@ -367,22 +361,22 @@
 }
 
 .tc-cart-demo-instant-btn:hover:not(:disabled) {
-  background: var(--tc-accent, #d4af37);
-  color: #0b0c10;
+  background: var(--tc-accent, var(--tc-btn-bg));
+  color: var(--tc-border-subtle);
 }
 
 .tc-cart-demo-stripe-note {
   font-size: 10px;
   line-height: 14px;
-  color: var(--tc-text-muted, #737373);
+  color: var(--tc-text-muted, var(--tc-text-muted));
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
 .tc-cart-demo-stripe-note code {
-  color: var(--tc-text-primary, #fff);
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--tc-text-primary, var(--tc-text-primary));
+  background: rgba(var(--tc-fg-rgb), 0.06);
   padding: 1px 4px;
   border-radius: 3px;
   font-family: var(--tc-font-mono, monospace);
@@ -442,9 +436,9 @@
 }
 
 .tc-browse-btn:hover {
-  background: rgba(212, 175, 55, 0.16);
+  background: rgba(var(--tc-brand-rgb), 0.16);
   border-color: var(--tc-accent);
-  color: #ffffff;
+  color: var(--tc-text-primary);
 }
 
 @media (max-width: 860px) {
@@ -470,14 +464,14 @@
   border-radius: var(--tc-radius);
   padding: 14px 18px;
   margin-bottom: 24px;
-  color: #fca5a5;
+  color: var(--tc-danger);
   animation: fadeIn 0.2s ease-in;
 }
 
 .tc-cart-alert-svg {
   width: 20px;
   height: 20px;
-  color: #ef4444;
+  color: var(--tc-danger);
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -492,7 +486,7 @@
 .tc-cart-alert-title {
   font-size: 13px;
   font-weight: 700;
-  color: #fca5a5;
+  color: var(--tc-danger);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -500,13 +494,13 @@
 .tc-cart-alert-msg {
   font-size: 13px;
   line-height: 18px;
-  color: #fecaca;
+  color: var(--tc-danger);
 }
 
 .tc-cart-alert-close {
   background: transparent;
   border: none;
-  color: #fca5a5;
+  color: var(--tc-danger);
   font-size: 20px;
   line-height: 1;
   cursor: pointer;
@@ -517,7 +511,7 @@
 
 .tc-cart-alert-close:hover {
   opacity: 1;
-  color: #ffffff;
+  color: var(--tc-text-primary);
 }
 
 /* In-Summary Card Error Notice */
@@ -530,7 +524,7 @@
   border-radius: var(--tc-radius);
   padding: 10px 12px;
   margin-top: 16px;
-  color: #fca5a5;
+  color: var(--tc-danger);
   font-size: 12px;
   line-height: 16px;
   animation: fadeIn 0.2s ease-in;
@@ -539,18 +533,18 @@
 .tc-summary-alert-svg {
   width: 15px;
   height: 15px;
-  color: #ef4444;
+  color: var(--tc-danger);
   flex-shrink: 0;
   margin-top: 1px;
 }
 
 .tc-summary-alert-text {
   flex: 1;
-  color: #fecaca;
+  color: var(--tc-danger);
 }
 
 .tc-summary-alert-text strong {
-  color: #ef4444;
+  color: var(--tc-danger);
 }
 
 @keyframes fadeIn {
