@@ -7,6 +7,7 @@ import {
   addProductPhotos,
   applyOfficialImagesForAll,
   applyOfficialProductImage,
+  linkProductCard,
   removeProductPhoto,
 } from '../api/listingGeneratorApi'
 import './AdminProducts.css'
@@ -24,6 +25,8 @@ export function AdminProducts() {
   const [rows, setRows] = useState<Record<number, RowState>>({})
   const [bulk, setBulk] = useState<{ busy?: boolean; message?: string; error?: string }>({})
   const [filter, setFilter] = useState('')
+  const [onlyMissing, setOnlyMissing] = useState(false)
+  const [cardIds, setCardIds] = useState<Record<number, string>>({})
 
   const setRow = (id: number, state: RowState) => setRows((r) => ({ ...r, [id]: state }))
   const replace = (updated: Product) => setChanged((c) => ({ ...c, [updated.id]: updated }))
@@ -54,7 +57,9 @@ export function AdminProducts() {
     }
   }
 
-  const visible = products.filter((p) => !filter.trim() || p.name.toLowerCase().includes(filter.trim().toLowerCase()))
+  const visible = products.filter((p) => (!filter.trim() || p.name.toLowerCase().includes(filter.trim().toLowerCase()))
+    && (!onlyMissing || !isOfficialImage(p.imageUrl)))
+  const missingCount = products.filter((p) => !isOfficialImage(p.imageUrl)).length
 
   return (
     <div className="tc-ap tc-wrap">
@@ -73,9 +78,20 @@ export function AdminProducts() {
       {bulk.message && <p className="tc-ap-note" role="status">{bulk.message}</p>}
       {bulk.error && <p className="tc-ap-error" role="alert">{bulk.error}</p>}
 
-      <label htmlFor="tc-ap-filter" className="tc-sr-only">Filter listings</label>
-      <input id="tc-ap-filter" className="tc-ap-filter" type="search" placeholder="Filter by name" value={filter}
-        onChange={(e) => setFilter(e.target.value)} />
+      <div className="tc-ap-tools">
+        <label htmlFor="tc-ap-filter" className="tc-sr-only">Filter listings</label>
+        <input id="tc-ap-filter" className="tc-ap-filter" type="search" placeholder="Filter by name" value={filter}
+          onChange={(e) => setFilter(e.target.value)} />
+        <label className="tc-check">
+          <input type="checkbox" checked={onlyMissing} onChange={(e) => setOnlyMissing(e.target.checked)} />
+          Only listings without an official image ({missingCount})
+        </label>
+      </div>
+      <p className="tc-ap-help">
+        Not matched? Paste the card's TCGdex ID (set and number, e.g. <code>svp-053</code>, <code>swsh12.5gg-GG56</code>,
+        {' '}<code>sv03.5-151</code>) from <a href="https://www.tcgdex.dev" target="_blank" rel="noopener noreferrer">tcgdex.dev</a>
+        {' '}into its Card ID box, or add the set and card number to the listing.
+      </p>
 
       {error && <p className="tc-ap-error">{error}</p>}
       {loading && <p>Loading listings…</p>}
@@ -125,6 +141,20 @@ export function AdminProducts() {
                       if (files.length) run(p.id, () => addProductPhotos(p.id, files), `${files.length} photo${files.length > 1 ? 's' : ''} added.`)
                     }} />
                 </label>
+                <form className="tc-ap-link" onSubmit={(e) => {
+                  e.preventDefault()
+                  const id = (cardIds[p.id] ?? '').trim()
+                  if (!/^[A-Za-z0-9.]{1,30}-[A-Za-z0-9]{1,15}$/.test(id)) {
+                    setRow(p.id, { error: 'Enter a card ID like svp-053.' })
+                    return
+                  }
+                  run(p.id, () => linkProductCard(p.id, id), `Linked to ${id}.`)
+                }}>
+                  <label htmlFor={`tc-ap-card-${p.id}`} className="tc-sr-only">Card ID for {displayName(p)}</label>
+                  <input id={`tc-ap-card-${p.id}`} placeholder="Card ID" value={cardIds[p.id] ?? p.pokemontcgId ?? ''}
+                    onChange={(e) => setCardIds((c) => ({ ...c, [p.id]: e.target.value }))} disabled={row.busy} />
+                  <button type="submit" className="tc-button tc-button-ghost" disabled={row.busy}>Link card</button>
+                </form>
                 {row.note && <span className="tc-ap-note" role="status">{row.note}</span>}
                 {row.error && <span className="tc-ap-error" role="alert">{row.error}</span>}
               </div>

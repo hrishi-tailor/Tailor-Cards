@@ -182,3 +182,19 @@ export async function applyOfficialImagesForAll(): Promise<OfficialImageBackfill
   }
   return response.json();
 }
+
+/**
+ * Links a product to a card (TCGdex id such as "svp-053" or "swsh12.5gg-GG56") and uses that card's
+ * official image: PUT /api/admin/products/{id}/pokemontcg-id, then POST /api/products/{id}/official-image.
+ */
+export async function linkProductCard(productId: number, cardId: string): Promise<Product> {
+  const response = await fetch(`${API_BASE_URL}/api/admin/products/${productId}/pokemontcg-id`, {
+    method: 'PUT',
+    headers: { Authorization: authHeader(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pokemontcgId: cardId.trim() }),
+  });
+  if (!response.ok) {
+    throw await readError(response, `Could not link the card (${response.status})`);
+  }
+  return applyOfficialProductImage(productId);
+}
