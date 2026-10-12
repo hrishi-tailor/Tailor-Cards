@@ -78,11 +78,22 @@
   justify-self: end;
 }
 
+/* Soft brass glow behind the fan of cards */
+.tc-hero-stage::before {
+  content: '';
+  position: absolute;
+  inset: 8% 4% 6%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(var(--tc-brand-rgb), 0.28), transparent 72%);
+  filter: blur(8px);
+}
+
+/* Official card scans: card proportions, corners clipped to the card's own rounded corners */
 .tc-slab {
   position: absolute;
-  border-radius: 10px;
+  aspect-ratio: 734 / 1024;
+  border-radius: 4.8% / 3.4%;
   overflow: hidden;
-  background: var(--tc-surface);
   box-shadow: var(--tc-shadow-lift);
   transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
@@ -95,39 +106,31 @@
 }
 
 .tc-slab-center {
-  width: 54%;
-  height: 84%;
-  left: 23%;
-  top: 2%;
+  width: 52%;
+  left: 24%;
+  top: 0;
   z-index: 3;
 }
 
-.tc-slab-center img { object-position: center 20%; }
-
 .tc-slab-left {
-  width: 42%;
-  height: 62%;
+  width: 40%;
   left: 0;
-  top: 24%;
-  transform: rotate(-7deg);
+  top: 20%;
+  transform: rotate(-8deg);
   z-index: 2;
 }
 
-.tc-slab-left img { object-position: center 18%; }
-
 .tc-slab-right {
-  width: 42%;
-  height: 62%;
+  width: 40%;
   right: 0;
-  top: 30%;
-  transform: rotate(6deg);
+  top: 26%;
+  transform: rotate(7deg);
   z-index: 1;
 }
 
-.tc-slab-right img { object-position: center 22%; }
-
-.tc-hero-stage:hover .tc-slab-left { transform: rotate(-10deg) translateX(-10px); }
-.tc-hero-stage:hover .tc-slab-right { transform: rotate(9deg) translateX(10px); }
+.tc-hero-stage:hover .tc-slab-center { transform: translateY(-6px); }
+.tc-hero-stage:hover .tc-slab-left { transform: rotate(-11deg) translateX(-10px); }
+.tc-hero-stage:hover .tc-slab-right { transform: rotate(10deg) translateX(10px); }
 
 .tc-hero-tag {
   position: absolute;
@@ -155,7 +158,7 @@
 }
 
 .tc-hero-tag-a { left: 6%; bottom: 3%; }
-.tc-hero-tag-b { right: 2%; top: 6%; }
+.tc-hero-tag-b { right: -2%; bottom: 8%; }
 
 /* Graders */
 .tc-graders {
@@ -238,12 +241,33 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 15%;
   opacity: 0.94;
+  /* Slightly enlarged so the scan's rounded corners stay outside the tile */
+  transform: scale(1.08);
   transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 .tc-collection:hover img {
-  transform: scale(1.05);
+  transform: scale(1.13);
+}
+
+/* Sealed product art sits on a soft spotlight instead of filling the tile */
+.tc-collection.is-product {
+  background: radial-gradient(circle at 50% 40%, #33466d 0%, #1f2e4d 55%, #141f36 100%);
+}
+
+.tc-collection.is-product:hover img {
+  transform: scale(1.04);
+}
+
+.tc-collection.is-product img {
+  object-fit: contain;
+  object-position: center;
+  transform: none;
+  padding: 14% 14% 30%;
+  opacity: 1;
+  filter: drop-shadow(0 24px 30px rgba(0, 0, 0, 0.45));
 }
 
 .tc-collection::after {
@@ -350,8 +374,23 @@
 .tc-proof-photo img {
   display: block;
   width: 100%;
-  border-radius: 10px;
+  border-radius: 4.8% / 3.4%;
   box-shadow: var(--tc-shadow-lift);
+}
+
+/* Loupe: the card's top-left corner at 3x, like the quick view's corner zoom */
+.tc-proof-loupe {
+  position: absolute;
+  left: -28px;
+  top: 12%;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  border: 4px solid var(--tc-surface);
+  background-size: 300% auto;
+  background-position: 6% 4%;
+  background-repeat: no-repeat;
+  box-shadow: 0 18px 40px -16px rgba(var(--tc-shadow-rgb), 0.6);
 }
 
 .tc-proof-note {
@@ -517,10 +556,9 @@
 
 .tc-estimate-row img {
   width: 52px;
-  height: 68px;
+  height: 72px;
   object-fit: cover;
-  object-position: center 20%;
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 .tc-estimate-row b {
@@ -621,6 +659,12 @@
 }
 
 @media (max-width: 520px) {
+  .tc-proof-loupe {
+    left: -8px;
+    width: 110px;
+    height: 110px;
+  }
+
   .tc-steps {
     grid-template-columns: minmax(0, 1fr);
   }
