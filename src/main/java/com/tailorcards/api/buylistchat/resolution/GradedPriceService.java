@@ -114,6 +114,67 @@ public class GradedPriceService {
         }
     }
 
+    /**
+     * The image of one exact card from this API (tcggo), for cards whose TCGdex entry has no picture.
+     * Looked up by id first, then by name and number with strict checks: same printed number, the
+     * Pokemon's name in the result, and the same set (promo sets match promo sets, since the two
+     * databases spell them differently: "SVP Black Star Promos" / "SV Black Star Promos").
+     */
+    public Optional<String> exactCardImage(String cardId, String cardName, String setName, String cardNumber) {
+        if (!isConfigured()) {
+            return Optional.empty();
+        }
+        try {
+            List<JsonNode> results = cardId == null ? List.of() : search("tcgid", cardId.trim());
+            if (results.isEmpty() && cardName != null && cardNumber != null) {
+                String digits = cardNumber.split("/")[0].replaceAll("\\D", "").replaceFirst("^0+(?=.)", "");
+                results = search("search", cardName + " " + digits).stream()
+                        .filter(c -> sameNumber(cardNumber, c.path("card_number").asText("")))
+                        .filter(c -> letters(c.path("name").asText("")).contains(letters(firstWord(cardName)))
+                                || letters(cardName).contains(letters(firstWord(c.path("name").asText("")))))
+                        .filter(c -> setMatches(setName, c.path("episode").path("name").asText("")))
+                        .toList();
+            }
+            return results.stream().map(c -> c.path("image").asText(null))
+                    .filter(url -> url != null && !url.isBlank()).findFirst();
+        } catch (Exception e) {
+            log.warn("Card image request failed: {}", e.getClass().getSimpleName());
+            return Optional.empty();
+        }
+    }
+
+    /** "190" matches "SVP 190"; "GG56/GG70" matches "GG56"; digits must be equal and any letter prefix agree. */
+    static boolean sameNumber(String wanted, String found) {
+        String w = wanted.split("/")[0].replaceAll("[\\s#]+", "").toUpperCase(Locale.ROOT);
+        String f = found.split("/")[0].replaceAll("[\\s#]+", "").toUpperCase(Locale.ROOT);
+        String wDigits = w.replaceAll("\\D", "").replaceFirst("^0+(?=.)", "");
+        String fDigits = f.replaceAll("\\D", "").replaceFirst("^0+(?=.)", "");
+        String wLetters = w.replaceAll("[^A-Z]", "");
+        return !wDigits.isEmpty() && wDigits.equals(fDigits) && (wLetters.isEmpty() || f.startsWith(wLetters));
+    }
+
+    private static boolean setMatches(String wanted, String episode) {
+        if (wanted == null || wanted.isBlank()) {
+            return false;
+        }
+        String w = letters(wanted);
+        String e = letters(episode);
+        if (!e.isEmpty() && (e.contains(w) || w.contains(e))) {
+            return true;
+        }
+        return w.contains("promo") && e.contains("promo") && w.substring(0, 2).equals(e.substring(0, 2));
+    }
+
+    private static String firstWord(String name) {
+        for (String w : name.split("\\s+")) {
+            if (w.length() >= 3 && !w.equalsIgnoreCase("mega") && !w.equalsIgnoreCase("hisuian")
+                    && !w.equalsIgnoreCase("galarian") && !w.equalsIgnoreCase("alolan") && !w.equalsIgnoreCase("radiant")) {
+                return w;
+            }
+        }
+        return name;
+    }
+
     /** "PSA 10" -> [psa, 10]; "BGS 9.5" -> [bgs, 9.5]; Black Label / Pristine -> empty (no separate eBay tier). */
     static Optional<String[]> gradeKey(String grading) {
         Matcher m = GRADE.matcher(grading.trim().toUpperCase(Locale.ROOT).replaceAll("\\s+", " "));

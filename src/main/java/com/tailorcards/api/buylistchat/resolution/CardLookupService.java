@@ -114,26 +114,32 @@ public class CardLookupService {
         if (setName == null || setName.isBlank()) {
             return List.of();
         }
-        String wanted = setName.trim().toLowerCase(Locale.ROOT);
+        String wanted = fold(setName);
         List<TcgdexPriceProvider.SetInfo> all = sets();
-        List<TcgdexPriceProvider.SetInfo> exactSets = all.stream()
-                .filter(s -> s.name().equalsIgnoreCase(wanted) || s.id().equalsIgnoreCase(wanted)).toList();
-        if (!exactSets.isEmpty()) {
-            List<String> ids = new java.util.ArrayList<>(exactSets.stream().map(TcgdexPriceProvider.SetInfo::id).toList());
-            for (TcgdexPriceProvider.SetInfo base : exactSets) {
-                String prefix = base.name().toLowerCase(Locale.ROOT) + " ";
-                all.stream()
-                        .filter(s -> s.name().toLowerCase(Locale.ROOT).startsWith(prefix) && SUBSET.matcher(s.name()).find())
-                        .map(TcgdexPriceProvider.SetInfo::id)
-                        .filter(id -> !ids.contains(id))
-                        .forEach(ids::add);
-            }
-            return List.copyOf(ids);
+        List<TcgdexPriceProvider.SetInfo> matched = all.stream()
+                .filter(s -> fold(s.name()).equals(wanted) || s.id().equalsIgnoreCase(setName.trim())).toList();
+        if (matched.isEmpty()) {
+            matched = all.stream().filter(s -> {
+                String n = fold(s.name());
+                return n.contains(wanted) || wanted.contains(n);
+            }).toList();
         }
-        return all.stream().filter(s -> {
-            String n = s.name().toLowerCase(Locale.ROOT);
-            return n.contains(wanted) || wanted.contains(n);
-        }).map(TcgdexPriceProvider.SetInfo::id).toList();
+        List<String> ids = new java.util.ArrayList<>(matched.stream().map(TcgdexPriceProvider.SetInfo::id).toList());
+        for (TcgdexPriceProvider.SetInfo base : matched) {
+            String prefix = fold(base.name()) + " ";
+            all.stream()
+                    .filter(s -> fold(s.name()).startsWith(prefix) && SUBSET.matcher(s.name()).find())
+                    .map(TcgdexPriceProvider.SetInfo::id)
+                    .filter(id -> !ids.contains(id))
+                    .forEach(ids::add);
+        }
+        return List.copyOf(ids);
+    }
+
+    /** Lower case without accents or extra spaces: "Pokémon GO" and "pokemon  go" compare equal. */
+    static String fold(String text) {
+        return java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT).replaceAll("\\s+", " ").trim();
     }
 
     /** Set ids whose name appears inside a free-text name ("Phantasmal Flames Charizard" -> [me02]). */
