@@ -174,12 +174,15 @@ public class DealCalculator {
                 && (status == LineStatus.ELIGIBLE || status == LineStatus.NEEDS_PHOTO);
     }
 
-    /** Buy-rule category: PSA 10 / Black Label, GRADED_<COMPANY>_<GRADE> (e.g. GRADED_PSA_9) for other slabs, near mint, or DEFAULT. */
+    /** Buy-rule category: PSA 10 / Black Label, GRADED_<COMPANY>_<GRADE> (e.g. GRADED_PSA_9) for other slabs, sealed, near mint, or DEFAULT. */
     static String categoryFor(LineFacts line) {
         if (line.graded()) {
             String g = line.grading().toUpperCase(Locale.ROOT).trim();
             return g.equals("PSA 10") || g.contains("BLACK LABEL") ? "PSA10_BGS_BLACK_LABEL"
                     : "GRADED_" + g.replaceAll("[^A-Z0-9]+", "_");
+        }
+        if (line.sealed()) {
+            return "SEALED";
         }
         return "NM".equalsIgnoreCase(line.condition()) ? "RAW_NEAR_MINT" : "DEFAULT";
     }
@@ -195,12 +198,12 @@ public class DealCalculator {
         BigDecimal base = rate(rules, "DEFAULT");
         List<String> extras = new ArrayList<>();
         for (BuyRule rule : rules) {
-            if ("DEFAULT".equalsIgnoreCase(rule.getCategoryCode()) || "SEALED".equalsIgnoreCase(rule.getCategoryCode())
-                    || rule.getRate().compareTo(base) == 0) {
+            if ("DEFAULT".equalsIgnoreCase(rule.getCategoryCode()) || rule.getRate().compareTo(base) == 0) {
                 continue;
             }
             String label = switch (rule.getCategoryCode().toUpperCase(Locale.ROOT)) {
                 case "RAW_NEAR_MINT" -> "near mint";
+                case "SEALED" -> "sealed product";
                 case "PSA10_BGS_BLACK_LABEL" -> "PSA 10 / BGS Black Label";
                 default -> rule.getCategoryCode().toUpperCase(Locale.ROOT).startsWith("GRADED_")
                         // GRADED_PSA_9 -> PSA 9, GRADED_BGS_9_5 -> BGS 9.5

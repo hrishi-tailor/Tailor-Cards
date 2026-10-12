@@ -5,6 +5,7 @@ import com.tailorcards.api.buylistchat.entity.BuylistDraftLine;
 import com.tailorcards.api.buylistchat.repository.BuylistDraftLineRepository;
 import com.tailorcards.api.trade.provider.CardMarketPrice;
 import com.tailorcards.api.trade.provider.TcgdexPriceProvider;
+import com.tailorcards.api.trade.service.ExchangeRateService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,16 +30,20 @@ class CardResolutionServiceTest {
 
     private TcgdexPriceProvider tcgdex;
     private GradedPriceService graded;
+    private SealedPriceService sealedPrices;
+    private ExchangeRateService exchangeRates;
     private CardResolutionService service;
 
     @BeforeEach
     void setUp() {
         tcgdex = mock(TcgdexPriceProvider.class);
         graded = mock(GradedPriceService.class);
+        sealedPrices = mock(SealedPriceService.class);
+        exchangeRates = mock(ExchangeRateService.class);
         BuylistChatProperties props = new BuylistChatProperties();
         props.getResolution().setAsync(false);
         props.getResolution().setRequestsPerSecond(1000);
-        service = new CardResolutionService(mock(BuylistDraftLineRepository.class), new CardLookupService(tcgdex, props), props, null, graded);
+        service = new CardResolutionService(mock(BuylistDraftLineRepository.class), new CardLookupService(tcgdex, props), props, null, graded, sealedPrices, exchangeRates);
     }
 
     static CardMarketPrice brief(String id, String number) {
@@ -217,5 +222,71 @@ class CardResolutionServiceTest {
 
         assertThat(result.getCardId()).isEqualTo("me02-125");
         assertThat(result.getUnitMarketUsd()).isEqualByComparingTo("661.14");
+    }
+
+    @Test
+    @DisplayName("Sealed line resolves against SealedPriceService with converted USD price and Cardmarket trend")
+    void resolveSealedDirect() {
+        when(sealedPrices.isConfigured()).thenReturn(true);
+        SealedPriceService.SealedProduct etb = new SealedPriceService.SealedProduct(
+                1001L, "Scarlet & Violet 151 Elite Trainer Box", "151", "https://example.com/etb.jpg",
+                new BigDecimal("94.50"), 0.85);
+        when(sealedPrices.search(eq("151 Elite Trainer Box"), anyInt())).thenReturn(List.of(etb));
+        when(exchangeRates.convertEurToUsd(new BigDecimal("94.50"))).thenReturn(new BigDecimal("102.72"));
+
+        BuylistDraftLine sealedLine = BuylistDraftLine.builder().id(10L).kind("SEALED").name("151 Elite Trainer Box")
+                .quantity(1).resolveState("PENDING").build();
+
+        BuylistDraftLine result = service.resolve(sealedLine);
+
+        assertThat(result.getResolveState()).isEqualTo("RESOLVED");
+        assertThat(result.getCardId()).isEqualTo("sealed-1001");
+        assertThat(result.getCategory()).isEqualTo("SEALED");
+        assertThat(result.getPriceBasis()).isEqualTo("SEALED");
+        assertThat(result.getEurTrend()).isEqualByComparingTo("94.50");
+        assertThat(result.getUnitMarketUsd()).isEqualByComparingTo("102.72");
+        assertThat(result.getImageUrl()).isEqualTo("https://example.com/etb.jpg");
+        assertThat(result.getIdConfidence()).isEqualByComparingTo("0.850");
+    }
+
+    @Test
+    @DisplayName("Card search not found falls back to sealed resolution when name is a sealed product")
+    void fallbackToSealedWhenCardNotFound() {
+        when(tcgdex.searchCardsStrict(anyString(), anyInt())).thenReturn(List.of());
+        when(sealedPrices.isConfigured()).thenReturn(true);
+        SealedPriceService.SealedProduct bundle = new SealedPriceService.SealedProduct(
+                1002L, "Scarlet & Violet 151 Booster Bundle", "151", "https://example.com/bundle.jpg",
+                new BigDecimal("42.00"), 0.90);
+        when(sealedPrices.search(eq("151 Booster Bundle"), anyInt())).thenReturn(List.of(bundle));
+        when(exchangeRates.convertEurToUsd(new BigDecimal("42.00"))).thenReturn(new BigDecimal("45.65"));
+
+        BuylistDraftLine line = BuylistDraftLine.builder().id(11L).kind("CARD").name("151 Booster Bundle")
+                .quantity(1).resolveState("PENDING").build();
+
+        BuylistDraftLine result = service.resolve(line);
+
+        assertThat(result.getKind()).isEqualTo("SEALED");
+        assertThat(result.getResolveState()).isEqualTo("RESOLVED");
+        assertThat(result.getCardId()).isEqualTo("sealed-1002");
+        assertThat(result.getUnitMarketUsd()).isEqualByComparingTo("45.65");
+    }
+
+    @Test
+    @DisplayName("Sealed product with low match score is marked AMBIGUOUS with candidates")
+    void resolveSealedAmbiguous() {
+        when(sealedPrices.isConfigured()).thenReturn(true);
+        SealedPriceService.SealedProduct partial = new SealedPriceService.SealedProduct(
+                1003L, "Scarlet & Violet 151 Poster Collection", "151", "https://example.com/poster.jpg",
+                new BigDecimal("25.00"), 0.40);
+        when(sealedPrices.search(eq("Collection Box"), anyInt())).thenReturn(List.of(partial));
+
+        BuylistDraftLine line = BuylistDraftLine.builder().id(12L).kind("SEALED").name("Collection Box")
+                .quantity(1).resolveState("PENDING").build();
+
+        BuylistDraftLine result = service.resolve(line);
+
+        assertThat(result.getResolveState()).isEqualTo("AMBIGUOUS");
+        assertThat(result.getIdConfidence()).isEqualByComparingTo("0.350");
+        assertThat(result.getCandidatesJson()).contains("sealed-1003");
     }
 }

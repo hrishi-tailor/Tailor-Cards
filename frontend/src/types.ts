@@ -77,7 +77,7 @@ export interface BuylistSubmission {
 
 export interface BuylistChatSubmissionLine {
   lineNo: number;
-  kind: 'CARD' | 'BULK';
+  kind: 'CARD' | 'BULK' | 'SEALED';
   name: string;
   setName?: string | null;
   cardNumber?: string | null;

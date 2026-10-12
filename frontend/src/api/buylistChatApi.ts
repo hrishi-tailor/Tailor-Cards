@@ -26,7 +26,7 @@ export type LineStatus = 'PENDING' | 'ELIGIBLE' | 'BELOW_MINIMUM' | 'NEEDS_PHOTO
 export interface ChatLine {
   id: number;
   lineNo: number;
-  kind: 'CARD' | 'BULK';
+  kind: 'CARD' | 'BULK' | 'SEALED';
   name: string;
   setName: string | null;
   cardNumber: string | null;
@@ -47,8 +47,8 @@ export interface ChatLine {
   eurTrend: number | null;
   priceUpdatedAt: string | null;
   priceSource: string | null;
-  /** RAW = ungraded market price; GRADED = price for this exact grade. */
-  priceBasis: 'RAW' | 'GRADED' | null;
+  /** RAW = ungraded market price; GRADED = price for this exact grade; SEALED = sealed market price. */
+  priceBasis: 'RAW' | 'GRADED' | 'SEALED' | null;
   /** Graded prices: recent eBay sales behind the median. */
   priceSampleSize?: number | null;
   /** Customer's asking price per card (sell deals). */

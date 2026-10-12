@@ -12,4 +12,8 @@ public record ItemInput(String kind, String name, String setName, String cardNum
                                  String condition, int quantity, String inputText) {
         return new ItemInput("CARD", name, setName, cardNumber, variant, condition, quantity, inputText, null, null);
     }
+
+    public static ItemInput sealed(String name, String setName, int quantity, String inputText) {
+        return new ItemInput("SEALED", name, setName, null, null, "SEALED", quantity, inputText, null, null);
+    }
 }

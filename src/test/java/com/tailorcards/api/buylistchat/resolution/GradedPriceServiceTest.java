@@ -91,4 +91,14 @@ class GradedPriceServiceTest {
                 .andRespond(withStatus(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS));
         assertThat(limited.service().gradedPrice("swsh9-154", null, null, null, "PSA 10")).isEmpty();
     }
+
+    @Test
+    @DisplayName("Backup image numbers: '190' is 'SVP 190', 'GG56/GG70' is 'GG56', but not another number")
+    void backupNumbers() {
+        assertThat(GradedPriceService.sameNumber("190", "SVP 190")).isTrue();
+        assertThat(GradedPriceService.sameNumber("GG56/GG70", "GG56")).isTrue();
+        assertThat(GradedPriceService.sameNumber("032", "MEP 032")).isTrue();
+        assertThat(GradedPriceService.sameNumber("190", "SVP 191")).isFalse();
+        assertThat(GradedPriceService.sameNumber("GG56", "56")).isFalse();
+    }
 }

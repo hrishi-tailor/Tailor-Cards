@@ -118,7 +118,7 @@ export function AdminChatSubmissionPanel({ submission, onUpdated }: {
                     </td>
                     <td>{l.quantity}</td>
                     <td>{l.grading ?? l.condition ?? '—'}</td>
-                    <td>{l.kind === 'BULK' ? '—' : money(l.unitMarketUsd)}{l.grading && l.unitMarketUsd != null ? (l.priceBasis === 'GRADED' ? ` (${l.grading})` : ' (ungraded)') : ''}</td>
+                    <td>{l.kind === 'BULK' ? '—' : money(l.unitMarketUsd)}{l.grading && l.unitMarketUsd != null ? (l.priceBasis === 'GRADED' ? ` (${l.grading})` : ' (ungraded)') : ''}{l.kind === 'SEALED' && l.unitMarketUsd != null ? ' (sealed)' : ''}</td>
                     <td>{l.requestedUnitUsd != null ? money(l.requestedUnitUsd) : '—'}</td>
                     <td>{money(l.lineMarketUsd)}</td>
                     <td title={l.statusReason ?? undefined}><span className={`tc-chat-admin-status s-${l.status.toLowerCase()}`}>{l.status}</span></td>

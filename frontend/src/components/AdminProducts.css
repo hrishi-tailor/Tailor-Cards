@@ -150,3 +150,52 @@
     justify-content: flex-start;
   }
 }
+
+.tc-ap-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+}
+
+.tc-ap-help {
+  font-size: 14px;
+  max-width: 80ch;
+}
+
+.tc-ap-help code {
+  font-size: 12px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--tc-bg-sunken);
+}
+
+.tc-ap-link {
+  display: flex;
+  gap: 6px;
+}
+
+.tc-ap-link input {
+  width: 150px;
+  height: 40px;
+  padding: 0 10px;
+  border: 1.5px solid var(--tc-border);
+  border-radius: var(--tc-radius);
+  background: var(--tc-field);
+  color: var(--tc-text-primary);
+  font: 14px var(--tc-font-mono);
+}
+
+.tc-ap .tc-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--tc-text-secondary);
+}
+
+.tc-ap .tc-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--tc-btn-bg);
+}

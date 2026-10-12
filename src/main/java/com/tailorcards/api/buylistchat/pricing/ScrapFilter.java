@@ -26,6 +26,18 @@ public class ScrapFilter {
                     ? new Verdict(LineStatus.ELIGIBLE, "Bulk lot")
                     : new Verdict(LineStatus.BELOW_MINIMUM, "Bulk lot is too small for us to take");
         }
+        if (line.sealed()) {
+            switch (line.resolveState()) {
+                case "PENDING":
+                    return new Verdict(LineStatus.PENDING, "Checking product data");
+                case "NOT_FOUND", "ERROR":
+                    return new Verdict(LineStatus.NEEDS_REVIEW, "We'll price this sealed product by hand");
+                case "AMBIGUOUS":
+                    return new Verdict(LineStatus.NEEDS_REVIEW, "Several products match; we'll confirm which one");
+                default:
+                    break;
+            }
+        }
         switch (line.resolveState()) {
             case "PENDING":
                 return new Verdict(LineStatus.PENDING, "Checking card data");

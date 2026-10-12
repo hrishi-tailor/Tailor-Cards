@@ -57,7 +57,25 @@ class DealCalculatorTest {
         assertThat(r.withinRules()).isTrue();
         assertThat(r.meterFactor()).isEqualTo(1.0);
         assertThat(r.ratesText()).isEqualTo("We pay 75% of market value in cash (82% for PSA 10 / BGS Black Label, "
-                + "77% for near mint), or 80% in store credit toward cards in our shop.");
+                + "70% for sealed product, 77% for near mint), or 80% in store credit toward cards in our shop.");
+    }
+
+    @Test
+    @DisplayName("Sealed product gets the active 70% buy rule rate for cash, and 80% for trade credit")
+    void sealedProductRate() {
+        LineFacts sealedLine = new LineFacts(10, false, "RESOLVED", "SEALED", "SEALED", 1,
+                new BigDecimal("100.00"), BigDecimal.ONE, true, "sealed-1001", null, "SEALED", null, true);
+        Map<Long, LineStatus> statusMap = Map.of(10L, LineStatus.ELIGIBLE);
+
+        DealCalculator.Result r = calculator.calculate(new DealCalculator.Input(
+                DealType.SELL, List.of(sealedLine), statusMap, Map.of(), null, 0, null));
+
+        assertThat(r.cashOfferUsd()).isEqualByComparingTo("70.00");   // 100 * 0.70
+        assertThat(r.tradeCreditUsd()).isEqualByComparingTo("80.00"); // 100 * 0.80
+
+        // Unit cash offer helper
+        BigDecimal unitOffer = calculator.unitCashOffer(sealedLine, LineStatus.ELIGIBLE, rules);
+        assertThat(unitOffer).isEqualByComparingTo("70.00");
     }
 
     @Test

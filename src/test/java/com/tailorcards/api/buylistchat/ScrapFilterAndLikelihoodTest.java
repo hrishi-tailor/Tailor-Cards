@@ -167,4 +167,17 @@ class ScrapFilterAndLikelihoodTest {
         assertThat(verdict.status()).isEqualTo(LineStatus.NEEDS_REVIEW);
         assertThat(verdict.reason()).contains("ungraded");
     }
+
+    @Test
+    @DisplayName("Sealed products that can't be matched are priced by hand, never 'couldn't identify this card'")
+    void sealedStatuses() {
+        LineFacts notFound = new LineFacts(1, false, "NOT_FOUND", null, "SEALED", 1, null, BigDecimal.ZERO, false, null,
+                null, null, null, true);
+        assertThat(filter.evaluate(notFound).status()).isEqualTo(LineStatus.NEEDS_REVIEW);
+        assertThat(filter.evaluate(notFound).reason()).contains("sealed product by hand");
+
+        LineFacts priced = new LineFacts(2, false, "RESOLVED", "SEALED", "SEALED", 1, new BigDecimal("160.00"),
+                new BigDecimal("0.95"), true, "sealed-21574", null, "SEALED", null, true);
+        assertThat(filter.evaluate(priced).status()).isEqualTo(LineStatus.ELIGIBLE);
+    }
 }

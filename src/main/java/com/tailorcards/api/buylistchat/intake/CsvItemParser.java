@@ -21,6 +21,8 @@ public class CsvItemParser {
     private static final Map<String, String> HEADER_ALIASES = Map.ofEntries(
             Map.entry("name", "name"), Map.entry("card", "name"), Map.entry("card name", "name"),
             Map.entry("card_name", "name"), Map.entry("product name", "name"), Map.entry("product", "name"),
+            Map.entry("item", "name"), Map.entry("title", "name"),
+            Map.entry("type", "kind"), Map.entry("kind", "kind"), Map.entry("category", "kind"),
             Map.entry("set", "set"), Map.entry("set name", "set"), Map.entry("set_name", "set"), Map.entry("expansion", "set"),
             Map.entry("number", "number"), Map.entry("card number", "number"), Map.entry("card_number", "number"),
             Map.entry("collector number", "number"), Map.entry("no", "number"), Map.entry("#", "number"),
@@ -63,12 +65,20 @@ public class CsvItemParser {
             if (qty != null && qty.matches("\\d{1,6}")) {
                 quantity = Integer.parseInt(qty);
             }
-            boolean bulk = name.toLowerCase(Locale.ROOT).contains("bulk");
-            items.add(new ItemInput(bulk ? "BULK" : "CARD", name, cell(row, columns.get("set"), 150),
-                    cell(row, columns.get("number"), 40), ItemNormalizer.normalizeVariant(cell(row, columns.get("variant"), 40)),
-                    ItemNormalizer.normalizeCondition(cell(row, columns.get("condition"), 30)),
+            String kindCol = cell(row, columns.get("kind"), 20);
+            String condCol = cell(row, columns.get("condition"), 30);
+            boolean bulk = name.toLowerCase(Locale.ROOT).contains("bulk")
+                    || (kindCol != null && "bulk".equalsIgnoreCase(kindCol.trim()));
+            boolean sealed = !bulk && ((kindCol != null && "sealed".equalsIgnoreCase(kindCol.trim()))
+                    || (condCol != null && "sealed".equalsIgnoreCase(condCol.trim()))
+                    || ItemNormalizer.isSealed(name));
+            String kind = bulk ? "BULK" : (sealed ? "SEALED" : "CARD");
+            items.add(new ItemInput(kind, name, cell(row, columns.get("set"), 150),
+                    sealed ? null : cell(row, columns.get("number"), 40),
+                    sealed ? null : ItemNormalizer.normalizeVariant(cell(row, columns.get("variant"), 40)),
+                    sealed ? "SEALED" : ItemNormalizer.normalizeCondition(condCol),
                     normalizer.clampQuantity(quantity, bulk), String.join(", ", row), null,
-                    ItemNormalizer.normalizeGrading(cell(row, columns.get("grading"), 30))));
+                    sealed ? null : ItemNormalizer.normalizeGrading(cell(row, columns.get("grading"), 30))));
         }
         return new Parsed(items, List.of(), data.size());
     }
