@@ -213,4 +213,14 @@ class ItemIntakeTest {
         assertThat(parsed.structured().get(2)).extracting(ItemInput::kind, ItemInput::name, ItemInput::quantity, ItemInput::condition)
                 .containsExactly("SEALED", "Scarlet & Violet 151 Elite Trainer Box", 2, "SEALED");
     }
+
+    @Test
+    @DisplayName("Cards that come from sealed products stay cards: graded, numbered or promo")
+    void sealedWordsOnCards() {
+        assertThat(ItemNormalizer.isSealed("Prismatic Evolutions ETB")).isTrue();
+        assertThat(ItemNormalizer.isSealed("151 Ultra Premium Collection")).isTrue();
+        assertThat(ItemNormalizer.isSealed("Mew ex PSA 10 151 UPC")).isFalse();
+        assertThat(ItemNormalizer.isSealed("Mew ex 053 151 Ultra Premium Collection promo")).isFalse();
+        assertThat(ItemNormalizer.isSealed("Charizard ex 199/165 from the 151 UPC")).isFalse();
+    }
 }

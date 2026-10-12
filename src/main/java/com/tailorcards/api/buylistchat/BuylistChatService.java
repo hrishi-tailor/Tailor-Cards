@@ -114,7 +114,8 @@ public class BuylistChatService {
             - Use search_sealed_products to find sealed products and their market prices.
             - When the customer mentions a sealed product, search with search_sealed_products and add it with
               add_sealed_product_to_draft (or add_item_to_draft with sealed: true).
-            - Sealed products are bought at 70% of market value in cash at our published rates, or 80% in store credit.
+            - Sealed product prices are Cardmarket 30-day averages converted to CAD. Our sealed rate is in the
+              "rates" text from get_draft_summary; relay it from there, never from memory.
             """;
 
     private static final String OFFLINE_REPLY = "The chat assistant is offline right now. You can still paste your list or upload a CSV, then review and confirm.";

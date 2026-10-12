@@ -198,12 +198,12 @@ public class DealCalculator {
         BigDecimal base = rate(rules, "DEFAULT");
         List<String> extras = new ArrayList<>();
         for (BuyRule rule : rules) {
-            if ("DEFAULT".equalsIgnoreCase(rule.getCategoryCode()) || "SEALED".equalsIgnoreCase(rule.getCategoryCode())
-                    || rule.getRate().compareTo(base) == 0) {
+            if ("DEFAULT".equalsIgnoreCase(rule.getCategoryCode()) || rule.getRate().compareTo(base) == 0) {
                 continue;
             }
             String label = switch (rule.getCategoryCode().toUpperCase(Locale.ROOT)) {
                 case "RAW_NEAR_MINT" -> "near mint";
+                case "SEALED" -> "sealed product";
                 case "PSA10_BGS_BLACK_LABEL" -> "PSA 10 / BGS Black Label";
                 default -> rule.getCategoryCode().toUpperCase(Locale.ROOT).startsWith("GRADED_")
                         // GRADED_PSA_9 -> PSA 9, GRADED_BGS_9_5 -> BGS 9.5

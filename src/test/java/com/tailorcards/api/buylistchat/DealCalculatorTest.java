@@ -57,7 +57,7 @@ class DealCalculatorTest {
         assertThat(r.withinRules()).isTrue();
         assertThat(r.meterFactor()).isEqualTo(1.0);
         assertThat(r.ratesText()).isEqualTo("We pay 75% of market value in cash (82% for PSA 10 / BGS Black Label, "
-                + "77% for near mint), or 80% in store credit toward cards in our shop.");
+                + "70% for sealed product, 77% for near mint), or 80% in store credit toward cards in our shop.");
     }
 
     @Test

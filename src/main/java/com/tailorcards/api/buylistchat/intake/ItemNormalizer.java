@@ -47,8 +47,17 @@ public class ItemNormalizer {
     public static final Pattern SEALED_PATTERN = Pattern.compile(
             "(?i)\\b(sealed|booster\\s*box(?:es)?|booster\\s*pack(?:s)?|booster\\s*bundle(?:s)?|elite\\s*trainer\\s*box(?:es)?|etbs?|upc|ultra[-\\s]*premium\\s*collection|collection\\s*box(?:es)?|premium\\s*collection|special\\s*collection|tins?|mini\\s*tins?|blisters?(?:\\s*packs?)?|display)\\b");
 
+    /**
+     * Sealed product wording ("Elite Trainer Box", "booster box", "UPC") with no sign of a single card:
+     * a grade ("PSA 10"), a card number ("205/165", "#53") or "promo" keeps it a card, so a
+     * "Mew ex PSA 10 151 UPC promo" is not mistaken for the box it came from.
+     */
     public static boolean isSealed(String text) {
-        return text != null && SEALED_PATTERN.matcher(text).find();
+        if (text == null || !SEALED_PATTERN.matcher(text).find()) {
+            return false;
+        }
+        return !GRADING.matcher(text).find() && !NUMBER.matcher(text).find()
+                && !text.toLowerCase(Locale.ROOT).contains("promo");
     }
 
     private static final Pattern QTY_PREFIX = Pattern.compile("^\\s*(\\d{1,5})\\s*(?:[xX×]\\s*|\\s+)(?=\\D)");

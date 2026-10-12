@@ -167,6 +167,13 @@ public class CardResolutionService {
         target.setResolveState(result.getResolveState());
         target.setPriceBasis(result.getPriceBasis());
         target.setPriceSampleSize(result.getPriceSampleSize());
+        if ("SEALED".equals(result.getKind())) {
+            // A line typed as a card that turned out to be sealed product: store it as sealed
+            target.setKind("SEALED");
+            target.setItemCondition("SEALED");
+            target.setGrading(null);
+            target.setVariant(null);
+        }
         if ((target.getCardNumber() == null || target.getCardNumber().isBlank()) && result.getCardNumber() != null) {
             target.setCardNumber(result.getCardNumber()); // number found at the end of the name
         }
