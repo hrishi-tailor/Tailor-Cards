@@ -112,7 +112,6 @@
 
 .tc-bc-field input,
 .tc-bc-field textarea,
-.tc-bc-composer input,
 .tc-bc-line-controls input,
 .tc-bc-line-controls select,
 .tc-bc-ask input {
@@ -127,7 +126,6 @@
 
 .tc-bc-field input:focus,
 .tc-bc-field textarea:focus,
-.tc-bc-composer input:focus,
 .tc-bc-line-controls input:focus,
 .tc-bc-line-controls select:focus,
 .tc-bc-ask input:focus {
@@ -140,12 +138,6 @@
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
-}
-
-.tc-bc-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
 .tc-bc-btn {
@@ -205,28 +197,6 @@
 }
 
 /* Chat */
-.tc-bc-tabs {
-  display: flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--tc-border);
-}
-
-.tc-bc-tab {
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  padding: 10px 14px;
-  color: var(--tc-text-secondary);
-  font: 500 15px var(--tc-font-body);
-  cursor: pointer;
-}
-
-.tc-bc-tab.active {
-  color: var(--tc-text-primary);
-  border-bottom-color: var(--tc-text-primary);
-}
-
 .tc-bc-messages {
   display: flex;
   flex-direction: column;
@@ -294,9 +264,136 @@
   font-style: italic;
 }
 
+.tc-bc-empty {
+  margin: auto 0;
+  text-align: center;
+}
+
+.tc-bc-empty p {
+  margin: 4px 0;
+}
+
+/* Composer: one rounded field with + on the left and send on the right */
 .tc-bc-composer {
   display: flex;
-  gap: 8px;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 6px;
+  border: 1.5px solid var(--tc-border);
+  border-radius: 24px;
+  background: var(--tc-field);
+  transition: border-color 0.15s;
+}
+
+.tc-bc-composer:focus-within {
+  border-color: var(--tc-text-primary);
+}
+
+.tc-bc-composer textarea {
+  flex: 1;
+  min-width: 0;
+  max-height: 200px;
+  padding: 9px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--tc-text-primary);
+  font: 15px/1.4 var(--tc-font-body);
+  resize: none;
+  outline: none;
+}
+
+.tc-bc-plus {
+  position: relative;
+}
+
+.tc-bc-plus-btn,
+.tc-bc-send {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.tc-bc-plus-btn {
+  background: transparent;
+  color: var(--tc-text-primary);
+}
+
+.tc-bc-plus-btn:hover:not(:disabled),
+.tc-bc-plus-btn[aria-expanded='true'] {
+  background: var(--tc-bg-sunken);
+}
+
+.tc-bc-send {
+  background: var(--tc-btn-bg);
+  color: var(--tc-btn-fg);
+}
+
+.tc-bc-send:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.tc-bc-menu {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 260px;
+  padding: 6px;
+  border: 1px solid var(--tc-border);
+  border-radius: 14px;
+  background: var(--tc-surface);
+  box-shadow: 0 12px 32px rgba(var(--tc-shadow-rgb), 0.18);
+}
+
+.tc-bc-menu button {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--tc-text-primary);
+  font: 500 15px var(--tc-font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tc-bc-menu button:hover,
+.tc-bc-menu button:focus-visible {
+  background: var(--tc-bg-sunken);
+  outline: none;
+}
+
+.tc-bc-menu svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tc-bc-menu small {
+  display: block;
+  color: var(--tc-text-secondary);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+.tc-bc-uploading {
+  margin: 0;
+  font-size: 13px;
 }
 
 /* Your list */

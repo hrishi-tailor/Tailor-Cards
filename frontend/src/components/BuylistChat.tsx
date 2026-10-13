@@ -64,8 +64,8 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
   const [draft, setDraft] = useState<ChatDraft | null>(null)
   const [message, setMessage] = useState('')
   const [chatBusy, setChatBusy] = useState(false)
-  const [pasteText, setPasteText] = useState('')
-  const [addMode, setAddMode] = useState<'chat' | 'scan' | 'paste' | 'csv'>('chat')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [scanner, setScanner] = useState<{ file: File | null } | null>(null)
   const [customerName, setCustomerName] = useState('')
   const [notes, setNotes] = useState('')
   const [result, setResult] = useState<ConfirmResult | null>(null)
@@ -73,6 +73,10 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
   const money = makeMoney(draft?.summary.deal?.usdCadRate)
   const turnstileRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  const csvInputRef = useRef<HTMLInputElement>(null)
+  const composerRef = useRef<HTMLTextAreaElement>(null)
 
   const fail = useCallback((err: unknown) => {
     if (err instanceof ChatApiError && err.status === 401) {
@@ -137,6 +141,29 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
     messagesEndRef.current?.scrollIntoView({ block: 'end' })
   }, [draft?.messages.length])
 
+  // Close the + menu on an outside click or Escape
+  useEffect(() => {
+    if (!menuOpen) return
+    const onClick = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false) }
+    document.addEventListener('mousedown', onClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menuOpen])
+
+  // Grow the composer with its text, up to a few lines
+  useEffect(() => {
+    const el = composerRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`
+  }, [message])
+
   const sendCode = async (e?: FormEvent) => {
     e?.preventDefault()
     setBusy(true)
@@ -175,13 +202,25 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
     }
   }
 
-  const sendChat = async (e: FormEvent) => {
-    e.preventDefault()
+  const sendChat = async (e?: FormEvent) => {
+    e?.preventDefault()
     if (!draft || !message.trim() || chatBusy) return
     const text = message.trim()
     setMessage('')
     setChatBusy(true)
     setError(null)
+    if (text.length > status.maxMessageLength) {
+      // A long pasted list: add it line by line instead of sending it to the assistant
+      try {
+        if (text.includes('\n')) setDraft(await buylistChatApi.paste(draft.draftId, text))
+        else setError(`That message is too long (${status.maxMessageLength} characters max).`)
+      } catch (err) {
+        fail(err)
+      } finally {
+        setChatBusy(false)
+      }
+      return
+    }
     // Show the customer's message right away
     setDraft({ ...draft, messages: [...draft.messages, { role: 'CUSTOMER', content: text, createdAt: new Date().toISOString() }] })
     try {
@@ -193,15 +232,6 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
     } finally {
       setChatBusy(false)
     }
-  }
-
-  const submitPaste = async (e: FormEvent) => {
-    e.preventDefault()
-    if (!draft || !pasteText.trim()) return
-    setBusy(true)
-    await run(() => buylistChatApi.paste(draft.draftId, pasteText))
-    setPasteText('')
-    setBusy(false)
   }
 
   const uploadCsv = async (file: File | undefined) => {
@@ -257,7 +287,7 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
         <span className="tc-eyebrow">Sell or trade</span>
         <h1 className="tc-bc-title">Sell your cards</h1>
         <ol className="tc-bc-how">
-          <li><b>List your cards</b> by chat, photo scan, pasted list or CSV</li>
+          <li><b>List your cards</b> in the chat, or tap + to scan a card or upload a CSV</li>
           <li><b>See our offer</b> at our published rates</li>
           <li><b>Submit</b> and we'll review it and email you</li>
         </ol>
@@ -315,64 +345,70 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
       {step === 'workspace' && draft && (
         <div className="tc-bc-workspace">
           <section className="tc-bc-panel tc-bc-chat">
-            <div className="tc-bc-tabs" role="tablist">
-              {(status.scannerEnabled ? ['chat', 'scan', 'paste', 'csv'] as const : ['chat', 'paste', 'csv'] as const).map((mode) => (
-                <button key={mode} type="button" role="tab" aria-selected={addMode === mode}
-                  className={`tc-bc-tab ${addMode === mode ? 'active' : ''}`} onClick={() => setAddMode(mode)}>
-                  {mode === 'chat' ? 'Chat' : mode === 'scan' ? 'Scan a card' : mode === 'paste' ? 'Paste list' : 'Upload CSV'}
-                </button>
-              ))}
-            </div>
-
-            {addMode === 'chat' && (
-              <>
-                <div className="tc-bc-messages" aria-live="polite">
-                  {draft.messages.length === 0 && (
-                    <p className="tc-bc-muted">Try: "I have a Base Set Charizard 4/102 and 3 Pikachu from 151".</p>
-                  )}
-                  {draft.messages.map((m, i) => (
-                    <div key={i} className={`tc-bc-msg ${m.role === 'CUSTOMER' ? 'mine' : 'theirs'}`}>
-                      {m.role === 'CUSTOMER' ? m.content : <ChatText text={m.content} />}
-                    </div>
-                  ))}
-                  {chatBusy && <div className="tc-bc-msg theirs tc-bc-typing">Thinking…</div>}
-                  <div ref={messagesEndRef} />
-                </div>
-                <form className="tc-bc-composer" onSubmit={sendChat}>
-                  <input value={message} maxLength={status.maxMessageLength} placeholder="Ask about a card or add one"
-                    onChange={(e) => setMessage(e.target.value)} disabled={chatBusy} />
-                  <button type="submit" className="tc-bc-btn tc-bc-btn-gold" disabled={chatBusy || !message.trim()}>Send</button>
-                </form>
-              </>
-            )}
-
-            {addMode === 'scan' && (
-              <CardScanner draftId={draft.draftId} money={money} onDraft={setDraft} onClose={() => setAddMode('chat')} />
-            )}
-
-            {addMode === 'paste' && (
-              <form onSubmit={submitPaste} className="tc-bc-stack">
-                <label className="tc-bc-field">
-                  <span>One card per line (up to {status.maxLines})</span>
-                  <textarea rows={10} value={pasteText} onChange={(e) => setPasteText(e.target.value)}
-                    placeholder={'2x Charizard 4/102 NM\nUmbreon VMAX 215/203\n500 bulk commons'} />
-                </label>
-                <button type="submit" className="tc-bc-btn tc-bc-btn-gold" disabled={busy || !pasteText.trim()}>
-                  {busy ? 'Adding…' : 'Add to list'}
-                </button>
-              </form>
-            )}
-
-            {addMode === 'csv' && (
-              <div className="tc-bc-stack">
-                <p className="tc-bc-muted">Columns: name, set, number, quantity, condition, variant, grading (e.g. PSA 10; header row optional). Max 2 MB.</p>
-                <label className="tc-bc-btn tc-bc-btn-ghost tc-bc-file">
-                  {busy ? 'Uploading…' : 'Choose CSV file'}
-                  <input type="file" accept=".csv,text/csv" hidden disabled={busy}
-                    onChange={(e) => { uploadCsv(e.target.files?.[0]); e.target.value = '' }} />
-                </label>
+            {scanner ? (
+              <CardScanner draftId={draft.draftId} money={money} initialFile={scanner.file} onDraft={setDraft}
+                onClose={() => setScanner(null)} />
+            ) : (
+              <div className="tc-bc-messages" aria-live="polite">
+                {draft.messages.length === 0 && (
+                  <div className="tc-bc-empty">
+                    <p>Tell me what you have, or paste your whole list.</p>
+                    <p className="tc-bc-muted">Try: "Base Set Charizard 4/102 and 3 Pikachu from 151".
+                      {status.scannerEnabled ? ' Tap + to scan a card with your camera.' : ''}</p>
+                  </div>
+                )}
+                {draft.messages.map((m, i) => (
+                  <div key={i} className={`tc-bc-msg ${m.role === 'CUSTOMER' ? 'mine' : 'theirs'}`}>
+                    {m.role === 'CUSTOMER' ? m.content : <ChatText text={m.content} />}
+                  </div>
+                ))}
+                {chatBusy && <div className="tc-bc-msg theirs tc-bc-typing">Thinking…</div>}
+                <div ref={messagesEndRef} />
               </div>
             )}
+
+            <form className="tc-bc-composer" onSubmit={sendChat}>
+              <div className="tc-bc-plus" ref={menuRef}>
+                <button type="button" className="tc-bc-plus-btn" aria-label="Add photos and files" aria-haspopup="menu"
+                  aria-expanded={menuOpen} onClick={() => setMenuOpen((o) => !o)} disabled={busy}>
+                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+                </button>
+                {menuOpen && (
+                  <div className="tc-bc-menu" role="menu">
+                    {status.scannerEnabled && (
+                      <>
+                        <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); setScanner({ file: null }) }}>
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8a2 2 0 0 1 2-2h2l1.5-2h5L16 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" /><circle cx="12" cy="12.5" r="3.5" /></svg>
+                          <span>Scan a card<small>Use your camera</small></span>
+                        </button>
+                        <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); photoInputRef.current?.click() }}>
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2" /><circle cx="9" cy="9.5" r="1.5" /><path d="m20 15-4.5-4.5L6 20" /></svg>
+                          <span>Upload a card<small>A photo from your device</small></span>
+                        </button>
+                      </>
+                    )}
+                    <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); csvInputRef.current?.click() }}>
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6M8 13h8M8 17h8" /></svg>
+                      <span>Upload CSV<small>name, set, number, quantity, condition, grading</small></span>
+                    </button>
+                  </div>
+                )}
+                <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) setScanner({ file: f }); e.target.value = '' }} />
+                <input ref={csvInputRef} type="file" accept=".csv,text/csv" hidden
+                  onChange={(e) => { uploadCsv(e.target.files?.[0]); e.target.value = '' }} />
+              </div>
+              <textarea ref={composerRef} rows={1} value={message} placeholder="Ask about a card, or paste your list"
+                aria-label="Message" disabled={chatBusy}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); sendChat() }
+                }} />
+              <button type="submit" className="tc-bc-send" aria-label="Send" disabled={chatBusy || !message.trim()}>
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </button>
+            </form>
+            {busy && <p className="tc-bc-muted tc-bc-uploading">Uploading…</p>}
           </section>
 
           <section className="tc-bc-panel tc-bc-list">
@@ -387,7 +423,7 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
               </div>
             )}
             {draft.lines.length === 0 ? (
-              <p className="tc-bc-muted">No cards yet. Chat, paste a list or upload a CSV.</p>
+              <p className="tc-bc-muted">No cards yet. Tell the assistant what you have, or tap + to scan a card.</p>
             ) : (
               <ul className="tc-bc-lines">
                 {draft.lines.map((line) => (
