@@ -58,7 +58,8 @@ public class ScrapFilter {
                 .anyMatch(excluded -> excluded.equalsIgnoreCase(line.category().trim()))) {
             return new Verdict(LineStatus.BELOW_MINIMUM, "Not something we're buying right now");
         }
-        if (isDamaged(line.condition())) {
+        if (isDamaged(line.condition()) && !"ELIGIBLE".equalsIgnoreCase(config.getDamagedPolicy())) {
+            // ELIGIBLE (default): damaged cards are bought at the damaged rate like any other condition
             return "EXCLUDE".equalsIgnoreCase(config.getDamagedPolicy())
                     ? new Verdict(LineStatus.BELOW_MINIMUM, "We're not taking damaged cards right now")
                     : new Verdict(LineStatus.NEEDS_REVIEW, "Damaged cards need a closer look");

@@ -11,7 +11,10 @@ import com.tailorcards.api.buylistchat.dto.BuylistChatDtos.OtpRequest;
 import com.tailorcards.api.buylistchat.dto.BuylistChatDtos.OtpVerifyRequest;
 import com.tailorcards.api.buylistchat.dto.BuylistChatDtos.PasteRequest;
 import com.tailorcards.api.buylistchat.dto.BuylistChatDtos.SessionResponse;
+import com.tailorcards.api.buylistchat.dto.BuylistChatDtos.ScanAddRequest;
+import com.tailorcards.api.buylistchat.dto.BuylistChatDtos.ScanResponse;
 import com.tailorcards.api.buylistchat.dto.BuylistChatDtos.StatusResponse;
+import com.tailorcards.api.buylistchat.scan.CardScanService;
 import com.tailorcards.api.buylistchat.entity.BuylistChatSession;
 import com.tailorcards.api.buylistchat.entity.BuylistDraft;
 import com.tailorcards.api.buylistchat.identity.BuylistIdentityService;
@@ -73,14 +76,17 @@ public class BuylistChatController {
     private final TurnstileVerifier turnstile;
     private final LlmRateLimiter rateLimiter;
     private final com.tailorcards.api.buylistchat.pricing.StoreCardService storeCardService;
+    private final CardScanService scanner;
 
     public BuylistChatController(BuylistChatProperties properties, BuylistIdentityService identity,
                                  BuylistDraftService drafts, BuylistChatService chat,
                                  BuylistChatSubmissionService submissions, ItemNormalizer normalizer,
                                  CsvItemParser csvParser, ListingImageSanitizer sanitizer, BuylistStorageService storage,
                                  TurnstileVerifier turnstile, LlmRateLimiter rateLimiter,
-                                 com.tailorcards.api.buylistchat.pricing.StoreCardService storeCardService) {
+                                 com.tailorcards.api.buylistchat.pricing.StoreCardService storeCardService,
+                                 CardScanService scanner) {
         this.storeCardService = storeCardService;
+        this.scanner = scanner;
         this.properties = properties;
         this.identity = identity;
         this.drafts = drafts;
@@ -99,7 +105,8 @@ public class BuylistChatController {
     public StatusResponse status() {
         String siteKey = properties.getTurnstile().getSecret().isBlank() ? null : properties.getTurnstile().getSiteKey();
         return new StatusResponse(properties.isEnabled(), properties.isRequireEmailVerification(), siteKey,
-                properties.getLimits().getMaxLines(), properties.getLimits().getMaxMessageLength(), 2000);
+                properties.getLimits().getMaxLines(), properties.getLimits().getMaxMessageLength(), 2000,
+                properties.isEnabled() && scanner.isAvailable());
     }
 
     @PostMapping("/session/guest")
@@ -156,6 +163,23 @@ public class BuylistChatController {
                                         @RequestHeader(value = SESSION_HEADER, required = false) String token) {
         BuylistChatSession session = session(token);
         return chat.handleTurn(session.getEmail(), session.getId(), draftId, request.message());
+    }
+
+    @PostMapping(value = "/drafts/{draftId}/scan", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Scan a card photo: identify the card and estimate its condition (nothing is added yet)")
+    public ScanResponse scan(@PathVariable String draftId, @RequestPart("front") MultipartFile front,
+                             @RequestPart(value = "back", required = false) MultipartFile back,
+                             @RequestHeader(value = SESSION_HEADER, required = false) String token) throws IOException {
+        BuylistChatSession session = session(token);
+        return scanner.scan(session.getEmail(), session.getId(), draftId, front, back);
+    }
+
+    @PostMapping("/drafts/{draftId}/scan/{scanId}/add")
+    @Operation(summary = "Add a confirmed scan to the list, with its photo")
+    public DraftView addScan(@PathVariable String draftId, @PathVariable String scanId, @RequestBody ScanAddRequest request,
+                             @RequestHeader(value = SESSION_HEADER, required = false) String token) {
+        BuylistChatSession session = session(token);
+        return scanner.add(session.getEmail(), draftId, scanId, request);
     }
 
     @PostMapping("/drafts/{draftId}/paste")

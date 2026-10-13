@@ -114,8 +114,8 @@ public class BuylistChatProperties {
         private BigDecimal minLineUsd = new BigDecimal("5.00");
         /** TCGdex categories we do not buy (case-insensitive), e.g. "Energy". */
         private List<String> excludedCategories = new ArrayList<>(List.of("Energy"));
-        /** NEEDS_REVIEW or EXCLUDE for damaged cards. */
-        private String damagedPolicy = "NEEDS_REVIEW";
+        /** ELIGIBLE (bought at the damaged rate), NEEDS_REVIEW or EXCLUDE for damaged cards. */
+        private String damagedPolicy = "ELIGIBLE";
         /** A bulk lot is one line; it is eligible from this many cards. */
         private int bulkMinQuantity = 100;
         /** Lines worth at least this much warrant a photo (optional; without one the estimate is capped). */

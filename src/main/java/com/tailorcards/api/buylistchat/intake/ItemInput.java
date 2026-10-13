@@ -1,7 +1,7 @@
 package com.tailorcards.api.buylistchat.intake;
 
 /**
- * A line item before resolution. kind is CARD or BULK; condition is NM, LP, MP, HP, DMG or UNKNOWN.
+ * A line item before resolution. kind is CARD or BULK; condition is NM, LP+, LP, MP, HP, DMG or UNKNOWN.
  * cardId is set only when the item came from a card the customer picked via the chat tools; grading
  * is the slab grade (e.g. "PSA 10") or null for raw cards.
  */

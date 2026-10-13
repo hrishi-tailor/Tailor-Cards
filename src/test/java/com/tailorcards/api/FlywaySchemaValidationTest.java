@@ -38,7 +38,7 @@ class FlywaySchemaValidationTest {
                 "SELECT \"version\" || ':' || \"type\" || ':' || \"success\" FROM \"flyway_schema_history\" "
                         + "WHERE \"version\" IS NOT NULL ORDER BY \"installed_rank\"",
                 String.class);
-        assertThat(versioned).containsExactly("1:SQL:TRUE", "2:SQL:TRUE", "3:SQL:TRUE", "4:SQL:TRUE", "5:SQL:TRUE", "6:SQL:TRUE", "7:SQL:TRUE");
+        assertThat(versioned).containsExactly("1:SQL:TRUE", "2:SQL:TRUE", "3:SQL:TRUE", "4:SQL:TRUE", "5:SQL:TRUE", "6:SQL:TRUE", "7:SQL:TRUE", "8:SQL:TRUE");
 
         Integer categoryCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM categories", Integer.class);
         assertThat(categoryCount).isNotNull();
@@ -46,7 +46,7 @@ class FlywaySchemaValidationTest {
 
         Integer buyRuleCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM buy_rules", Integer.class);
         assertThat(buyRuleCount).isNotNull();
-        assertThat(buyRuleCount).isEqualTo(6); // V2 seeds 4, V6 adds PSA 9 and CGC 10
+        assertThat(buyRuleCount).isEqualTo(11); // V2 seeds 4, V6 adds PSA 9 and CGC 10, V8 adds 5 condition tiers
 
         Integer tradeParamCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM trade_parameters", Integer.class);
         assertThat(tradeParamCount).isNotNull();

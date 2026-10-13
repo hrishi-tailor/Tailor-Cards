@@ -84,7 +84,7 @@ abstract class AbstractFlywayBaselineIntegrationTest {
         List<String> history = jdbcTemplate.queryForList(
                 "SELECT version || ':' || type || ':' || success FROM flyway_schema_history ORDER BY installed_rank",
                 String.class);
-        assertThat(history).containsExactly("1:BASELINE:true", "2:SQL:true", "3:SQL:true", "4:SQL:true", "5:SQL:true", "6:SQL:true", "7:SQL:true");
+        assertThat(history).containsExactly("1:BASELINE:true", "2:SQL:true", "3:SQL:true", "4:SQL:true", "5:SQL:true", "6:SQL:true", "7:SQL:true", "8:SQL:true");
 
         for (String table : List.of("buy_rules", "trade_parameters", "card_liquidity",
                 "price_snapshots", "manual_price_overrides", "trade_assistant_requests")) {
@@ -110,7 +110,7 @@ abstract class AbstractFlywayBaselineIntegrationTest {
         }
 
         // Seed rows
-        assertThat(count("buy_rules")).isEqualTo(6); // 4 from V2 + PSA 9 / CGC 10 from V6
+        assertThat(count("buy_rules")).isEqualTo(11); // 4 from V2 + PSA 9 / CGC 10 from V6 + 5 condition tiers from V8
         assertThat(count("trade_parameters")).isEqualTo(17); // 16 from V2 + buylist trade rate from V5
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT param_value FROM trade_parameters WHERE param_key = 'BUYLIST_TRADE_CREDIT_RATE'", BigDecimal.class))

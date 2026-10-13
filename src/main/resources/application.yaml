@@ -153,7 +153,7 @@ app:
       min-line-usd: 5.00
       excluded-categories:
         - Energy
-      damaged-policy: NEEDS_REVIEW
+      damaged-policy: ELIGIBLE
       bulk-min-quantity: 100
       # Photos are optional; lines worth this much raise the estimate with a photo
       photo-required-above-usd: 50.00

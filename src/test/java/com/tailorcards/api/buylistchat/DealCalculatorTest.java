@@ -57,7 +57,7 @@ class DealCalculatorTest {
         assertThat(r.withinRules()).isTrue();
         assertThat(r.meterFactor()).isEqualTo(1.0);
         assertThat(r.ratesText()).isEqualTo("We pay 75% of market value in cash (82% for PSA 10 / BGS Black Label, "
-                + "70% for sealed product, 77% for near mint), or 80% in store credit toward cards in our shop.");
+                + "77% for near mint, 70% for sealed product), or 80% in store credit toward cards in our shop.");
     }
 
     @Test
@@ -186,5 +186,28 @@ class DealCalculatorTest {
     void meterFactor() {
         assertThat(run(DealType.SELL, Map.of(1L, new BigDecimal("1000"), 2L, new BigDecimal("1000")), null, 0, null)
                 .meterFactor()).isEqualTo(0.15);
+    }
+
+    @Test
+    @DisplayName("Condition tiers: LP+ 65%, LP 60%, MP 40%, HP 20%, damaged 10%; credit is their cash rate + 5%")
+    void conditionTiers() {
+        rules = List.of(rule("RAW_NEAR_MINT", "0.77"), rule("RAW_LP_PLUS", "0.65"), rule("RAW_LP", "0.60"),
+                rule("RAW_MP", "0.40"), rule("RAW_HP", "0.20"), rule("RAW_DMG", "0.10"), rule("DEFAULT", "0.75"));
+        java.util.Map<String, String> expectedCash = java.util.Map.of(
+                "NM", "77.00", "LP+", "65.00", "LP", "60.00", "MP", "40.00", "HP", "20.00", "DMG", "10.00", "UNKNOWN", "75.00");
+        long id = 10;
+        for (var e : expectedCash.entrySet()) {
+            LineFacts line = new LineFacts(id++, false, "RESOLVED", "Pokemon", e.getKey(), 1, new BigDecimal("100.00"),
+                    BigDecimal.ONE, true, "x-" + id);
+            assertThat(calculator.unitCashOffer(line, LineStatus.ELIGIBLE, rules)).as(e.getKey()).isEqualByComparingTo(e.getValue());
+        }
+        LineFacts damaged = new LineFacts(30, false, "RESOLVED", "Pokemon", "DMG", 1, new BigDecimal("100.00"), BigDecimal.ONE, true, "d-1");
+        LineFacts nearMint = new LineFacts(31, false, "RESOLVED", "Pokemon", "NM", 1, new BigDecimal("100.00"), BigDecimal.ONE, true, "d-2");
+        DealCalculator.Result r = calculator.calculate(new DealCalculator.Input(DealType.SELL, List.of(damaged, nearMint),
+                Map.of(30L, LineStatus.ELIGIBLE, 31L, LineStatus.ELIGIBLE), Map.of(), null, 0, null));
+        assertThat(r.cashOfferUsd()).isEqualByComparingTo("87.00");    // 10 + 77
+        assertThat(r.tradeCreditUsd()).isEqualByComparingTo("95.00");  // damaged 15% + near mint 80%
+        assertThat(r.ratesText()).contains("65% for LP+ (one white dot)", "10% for damaged",
+                "played and damaged cards: their cash rate plus 5%");
     }
 }

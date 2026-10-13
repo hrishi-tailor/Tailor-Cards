@@ -73,6 +73,8 @@ class ScrapFilterAndLikelihoodTest {
         assertThat(filter.evaluate(energy).status()).isEqualTo(LineStatus.BELOW_MINIMUM);
 
         LineFacts damaged = new LineFacts(2, false, "RESOLVED", "Pokemon", "DMG", 1, new BigDecimal("30.00"), BigDecimal.ONE, false, "x-2");
+        assertThat(filter.evaluate(damaged).status()).as("damaged cards are bought at the damaged rate").isEqualTo(LineStatus.ELIGIBLE);
+        properties.getScrap().setDamagedPolicy("NEEDS_REVIEW");
         assertThat(filter.evaluate(damaged).status()).isEqualTo(LineStatus.NEEDS_REVIEW);
         properties.getScrap().setDamagedPolicy("EXCLUDE");
         assertThat(filter.evaluate(damaged).status()).isEqualTo(LineStatus.BELOW_MINIMUM);

@@ -191,32 +191,32 @@ class BuylistChatGuestFlowIntegrationTest {
     }
 
     @Test
-    @DisplayName("Trade: pick shop cards (CAD shown in USD); within 80% credit fits, over it lowers the meter and is flagged")
+    @DisplayName("Trade: pick shop cards (CAD shown in USD); within the trade credit fits, over it lowers the meter and is flagged")
     void tradeWithShopCards() throws Exception {
-        Long fits = shopCard("Shop Eevee " + UUID.randomUUID(), "28.00");    // $20.00 USD at 1.40
+        Long fits = shopCard("Shop Eevee " + UUID.randomUUID(), "21.00");    // $15.00 USD at 1.40
         Long pricey = shopCard("Shop Lugia " + UUID.randomUUID(), "70.00");  // $50.00 USD
         String ip = "10.1.5." + (int) (Math.random() * 200);
         String token = guestToken(ip);
-        JsonNode draft = readyDraft(token);  // 3x Pikachu $9.95 LP: cash 75% = 22.39, trade 80% = 23.88
+        JsonNode draft = readyDraft(token);  // 3x Pikachu $9.95 LP: cash 60% = 17.91, credit 60% + 5% = 19.40
         String draftId = draft.path("draftId").asText();
         int sellPct = draft.path("summary").path("likelihoodPct").asInt();
         assertThat(draft.path("summary").path("deal").path("ratesText").asText()).contains("75%").contains("80% in store credit");
 
         JsonNode shop = body(mvc.perform(get("/api/buylist-chat/store-cards").param("q", "Shop Eevee")));
-        assertThat(shop.get(0).path("priceUsd").decimalValue()).isEqualByComparingTo("20.00");
+        assertThat(shop.get(0).path("priceUsd").decimalValue()).isEqualByComparingTo("15.00");
 
         JsonNode within = body(mvc.perform(post("/api/buylist-chat/drafts/" + draftId + "/trade-items").header(SESSION, token)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"productId\":" + fits + "}")).andExpect(status().isOk()));
         JsonNode deal = within.path("summary").path("deal");
         assertThat(deal.path("dealType").asText()).isEqualTo("TRADE");
-        assertThat(deal.path("tradeCreditUsd").decimalValue()).isEqualByComparingTo("23.88");
+        assertThat(deal.path("tradeCreditUsd").decimalValue()).isEqualByComparingTo("19.40");
         assertThat(deal.path("withinRules").asBoolean()).isTrue();
 
         JsonNode over = body(mvc.perform(post("/api/buylist-chat/drafts/" + draftId + "/trade-items").header(SESSION, token)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"productId\":" + pricey + "}")));
         JsonNode overDeal = over.path("summary").path("deal");
         assertThat(overDeal.path("withinRules").asBoolean()).isFalse();
-        assertThat(overDeal.path("overByUsd").decimalValue()).isEqualByComparingTo("46.12");
+        assertThat(overDeal.path("overByUsd").decimalValue()).isEqualByComparingTo("45.60");
         assertThat(over.path("summary").path("likelihoodPct").asInt()).isLessThan(sellPct);
         assertThat(over.path("summary").path("likelihoodReasons").get(0).asText()).contains("over your trade credit");
 
@@ -224,8 +224,8 @@ class BuylistChatGuestFlowIntegrationTest {
                 .andExpect(status().isOk())).path("submissionId").asLong();
         BuylistSubmission saved = submissions.findById(id).orElseThrow();
         assertThat(saved.getDealType()).isEqualTo("TRADE");
-        assertThat(saved.getStoreTotalUsd()).isEqualByComparingTo("70.00");
-        assertThat(saved.getTradeCreditUsd()).isEqualByComparingTo("23.88");
+        assertThat(saved.getStoreTotalUsd()).isEqualByComparingTo("65.00");
+        assertThat(saved.getTradeCreditUsd()).isEqualByComparingTo("19.40");
         assertThat(saved.getUsdCadRate()).isEqualByComparingTo("1.4000");
         assertThat(saved.getStoreCardsJson()).contains("Shop Lugia");
         assertThat(saved.getRedFlags()).contains("above your rates");
@@ -247,7 +247,7 @@ class BuylistChatGuestFlowIntegrationTest {
         assertThat(asked.path("lines").get(0).path("requestedUnitUsd").decimalValue()).isEqualByComparingTo("12.00");
         JsonNode deal = asked.path("summary").path("deal");
         assertThat(deal.path("askTotalUsd").decimalValue()).isEqualByComparingTo("36.00");
-        assertThat(deal.path("askRatio").decimalValue()).isEqualByComparingTo("1.608");
+        assertThat(deal.path("askRatio").decimalValue()).isEqualByComparingTo("2.010"); // $36 asked vs $17.91 at the LP rate
         assertThat(asked.path("summary").path("likelihoodPct").asInt()).isLessThan(before);
         assertThat(asked.path("summary").path("contentHash").asText()).isNotEqualTo(draft.path("summary").path("contentHash").asText());
     }
