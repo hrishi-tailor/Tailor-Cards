@@ -61,7 +61,8 @@ class TcgdexPriceProviderTest {
                     },
                     "cardmarket": {
                       "unit": "EUR",
-                      "trend": 240.10
+                      "trend": 240.10,
+                      "avg30": 251.20
                     }
                   }
                 }
@@ -90,6 +91,7 @@ class TcgdexPriceProviderTest {
                 .containsEntry("reverse-holofoil", new BigDecimal("12.25"))
                 .doesNotContainKeys("unit", "updated");
         assertThat(card.eurTrend()).isEqualByComparingTo("240.10");
+        assertThat(card.eurAvg30()).isEqualByComparingTo("251.20");
         assertThat(card.pricesUpdatedAt()).isEqualTo("2026-10-08T22:54:34.137Z");
         mockServer.verify();
     }

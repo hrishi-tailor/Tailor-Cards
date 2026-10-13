@@ -26,5 +26,7 @@ public record CardMarketPrice(
         BigDecimal eurTrend,
         String pricesUpdatedAt,
         /** Printed set size (the "102" in "4/102"); null when the provider doesn't say. */
-        Integer setOfficialCount
+        Integer setOfficialCount,
+        /** Cardmarket 30-day average sale price in EUR; the fallback when TCGplayer has no price. */
+        BigDecimal eurAvg30
 ) {}

@@ -16,6 +16,7 @@ import com.tailorcards.api.buylistchat.pricing.DealCalculator;
 import com.tailorcards.api.buylistchat.pricing.LineFacts;
 import com.tailorcards.api.buylistchat.pricing.LineStatus;
 import com.tailorcards.api.buylistchat.resolution.CardLookupService;
+import com.tailorcards.api.buylistchat.resolution.CardPricing;
 import com.tailorcards.api.listing.ListingImageSanitizer;
 import com.tailorcards.api.listing.ListingImageSanitizer.SanitizedImage;
 import com.tailorcards.api.service.BuylistStorageService;
@@ -25,6 +26,7 @@ import com.tailorcards.api.trade.llm.AnthropicResponse;
 import com.tailorcards.api.trade.llm.LlmRateLimiter;
 import com.tailorcards.api.trade.provider.CardMarketPrice;
 import com.tailorcards.api.trade.provider.TcgdexPriceProvider.SetInfo;
+import com.tailorcards.api.trade.service.ExchangeRateService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -86,20 +88,22 @@ public class CardScanService {
     private final LlmRateLimiter rateLimiter;
     private final BuylistDraftService drafts;
     private final DealCalculator deals;
+    private final ExchangeRateService exchangeRates;
     private final Clock clock;
     private final Map<String, PendingScan> pending = new ConcurrentHashMap<>();
 
     @Autowired
     public CardScanService(AnthropicClient anthropicClient, BuylistChatProperties properties, ListingImageSanitizer sanitizer,
                            BuylistStorageService storage, CardLookupService lookup, BuylistLlmBudget budget,
-                           LlmRateLimiter rateLimiter, BuylistDraftService drafts, DealCalculator deals) {
+                           LlmRateLimiter rateLimiter, BuylistDraftService drafts, DealCalculator deals,
+                           ExchangeRateService exchangeRates) {
         this(anthropicClient.withSettings(properties.getModel(), 1024, 45), sanitizer, storage, lookup, budget,
-                rateLimiter, drafts, deals, Clock.systemUTC());
+                rateLimiter, drafts, deals, exchangeRates, Clock.systemUTC());
     }
 
     CardScanService(AnthropicClient client, ListingImageSanitizer sanitizer, BuylistStorageService storage,
                     CardLookupService lookup, BuylistLlmBudget budget, LlmRateLimiter rateLimiter,
-                    BuylistDraftService drafts, DealCalculator deals, Clock clock) {
+                    BuylistDraftService drafts, DealCalculator deals, ExchangeRateService exchangeRates, Clock clock) {
         this.client = client;
         this.sanitizer = sanitizer;
         this.storage = storage;
@@ -108,6 +112,7 @@ public class CardScanService {
         this.rateLimiter = rateLimiter;
         this.drafts = drafts;
         this.deals = deals;
+        this.exchangeRates = exchangeRates;
         this.clock = clock;
     }
 
@@ -283,7 +288,7 @@ public class CardScanService {
 
     private ScanCard toScanCard(CardMarketPrice c) {
         return new ScanCard(c.cardId(), c.name(), c.setName(), c.cardNumber(),
-                c.largeImageUrl() != null ? c.largeImageUrl() : c.imageUrl(), c.marketPriceUsd());
+                c.largeImageUrl() != null ? c.largeImageUrl() : c.imageUrl(), CardPricing.marketUsd(c, exchangeRates));
     }
 
     static String numberHead(String number) {

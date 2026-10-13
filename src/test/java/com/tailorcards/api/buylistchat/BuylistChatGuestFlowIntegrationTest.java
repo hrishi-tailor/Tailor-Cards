@@ -148,6 +148,30 @@ class BuylistChatGuestFlowIntegrationTest {
     }
 
     @Test
+    @DisplayName("A card without a TCGplayer price is priced from the Cardmarket 30-day average")
+    void cardmarketFallback() throws Exception {
+        when(tcgdex.searchCardsStrict(eq("Gengar"), anyInt()))
+                .thenReturn(List.of(CardMarketPrice.builder().cardId("swsh11tg-TG06").name("Gengar").cardNumber("TG06").build()));
+        when(tcgdex.fetchCardStrict("swsh11tg-TG06")).thenReturn(Optional.of(CardMarketPrice.builder()
+                .cardId("swsh11tg-TG06").name("Gengar").setName("Lost Origin Trainer Gallery").cardNumber("TG06")
+                .category("Pokemon").variantPricesUsd(Map.of()).eurTrend(new BigDecimal("36.94"))
+                .eurAvg30(new BigDecimal("34.58")).source("TCGDEX").build()));
+        when(exchangeRates.convertEurToUsd(new BigDecimal("34.58"))).thenReturn(new BigDecimal("37.00"));
+
+        String token = guestToken("10.1.5.1");
+        String draftId = body(mvc.perform(post("/api/buylist-chat/drafts").header(SESSION, token))).path("draftId").asText();
+        mvc.perform(post("/api/buylist-chat/drafts/" + draftId + "/paste").header(SESSION, token)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"text\":\"Gengar TG06/TG30 NM\"}")).andExpect(status().isOk());
+        JsonNode line = body(mvc.perform(get("/api/buylist-chat/drafts/" + draftId).header(SESSION, token))).path("lines").get(0);
+
+        assertThat(line.path("cardId").asText()).isEqualTo("swsh11tg-TG06");
+        assertThat(line.path("unitMarketUsd").decimalValue()).isEqualByComparingTo("37.00");
+        assertThat(line.path("priceSource").asText()).isEqualTo("CARDMARKET");
+        assertThat(line.path("eurTrend").decimalValue()).isEqualByComparingTo("34.58");
+        assertThat(line.path("status").asText()).isEqualTo("ELIGIBLE");
+    }
+
+    @Test
     @DisplayName("Anonymous drafts are private to their session")
     void ownership() throws Exception {
         String a = guestToken("10.1.2.1");

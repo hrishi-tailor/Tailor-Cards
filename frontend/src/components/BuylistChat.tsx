@@ -483,7 +483,9 @@ function LineRow({ line, money, askable, onChange, onRemove, onPhoto }: {
     ? (line.eurTrend ? `Cardmarket 30-day average: €${line.eurTrend}` : 'Cardmarket reference')
     : line.priceBasis === 'GRADED'
       ? `Median of ${line.priceSampleSize ?? 'a few'} recent eBay sales for ${line.grading}`
-      : line.priceUpdatedAt ? `TCGplayer market via TCGdex, updated ${line.priceUpdatedAt.slice(0, 10)}` : undefined
+      : line.priceSource === 'CARDMARKET'
+        ? `No TCGplayer price: Cardmarket 30-day average${line.eurTrend ? ` (€${line.eurTrend})` : ''}, converted to USD`
+        : line.priceUpdatedAt ? `TCGplayer market via TCGdex, updated ${line.priceUpdatedAt.slice(0, 10)}` : undefined
   return (
     <li className={`tc-bc-line status-${line.status.toLowerCase()}`}>
       {line.imageUrl ? <img src={line.imageUrl} alt="" loading="lazy" /> : <div className="tc-bc-line-thumb" />}

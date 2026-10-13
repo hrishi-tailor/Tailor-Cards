@@ -415,10 +415,18 @@ public class CardResolutionService {
         line.setRarity(truncate(card.rarity(), 80));
         line.setCategory(truncate(card.category(), 40));
         line.setImageUrl(truncate(card.imageUrl(), 500));
-        line.setUnitMarketUsd(variantPrice(card, line.getVariant()));
-        line.setEurTrend(card.eurTrend());
+        BigDecimal usd = variantPrice(card, line.getVariant());
+        if (usd == null && CardPricing.cardmarketUsd(card, exchangeRates) != null) {
+            // No TCGplayer price: Cardmarket 30-day average, converted from EUR
+            line.setUnitMarketUsd(CardPricing.cardmarketUsd(card, exchangeRates));
+            line.setEurTrend(CardPricing.cardmarketEur(card));
+            line.setPriceSource(CardPricing.CARDMARKET);
+        } else {
+            line.setUnitMarketUsd(usd);
+            line.setEurTrend(card.eurTrend());
+            line.setPriceSource(card.source());
+        }
         line.setPriceUpdatedAt(card.pricesUpdatedAt());
-        line.setPriceSource(card.source());
         line.setIdConfidence(confidence);
         line.setResolveState(state);
         line.setCandidatesJson(candidates);

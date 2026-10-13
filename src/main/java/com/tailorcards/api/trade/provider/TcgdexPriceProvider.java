@@ -195,6 +195,9 @@ public class TcgdexPriceProvider implements PriceProvider {
         BigDecimal eurTrend = cardmarket.path("trend").isNumber()
                 ? BigDecimal.valueOf(cardmarket.path("trend").asDouble()).setScale(2, RoundingMode.HALF_UP)
                 : null;
+        BigDecimal eurAvg30 = cardmarket.path("avg30").isNumber() && cardmarket.path("avg30").asDouble() > 0
+                ? BigDecimal.valueOf(cardmarket.path("avg30").asDouble()).setScale(2, RoundingMode.HALF_UP)
+                : null;
         String updated = tcgplayer.path("updated").isTextual() ? tcgplayer.path("updated").asText()
                 : cardmarket.path("updated").isTextual() ? cardmarket.path("updated").asText() : null;
 
@@ -214,6 +217,7 @@ public class TcgdexPriceProvider implements PriceProvider {
                 .pricesUpdatedAt(updated)
                 .setOfficialCount(node.path("set").path("cardCount").path("official").isInt()
                         ? node.path("set").path("cardCount").path("official").asInt() : null)
+                .eurAvg30(eurAvg30)
                 .build();
     }
 

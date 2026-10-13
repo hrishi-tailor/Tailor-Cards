@@ -141,7 +141,22 @@ class CardResolutionServiceTest {
 
         assertThat(result.getResolveState()).isEqualTo("AMBIGUOUS");
         assertThat(result.getCandidatesJson()).contains("base1-4").contains("base4-4");
-        assertThat(result.getUnitMarketUsd()).as("no price stays null, not 0").isNull();
+        // No TCGplayer price: the Cardmarket price (EUR 500 trend) converted at the fixed fallback rates
+        assertThat(result.getUnitMarketUsd()).isEqualByComparingTo("543.48");
+        assertThat(result.getPriceSource()).isEqualTo("CARDMARKET");
+    }
+
+    @Test
+    @DisplayName("A card with no TCGplayer or Cardmarket price stays unpriced (null, not 0)")
+    void noPriceAnywhere() {
+        when(tcgdex.searchCardsStrict(eq("Mew"), anyInt())).thenReturn(List.of(brief("svp-053", "053")));
+        when(tcgdex.fetchCardStrict("svp-053")).thenReturn(Optional.of(CardMarketPrice.builder().cardId("svp-053")
+                .name("Mew").setName("SVP Black Star Promos").cardNumber("053").variantPricesUsd(Map.of()).source("TCGDEX").build()));
+
+        BuylistDraftLine result = service.resolve(line("Mew", null, "053", null));
+
+        assertThat(result.getCardId()).isEqualTo("svp-053");
+        assertThat(result.getUnitMarketUsd()).isNull();
     }
 
     @Test
