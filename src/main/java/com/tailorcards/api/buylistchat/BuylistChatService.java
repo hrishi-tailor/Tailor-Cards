@@ -91,6 +91,9 @@ public class BuylistChatService {
               is required.
             - Conditions: NM, LP+ (near mint except one small white dot), LP, MP, HP, DMG. Use LP+ only when the
               customer describes a single white dot or says LP+ / NM-. Each condition has its own buy rate.
+            - Customers can also use "Scan a card" above the chat: they photograph a card and it is identified,
+              given an estimated condition and added to the list once they confirm. Suggest it when they are
+              unsure of a card's name, number or condition.
 
             DEALS:
             - The customer can sell for cash (SELL), trade for cards in our shop (TRADE), or both (PARTIAL).

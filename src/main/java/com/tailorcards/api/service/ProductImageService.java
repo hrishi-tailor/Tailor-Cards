@@ -120,7 +120,7 @@ public class ProductImageService {
             "the", "of", "and", "promo", "card", "holo", "reverse");
 
     /** True when the two names share the Pokemon (or trainer) name: "Dragonite EX" and "Mega Dragonite ex". */
-    static boolean samePokemon(String productName, String cardName) {
+    public static boolean samePokemon(String productName, String cardName) {
         if (productName == null || cardName == null) {
             return false;
         }

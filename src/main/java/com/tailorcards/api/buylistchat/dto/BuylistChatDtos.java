@@ -13,8 +13,27 @@ public final class BuylistChatDtos {
     private BuylistChatDtos() {
     }
 
+    /** scannerEnabled: photo card scanning is available (the AI service is configured). */
     public record StatusResponse(boolean enabled, boolean emailVerificationRequired, String turnstileSiteKey,
-                                 int maxLines, int maxMessageLength, int maxNoteLength) {}
+                                 int maxLines, int maxMessageLength, int maxNoteLength, boolean scannerEnabled) {}
+
+    /** A card from the card database for a scan: the match or one of the candidates. marketUsd may be null. */
+    public record ScanCard(String cardId, String name, String setName, String cardNumber, String imageUrl,
+                           BigDecimal marketUsd) {}
+
+    /**
+     * What the scanner read from the photos. readable=false comes with retakeTips. condition is the store
+     * scale (NM, LP+, LP, MP, HP, DMG, UNKNOWN); offerUnitUsd is our cash offer per card at that condition.
+     * Nothing is added until the customer confirms with the scanId.
+     */
+    public record ScanResponse(String scanId, boolean readable, List<String> retakeTips, List<String> photoIssues,
+                               boolean sealed, String productName, ScanCard card, List<ScanCard> candidates,
+                               String condition, String conditionLabel, Map<String, String> conditionNotes,
+                               Integer whiteDots, boolean needsBackPhoto, String grading, String confidence,
+                               BigDecimal offerUnitUsd, String frontPhotoUrl, String backPhotoUrl) {}
+
+    /** Confirm a scan: cardId picks a candidate (else the match), condition overrides the estimate. */
+    public record ScanAddRequest(String cardId, String condition, Integer quantity) {}
 
     public record GuestSessionRequest(String turnstileToken) {}
 
