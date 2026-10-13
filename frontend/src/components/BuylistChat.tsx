@@ -9,6 +9,7 @@ import {
 } from '../api/buylistChatApi'
 import type { ChatDraft, ChatLine, ChatStatus, ConfirmResult } from '../api/buylistChatApi'
 import { BuylistDealPanel } from './BuylistDealPanel'
+import { CardScanner } from './CardScanner'
 import { makeMoney } from './buylistMoney'
 import { ChatText } from './ChatText'
 import type { Money } from './buylistMoney'
@@ -34,7 +35,7 @@ const STATUS_LABELS: Record<string, string> = {
   UNIDENTIFIED: 'Unidentified',
 }
 
-const CONDITIONS = ['NM', 'LP', 'MP', 'HP', 'DMG', 'UNKNOWN']
+const CONDITIONS = ['NM', 'LP+', 'LP', 'MP', 'HP', 'DMG', 'UNKNOWN']
 const GRADERS = ['PSA', 'BGS', 'CGC', 'SGC', 'TAG', 'ACE']
 const GRADES = ['10', '9.5', '9', '8.5', '8', '7.5', '7', '6.5', '6', '5', '4', '3', '2', '1']
 const SPECIAL_TENS: Record<string, string> = { BGS: '10 Black Label', CGC: '10 Pristine' }
@@ -64,7 +65,7 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
   const [message, setMessage] = useState('')
   const [chatBusy, setChatBusy] = useState(false)
   const [pasteText, setPasteText] = useState('')
-  const [addMode, setAddMode] = useState<'chat' | 'paste' | 'csv'>('chat')
+  const [addMode, setAddMode] = useState<'chat' | 'scan' | 'paste' | 'csv'>('chat')
   const [customerName, setCustomerName] = useState('')
   const [notes, setNotes] = useState('')
   const [result, setResult] = useState<ConfirmResult | null>(null)
@@ -256,7 +257,7 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
         <span className="tc-eyebrow">Sell or trade</span>
         <h1 className="tc-bc-title">Sell your cards</h1>
         <ol className="tc-bc-how">
-          <li><b>List your cards</b> by chat, pasted list or CSV</li>
+          <li><b>List your cards</b> by chat, photo scan, pasted list or CSV</li>
           <li><b>See our offer</b> at our published rates</li>
           <li><b>Submit</b> and we'll review it and email you</li>
         </ol>
@@ -315,10 +316,10 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
         <div className="tc-bc-workspace">
           <section className="tc-bc-panel tc-bc-chat">
             <div className="tc-bc-tabs" role="tablist">
-              {(['chat', 'paste', 'csv'] as const).map((mode) => (
+              {(status.scannerEnabled ? ['chat', 'scan', 'paste', 'csv'] as const : ['chat', 'paste', 'csv'] as const).map((mode) => (
                 <button key={mode} type="button" role="tab" aria-selected={addMode === mode}
                   className={`tc-bc-tab ${addMode === mode ? 'active' : ''}`} onClick={() => setAddMode(mode)}>
-                  {mode === 'chat' ? 'Chat' : mode === 'paste' ? 'Paste list' : 'Upload CSV'}
+                  {mode === 'chat' ? 'Chat' : mode === 'scan' ? 'Scan a card' : mode === 'paste' ? 'Paste list' : 'Upload CSV'}
                 </button>
               ))}
             </div>
@@ -343,6 +344,10 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
                   <button type="submit" className="tc-bc-btn tc-bc-btn-gold" disabled={chatBusy || !message.trim()}>Send</button>
                 </form>
               </>
+            )}
+
+            {addMode === 'scan' && (
+              <CardScanner draftId={draft.draftId} money={money} onDraft={setDraft} onClose={() => setAddMode('chat')} />
             )}
 
             {addMode === 'paste' && (

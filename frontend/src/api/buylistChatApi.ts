@@ -12,6 +12,39 @@ export interface ChatStatus {
   maxLines: number;
   maxMessageLength: number;
   maxNoteLength: number;
+  /** Photo card scanner; missing on older backends. */
+  scannerEnabled?: boolean;
+}
+
+export interface ScanCard {
+  cardId: string;
+  name: string;
+  setName: string | null;
+  cardNumber: string | null;
+  imageUrl: string | null;
+  marketUsd: number | null;
+}
+
+/** What the scanner read from the photos. Nothing is on the list until the customer confirms it. */
+export interface ScanResult {
+  scanId: string | null;
+  readable: boolean;
+  retakeTips: string[];
+  photoIssues: string[];
+  sealed: boolean;
+  productName: string | null;
+  card: ScanCard | null;
+  candidates: ScanCard[];
+  condition: string;
+  conditionLabel: string;
+  conditionNotes: Record<string, string>;
+  whiteDots: number | null;
+  needsBackPhoto: boolean;
+  grading: string | null;
+  confidence: 'LOW' | 'MEDIUM' | 'HIGH';
+  offerUnitUsd: number | null;
+  frontPhotoUrl: string | null;
+  backPhotoUrl: string | null;
 }
 
 export interface ChatCandidate {
@@ -247,6 +280,17 @@ export const buylistChatApi = {
     form.append('file', file);
     return request<ChatDraft>(`/drafts/${draftId}/lines/${lineId}/photo`, { method: 'POST', body: form });
   },
+  scan: (draftId: string, front: Blob, back?: Blob | null) => {
+    const form = new FormData();
+    form.append('front', front, 'front.jpg');
+    if (back) form.append('back', back, 'back.jpg');
+    return request<ScanResult>(`/drafts/${draftId}/scan`, { method: 'POST', body: form });
+  },
+  addScan: (draftId: string, scanId: string, cardId: string | null, condition: string, quantity: number) =>
+    request<ChatDraft>(`/drafts/${draftId}/scan/${scanId}/add`, {
+      method: 'POST',
+      body: JSON.stringify({ cardId, condition, quantity }),
+    }),
   confirm: (draftId: string, contentHash: string, customerName: string, notes: string, email?: string) =>
     request<ConfirmResult>(`/drafts/${draftId}/confirm`, {
       method: 'POST',
