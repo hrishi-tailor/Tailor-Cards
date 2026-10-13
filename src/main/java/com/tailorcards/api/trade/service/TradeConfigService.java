@@ -85,6 +85,11 @@ public class TradeConfigService {
                     BuyRule.builder().priority(1).categoryCode("GRADED_PSA_9").displayName("PSA 9").rate(BigDecimal.valueOf(0.78)).active(true).build(),
                     BuyRule.builder().priority(1).categoryCode("GRADED_CGC_10").displayName("CGC 10").rate(BigDecimal.valueOf(0.80)).active(true).build(),
                     BuyRule.builder().priority(2).categoryCode("SEALED").displayName("Sealed Product").rate(BigDecimal.valueOf(0.70)).active(true).build(),
+                    BuyRule.builder().priority(3).categoryCode("RAW_LP_PLUS").displayName("LP+ raw single (one white dot)").rate(BigDecimal.valueOf(0.65)).active(true).build(),
+                    BuyRule.builder().priority(3).categoryCode("RAW_LP").displayName("Lightly played raw single").rate(BigDecimal.valueOf(0.60)).active(true).build(),
+                    BuyRule.builder().priority(3).categoryCode("RAW_MP").displayName("Moderately played raw single").rate(BigDecimal.valueOf(0.40)).active(true).build(),
+                    BuyRule.builder().priority(3).categoryCode("RAW_HP").displayName("Heavily played raw single").rate(BigDecimal.valueOf(0.20)).active(true).build(),
+                    BuyRule.builder().priority(3).categoryCode("RAW_DMG").displayName("Damaged raw single").rate(BigDecimal.valueOf(0.10)).active(true).build(),
                     BuyRule.builder().priority(3).categoryCode("RAW_NEAR_MINT").displayName("Near-Mint Raw Single").rate(BigDecimal.valueOf(0.77)).active(true).build(),
                     BuyRule.builder().priority(4).categoryCode("DEFAULT").displayName("Everything Else").rate(BigDecimal.valueOf(0.75)).active(true).build()
             );

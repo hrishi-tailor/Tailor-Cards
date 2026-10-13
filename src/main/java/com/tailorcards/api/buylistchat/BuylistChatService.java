@@ -89,6 +89,8 @@ public class BuylistChatService {
               ungraded copy: say so. The customer can also set or change a grade in the list.
             - Photos are optional. Adding photos of higher-value cards raises the estimate; never say a photo
               is required.
+            - Conditions: NM, LP+ (near mint except one small white dot), LP, MP, HP, DMG. Use LP+ only when the
+              customer describes a single white dot or says LP+ / NM-. Each condition has its own buy rate.
 
             DEALS:
             - The customer can sell for cash (SELL), trade for cards in our shop (TRADE), or both (PARTIAL).
@@ -576,7 +578,7 @@ public class BuylistChatService {
                                 "card_number", prop("string", "Number as printed, e.g. 4/102"),
                                 "card_id", prop("string", "TCGdex id if you looked it up"),
                                 "quantity", prop("integer", "How many"),
-                                "condition", Map.of("type", "string", "enum", List.of("NM", "LP", "MP", "HP", "DMG", "SEALED", "UNKNOWN")),
+                                "condition", Map.of("type", "string", "enum", List.of("NM", "LP+", "LP", "MP", "HP", "DMG", "SEALED", "UNKNOWN")),
                                 "variant", prop("string", "normal, holofoil, reverse-holofoil or 1st-edition-holofoil"),
                                 "grading", prop("string", "Graded slabs only, e.g. 'PSA 10', 'BGS 9.5', 'CGC 10'"),
                                 "bulk", prop("boolean", "True for an unsorted bulk lot"),

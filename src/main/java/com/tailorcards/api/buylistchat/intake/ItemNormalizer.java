@@ -68,6 +68,8 @@ public class ItemNormalizer {
             "(?i)\\b(?:(PSA|BGS|CGC|SGC|TAG|ACE|BECKETT)\\s*(?:gem\\s*mint\\s*|gem\\s*mt\\s*|mint\\s*)?(10|[1-9](?:\\.5)?)(\\s*black\\s*label|\\s*pristine)?|(?:BGS\\s*)?black\\s*label)\\b");
     private static final Map<String, String> CONDITIONS = Map.ofEntries(
             Map.entry("near mint", "NM"), Map.entry("nm", "NM"), Map.entry("mint", "NM"),
+            Map.entry("lp+", "LP+"), Map.entry("lp plus", "LP+"), Map.entry("light play plus", "LP+"),
+            Map.entry("lightly played plus", "LP+"), Map.entry("nm-", "LP+"), Map.entry("near mint minus", "LP+"),
             Map.entry("lightly played", "LP"), Map.entry("lp", "LP"), Map.entry("excellent", "LP"),
             Map.entry("moderately played", "MP"), Map.entry("mp", "MP"),
             Map.entry("heavily played", "HP"), Map.entry("hp", "HP"),
@@ -260,7 +262,7 @@ public class ItemNormalizer {
         }
         String upper = v.toUpperCase(Locale.ROOT);
         return switch (upper) {
-            case "NM", "LP", "MP", "HP", "DMG", "SEALED" -> upper;
+            case "NM", "LP+", "LP", "MP", "HP", "DMG", "SEALED" -> upper;
             default -> "UNKNOWN";
         };
     }

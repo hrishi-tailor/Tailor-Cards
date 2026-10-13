@@ -63,20 +63,22 @@ public class DealCalculator {
 
         BigDecimal market = BigDecimal.ZERO;
         BigDecimal cash = BigDecimal.ZERO;
+        BigDecimal credit = BigDecimal.ZERO;
         BigDecimal askSell = BigDecimal.ZERO;
         for (LineFacts line : in.lines()) {
             if (!offerable(line, in.statuses().get(line.lineId()))) {
                 continue;
             }
             BigDecimal lineMarket = line.lineMarketUsd();
-            BigDecimal lineCash = lineMarket.multiply(rate(rules, categoryFor(line)));
+            BigDecimal lineRate = rate(rules, categoryFor(line));
+            BigDecimal lineCash = lineMarket.multiply(lineRate);
             market = market.add(lineMarket);
             cash = cash.add(lineCash);
+            credit = credit.add(lineMarket.multiply(creditRate(line, lineRate, tradeRate, baseRate)));
             BigDecimal requested = in.requestedUnitUsd().get(line.lineId());
             askSell = askSell.add(requested != null && requested.signum() > 0
                     ? requested.multiply(BigDecimal.valueOf(line.quantity())) : lineCash);
         }
-        BigDecimal credit = market.multiply(tradeRate);
         BigDecimal store = in.storeTotalUsd() == null ? BigDecimal.ZERO : in.storeTotalUsd();
         DealType type = in.type() == null ? DealType.SELL : in.type();
         boolean needsStore = type != DealType.SELL && in.storeCardCount() == 0;
@@ -174,7 +176,26 @@ public class DealCalculator {
                 && (status == LineStatus.ELIGIBLE || status == LineStatus.NEEDS_PHOTO);
     }
 
-    /** Buy-rule category: PSA 10 / Black Label, GRADED_<COMPANY>_<GRADE> (e.g. GRADED_PSA_9) for other slabs, sealed, near mint, or DEFAULT. */
+    /** Raw played-condition tiers, each with its own buy rule. */
+    private static final Map<String, String> CONDITION_CATEGORIES = Map.of(
+            "LP+", "RAW_LP_PLUS", "LP", "RAW_LP", "MP", "RAW_MP", "HP", "RAW_HP", "DMG", "RAW_DMG");
+
+    /**
+     * Store-credit rate for a line: the trade rate (80%), except played and damaged cards, which get their
+     * cash rate plus the same trade bonus (trade rate minus base cash rate), capped at the trade rate.
+     */
+    static BigDecimal creditRate(LineFacts line, BigDecimal cashRate, BigDecimal tradeRate, BigDecimal baseRate) {
+        if (!CONDITION_CATEGORIES.containsValue(categoryFor(line))) {
+            return tradeRate;
+        }
+        BigDecimal bonus = tradeRate.subtract(baseRate).max(BigDecimal.ZERO);
+        return cashRate.add(bonus).min(tradeRate);
+    }
+
+    /**
+     * Buy-rule category: PSA 10 / Black Label, GRADED_<COMPANY>_<GRADE> (e.g. GRADED_PSA_9) for other slabs,
+     * sealed, near mint, the played tiers (LP+, LP, MP, HP, damaged), or DEFAULT for unknown condition.
+     */
     static String categoryFor(LineFacts line) {
         if (line.graded()) {
             String g = line.grading().toUpperCase(Locale.ROOT).trim();
@@ -184,7 +205,11 @@ public class DealCalculator {
         if (line.sealed()) {
             return "SEALED";
         }
-        return "NM".equalsIgnoreCase(line.condition()) ? "RAW_NEAR_MINT" : "DEFAULT";
+        String condition = line.condition() == null ? "" : line.condition().toUpperCase(Locale.ROOT);
+        if ("NM".equals(condition)) {
+            return "RAW_NEAR_MINT";
+        }
+        return CONDITION_CATEGORIES.getOrDefault(condition, "DEFAULT");
     }
 
     private static BigDecimal rate(List<BuyRule> rules, String category) {
@@ -197,13 +222,20 @@ public class DealCalculator {
     static String ratesText(List<BuyRule> rules, BigDecimal tradeRate) {
         BigDecimal base = rate(rules, "DEFAULT");
         List<String> extras = new ArrayList<>();
-        for (BuyRule rule : rules) {
+        // Highest rate first, so the text reads the same however the rules are ordered
+        List<BuyRule> sorted = rules.stream().sorted(java.util.Comparator.comparing(BuyRule::getRate).reversed()).toList();
+        for (BuyRule rule : sorted) {
             if ("DEFAULT".equalsIgnoreCase(rule.getCategoryCode()) || rule.getRate().compareTo(base) == 0) {
                 continue;
             }
             String label = switch (rule.getCategoryCode().toUpperCase(Locale.ROOT)) {
                 case "RAW_NEAR_MINT" -> "near mint";
                 case "SEALED" -> "sealed product";
+                case "RAW_LP_PLUS" -> "LP+ (one white dot)";
+                case "RAW_LP" -> "lightly played";
+                case "RAW_MP" -> "moderately played";
+                case "RAW_HP" -> "heavily played";
+                case "RAW_DMG" -> "damaged";
                 case "PSA10_BGS_BLACK_LABEL" -> "PSA 10 / BGS Black Label";
                 default -> rule.getCategoryCode().toUpperCase(Locale.ROOT).startsWith("GRADED_")
                         // GRADED_PSA_9 -> PSA 9, GRADED_BGS_9_5 -> BGS 9.5
@@ -212,8 +244,12 @@ public class DealCalculator {
             };
             extras.add(pct(rule.getRate()) + " for " + label);
         }
+        boolean playedTiers = rules.stream().anyMatch(r -> CONDITION_CATEGORIES.containsValue(r.getCategoryCode().toUpperCase(Locale.ROOT)));
+        BigDecimal bonus = tradeRate.subtract(base).max(BigDecimal.ZERO);
         return "We pay " + pct(base) + " of market value in cash" + (extras.isEmpty() ? "" : " (" + String.join(", ", extras) + ")")
-                + ", or " + pct(tradeRate) + " in store credit toward cards in our shop.";
+                + ", or " + pct(tradeRate) + " in store credit toward cards in our shop"
+                + (playedTiers && bonus.signum() > 0 ? " (played and damaged cards: their cash rate plus " + pct(bonus) + ")" : "")
+                + ".";
     }
 
     private static String pct(BigDecimal rate) {
