@@ -70,12 +70,12 @@ class CardScanServiceTest {
         when(storage.storeFile(any())).thenReturn("/uploads/front.jpg", "/uploads/back.jpg");
         when(deals.unitCashOffer(any(), any(), any())).thenReturn(new BigDecimal("6.50"));
         service = new CardScanService(client, sanitizer, storage, lookup, budget, new LlmRateLimiter(1000), drafts,
-                deals, Clock.systemUTC());
+                deals, null, Clock.systemUTC());
     }
 
     private static CardMarketPrice card(String id, String name, String set, String number, String usd) {
         return new CardMarketPrice(id, name, set, number, "https://img/" + id, "https://img/" + id + "/high",
-                usd == null ? null : new BigDecimal(usd), "TCGdex", null, "Pokemon", Map.of(), null, null, null);
+                usd == null ? null : new BigDecimal(usd), "TCGdex", null, "Pokemon", Map.of(), null, null, null, null);
     }
 
     private static CardScanReading reading(String name, String set, String number) {
@@ -180,6 +180,18 @@ class CardScanServiceTest {
         CardScanService.Match m = service.match(reading("Charizard", null, "4/102"));
         assertThat(m.card().cardId()).isEqualTo("base1-4");
         assertThat(m.card().marketUsd()).isEqualByComparingTo("400.00");
+    }
+
+    @Test
+    @DisplayName("A card without a TCGplayer price shows the converted Cardmarket 30-day average")
+    void cardmarketFallback() {
+        when(lookup.setIdsFor("Lost Origin")).thenReturn(List.of("swsh11tg"));
+        when(lookup.findBySetAndNumber(List.of("swsh11tg"), "TG06")).thenReturn(Optional.of(new CardMarketPrice(
+                "swsh11tg-TG06", "Gengar", "Lost Origin Trainer Gallery", "TG06", null, null, null, "TCGdex", null,
+                "Pokemon", Map.of(), new BigDecimal("36.94"), null, null, new BigDecimal("34.58"))));
+        // No exchange rate service: the fixed fallback rates (EUR 1.50 CAD, USD 1.38 CAD)
+        assertThat(service.match(reading("Gengar", "Lost Origin", "TG06/TG30")).card().marketUsd())
+                .isEqualByComparingTo("37.59");
     }
 
     @Test

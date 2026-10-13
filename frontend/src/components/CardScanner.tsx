@@ -3,16 +3,15 @@ import { buylistChatApi } from '../api/buylistChatApi'
 import type { ChatDraft, ScanCard, ScanResult } from '../api/buylistChatApi'
 import type { Money } from './buylistMoney'
 import { analyze, grayscale } from './cardQuality'
-import type { QualityReport } from './cardQuality'
+import type { QualityReport, Rect } from './cardQuality'
 import './CardScanner.css'
 
 type Side = 'front' | 'back'
 type Phase = 'capture' | 'analyzing' | 'result'
 
 const CARD_RATIO = 63 / 88
-const PAD = 0.08
-const CHECK_MS = 200
-const GOOD_FRAMES = 6
+const PAD = 0.15
+const CHECK_MS = 120
 const MAX_EDGE_PX = 1600
 const CONDITIONS: [string, string][] = [
   ['NM', 'Near mint'], ['LP+', 'LP+ (one white dot)'], ['LP', 'Lightly played'], ['MP', 'Moderately played'],
@@ -54,9 +53,11 @@ function loadImage(file: Blob): Promise<HTMLImageElement> {
  * Scan a card with the camera (or an uploaded photo): live tips for light, glare, focus and framing, then the AI
  * identifies the card and estimates its condition. Nothing goes on the list until the customer confirms.
  */
-export function CardScanner({ draftId, money, onDraft, onClose }: {
+export function CardScanner({ draftId, money, initialFile, onDraft, onClose }: {
   draftId: string
   money: Money
+  /** A photo the customer already picked ("Upload a card"): skips the camera step. */
+  initialFile?: File | null
   onDraft: (draft: ChatDraft) => void
   onClose: () => void
 }) {
@@ -65,7 +66,6 @@ export function CardScanner({ draftId, money, onDraft, onClose }: {
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [quality, setQuality] = useState<QualityReport | null>(null)
-  const [goodStreak, setGoodStreak] = useState(0)
   const [photos, setPhotos] = useState<{ front: Blob | null; back: Blob | null }>({ front: null, back: null })
   const [previews, setPreviews] = useState<{ front: string | null; back: string | null }>({ front: null, back: null })
   const [uploadWarning, setUploadWarning] = useState<string | null>(null)
@@ -79,7 +79,6 @@ export function CardScanner({ draftId, money, onDraft, onClose }: {
   const videoRef = useRef<HTMLVideoElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const sampleRef = useRef<HTMLCanvasElement | null>(null)
-  const previousRef = useRef<Float32Array | null>(null)
   const capturingRef = useRef(false)
   const streamRef = useRef<MediaStream | null>(null)
 
@@ -90,6 +89,15 @@ export function CardScanner({ draftId, money, onDraft, onClose }: {
   }
 
   useEffect(() => () => streamRef.current?.getTracks().forEach((t) => t.stop()), [])
+
+  const initialHandled = useRef(false)
+  useEffect(() => {
+    if (!initialFile || initialHandled.current) return
+    initialHandled.current = true
+    upload(initialFile)
+    // upload only reads refs and setters
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFile])
 
   useEffect(() => {
     if (videoRef.current && stream) {
@@ -137,52 +145,65 @@ export function CardScanner({ draftId, money, onDraft, onClose }: {
       if (p[side]) URL.revokeObjectURL(p[side]!)
       return { ...p, [side]: url }
     })
-    setGoodStreak(0)
     setQuality(null)
-    previousRef.current = null
   }
 
-  const capture = async () => {
+  /** The region we analyse: the guide plus some room around it, kept inside the video. */
+  const sampleRegion = () => {
     const video = videoRef.current
     const g = guideInVideo()
-    if (!video || !g || capturingRef.current) return
+    if (!video || !g) return null
+    const sx = Math.max(0, g.x - g.w * PAD)
+    const sy = Math.max(0, g.y - g.h * PAD)
+    const sw = Math.min(video.videoWidth, g.x + g.w * (1 + PAD)) - sx
+    const sh = Math.min(video.videoHeight, g.y + g.h * (1 + PAD)) - sy
+    return { video, g, sx, sy, sw, sh }
+  }
+
+  /** Takes the photo: the detected card plus a small margin, or the whole guide when no card was found. */
+  const capture = async (card?: Rect | null, scale = 1) => {
+    const region = sampleRegion()
+    if (!region || capturingRef.current) return
+    const { video, g, sx, sy } = region
     capturingRef.current = true
-    const px = g.w * PAD
-    const py = g.h * PAD
-    const sx = Math.max(0, g.x - px)
-    const sy = Math.max(0, g.y - py)
-    const blob = await crop(video, sx, sy, Math.min(video.videoWidth - sx, g.w + 2 * px),
-      Math.min(video.videoHeight - sy, g.h + 2 * py))
+    let x = g.x
+    let y = g.y
+    let w = g.w
+    let h = g.h
+    if (card) {
+      x = sx + card.x0 * scale
+      y = sy + card.y0 * scale
+      w = (card.x1 - card.x0) * scale
+      h = (card.y1 - card.y0) * scale
+    }
+    const mx = w * 0.06
+    const my = h * 0.06
+    const cx = Math.max(0, x - mx)
+    const cy = Math.max(0, y - my)
+    const blob = await crop(video, cx, cy, Math.min(video.videoWidth - cx, w + 2 * mx), Math.min(video.videoHeight - cy, h + 2 * my))
     capturingRef.current = false
     if (blob) accept(blob)
   }
 
-  // Live checks while the camera is on and this side has no photo yet; auto-capture after a run of good frames
+  // Live checks while the camera is on and this side has no photo yet; the photo is taken on the first good frame
   const waiting = phase === 'capture' && !!stream && !photos[side]
   useEffect(() => {
     if (!waiting) return
-    let streak = 0
     const timer = setInterval(() => {
-      const video = videoRef.current
-      const g = guideInVideo()
-      if (!video || !g || video.readyState < 2) return
+      const region = sampleRegion()
+      if (!region || region.video.readyState < 2 || region.sw <= 0 || region.sh <= 0 || capturingRef.current) return
+      const { g, sx, sy, sw, sh } = region
       sampleRef.current ??= document.createElement('canvas')
-      const px = g.w * PAD
-      const py = g.h * PAD
-      const frame = grayscale(video, g.x - px, g.y - py, g.w + 2 * px, g.h + 2 * py, sampleRef.current)
+      const frame = grayscale(region.video, sx, sy, sw, sh, sampleRef.current)
       if (!frame) return
-      const report = analyze(frame, PAD / (1 + 2 * PAD), previousRef.current, true)
-      previousRef.current = frame.gray
-      streak = report.hint ? 0 : streak + 1
+      const scale = sw / frame.width
+      const guide = { x0: (g.x - sx) / scale, y0: (g.y - sy) / scale, x1: (g.x + g.w - sx) / scale, y1: (g.y + g.h - sy) / scale }
+      const report = analyze(frame, guide, true)
       setQuality(report)
-      setGoodStreak(streak)
-      if (streak >= GOOD_FRAMES) {
-        streak = 0
-        capture()
-      }
+      if (report.ok) capture(report.card, scale)
     }, CHECK_MS)
     return () => clearInterval(timer)
-    // capture and guideInVideo only read refs
+    // capture and sampleRegion only read refs
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [waiting])
 
@@ -194,7 +215,7 @@ export function CardScanner({ draftId, money, onDraft, onClose }: {
       URL.revokeObjectURL(img.src)
       sampleRef.current ??= document.createElement('canvas')
       const frame = grayscale(img, 0, 0, img.naturalWidth, img.naturalHeight, sampleRef.current)
-      const report = frame ? analyze(frame, 0.05, null, false) : null
+      const report = frame ? analyze(frame, { x0: 0, y0: 0, x1: frame.width, y1: frame.height }, false) : null
       const blob = await crop(img, 0, 0, img.naturalWidth, img.naturalHeight)
       if (!blob) throw new Error('That file is not an image we can read.')
       accept(blob)
@@ -259,7 +280,8 @@ export function CardScanner({ draftId, money, onDraft, onClose }: {
     onClose()
   }
 
-  const hint = quality?.hint ?? (goodStreak > 0 ? 'Looks good, hold still…' : 'Line up the card with the frame')
+  const hint = quality?.hint ?? 'Place the card inside the frame'
+  const guideState = quality?.ok ? 'good' : quality?.card ? 'found' : ''
   const photo = photos[side]
 
   return (
@@ -280,14 +302,11 @@ export function CardScanner({ draftId, money, onDraft, onClose }: {
           {!photo && stream && (
             <div className="tc-scan-stage" ref={stageRef}>
               <video ref={videoRef} playsInline muted autoPlay />
-              <div className={`tc-scan-guide ${quality && !quality.hint ? 'good' : ''}`}>
+              <div className={`tc-scan-guide ${guideState}`}>
                 <span /><span /><span /><span />
               </div>
-              <div className="tc-scan-hint" aria-live="polite">
-                {hint}
-                {goodStreak > 0 && <i style={{ width: `${Math.min(100, (goodStreak / GOOD_FRAMES) * 100)}%` }} />}
-              </div>
-              <button type="button" className="tc-scan-shutter" aria-label="Take photo" onClick={capture} />
+              <div className="tc-scan-hint" aria-live="polite">{hint}</div>
+              <button type="button" className="tc-scan-shutter" aria-label="Take photo" onClick={() => capture()} />
             </div>
           )}
 

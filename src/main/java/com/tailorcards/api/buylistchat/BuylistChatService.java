@@ -12,6 +12,7 @@ import com.tailorcards.api.buylistchat.intake.ItemInput;
 import com.tailorcards.api.buylistchat.intake.ItemNormalizer;
 import com.tailorcards.api.buylistchat.pricing.StoreCardService;
 import com.tailorcards.api.buylistchat.resolution.CardLookupService;
+import com.tailorcards.api.buylistchat.resolution.CardPricing;
 import com.tailorcards.api.buylistchat.resolution.SealedPriceService;
 import com.tailorcards.api.trade.llm.AnthropicClient;
 import com.tailorcards.api.trade.llm.AnthropicClient.ToolLoopResult;
@@ -362,6 +363,13 @@ public class BuylistChatService {
             return Map.of("error", "No card with that id");
         }
         Map<String, Object> out = trimmedCard(card.get());
+        if (card.get().marketPriceUsd() == null) {
+            BigDecimal fallback = CardPricing.cardmarketUsd(card.get(), exchangeRates);
+            if (fallback != null) {
+                out.put("usd_market_cardmarket_30d", fallback);
+                out.put("price_note", "No TCGplayer price; this is the Cardmarket 30-day average converted to USD, and it is the price the list uses.");
+            }
+        }
         out.put("usd_cad_rate", storeCards.usdCadRate());
         return out;
     }

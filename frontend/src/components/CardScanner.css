@@ -62,7 +62,10 @@
   border-radius: 4.5% / 3.2%;
   box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.45);
   outline: 2px dashed rgba(255, 255, 255, 0.7);
-  transition: outline-color 0.2s;
+}
+
+.tc-scan-guide.found {
+  outline: 3px solid #fbbf24;
 }
 
 .tc-scan-guide.good {
@@ -97,14 +100,6 @@
   text-align: center;
 }
 
-.tc-scan-hint i {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  height: 3px;
-  background: #4ade80;
-  transition: width 0.2s linear;
-}
 
 .tc-scan-shutter {
   position: absolute;
