@@ -1,0 +1,50 @@
+name: Buylist assistant eval
+
+# Live LLM evaluation of the buylist chat assistant. Costs a few cents per run, so it runs weekly and
+# on demand instead of on every push (the harness's own tests run in CI on every push).
+on:
+  workflow_dispatch:
+    inputs:
+      repeats:
+        description: Runs per case (majority vote)
+        default: '1'
+  schedule:
+    - cron: '0 13 * * 1'
+
+jobs:
+  eval:
+    name: Golden conversations vs baseline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run evaluation
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "Add the ANTHROPIC_API_KEY repository secret to run the live evaluation."
+            exit 0
+          fi
+          ./evaluation/run_buylist_eval.sh --repeats "${{ github.event.inputs.repeats || '1' }}"
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buylist-eval-report
+          path: |
+            evaluation/buylist/report.md
+            evaluation/buylist/results.json
+          if-no-files-found: ignore
+
+      - name: Add report to the run summary
+        if: always()
+        run: |
+          [ -f evaluation/buylist/report.md ] && cat evaluation/buylist/report.md >> "$GITHUB_STEP_SUMMARY" || true
