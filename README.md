@@ -454,6 +454,28 @@ Thresholds and weights live under `app.buylist-chat.scrap.*` and `app.buylist-ch
 
 ---
 
+### 🧪 Buylist assistant evaluation
+
+The chat assistant is measured against a labelled set of customer conversations (`evaluation/buylist/cases.json`, 40 cases in 9 categories: exact prints, gallery and promo numbers, graded slabs, quantities and conditions, multi-card and multi-turn requests, sealed products, ambiguous requests, prompt injection, and deals).
+
+* **Same code path as production:** each conversation runs through the production system prompt, tool definitions and model. Card searches hit TCGdex for real. Sealed and shop searches use fixtures (`fixtures.json`) so runs repeat. Tools that change a draft are recorded, not executed.
+* **Scored on outcomes, not wording:** every card the assistant adds is resolved to a TCGdex card id the way production resolves a new line, so "exact print" means the customer would get the right card. Cases also check grades, quantities, conditions, required tools and reply content.
+* **Global rules on every reply:** no markdown, no USD quotes (customers see CAD), no promises of price, payout or approval, no system prompt leaks.
+* **Metrics:** pass rate overall and per category, exact-print accuracy, false-add rate (added when it should have asked), rule violations, cost per case, p50/p95 latency, tool rounds, and flakiness across repeated runs (`--repeats 3`, majority vote).
+* **Regression gate:** `baseline.json` stores a reference run. A case that passed there and fails now fails the run, and `report.md` shows the failing tools and reply. Each run records the model and a hash of the prompt and tools, so a regression can be traced to a prompt change.
+
+```bash
+export ANTHROPIC_API_KEY=...
+./evaluation/run_buylist_eval.sh --baseline        # first run: save the baseline
+./evaluation/run_buylist_eval.sh --repeats 3       # later runs: compare against it
+./evaluation/run_buylist_eval.sh --category sealed # one category
+./evaluation/run_buylist_eval.sh --replay          # re-score the last run after changing cases or scoring, no model calls
+```
+
+The harness's own tests (dataset validity, scoring rules, a scripted end-to-end run) run in CI on every push. The live evaluation runs weekly and on demand in GitHub Actions (`buylist-eval.yml`, needs the `ANTHROPIC_API_KEY` repository secret) and posts the report to the run summary.
+
+---
+
 ## 🏷️ Admin Listing Generator
 
 Admin page at `/admin/listing-generator` (linked from the buylist admin portal, hidden for DEMO). Upload one or two photos of a card, get an editable draft, review it, then create the product through the existing `POST /api/products`. **Nothing is created or published automatically.**

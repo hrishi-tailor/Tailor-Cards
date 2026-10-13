@@ -1,0 +1,15 @@
+{
+  "description": "Fixed tool results used during evaluation so runs are repeatable and don't spend RapidAPI quota. Sealed prices are illustrative fixtures, not live market data.",
+  "sealedProducts": [
+    { "id": 21574, "name": "Prismatic Evolutions Elite Trainer Box", "set": "Prismatic Evolutions", "eur_30d_average": 153.05, "cad_market_reference": 244.54 },
+    { "id": 21576, "name": "Prismatic Evolutions Booster Bundle", "set": "Prismatic Evolutions", "eur_30d_average": 61.20, "cad_market_reference": 97.79 },
+    { "id": 19500, "name": "Surging Sparks Booster Box", "set": "Surging Sparks", "eur_30d_average": 215.00, "cad_market_reference": 343.53 },
+    { "id": 16010, "name": "151 Ultra-Premium Collection", "set": "151", "eur_30d_average": 189.90, "cad_market_reference": 303.42 },
+    { "id": 16011, "name": "151 Booster Bundle", "set": "151", "eur_30d_average": 52.40, "cad_market_reference": 83.72 }
+  ],
+  "storeCards": [
+    { "product_id": 101, "name": "Charizard ex", "set": "Obsidian Flames", "number": "223/197", "condition_or_grade": "NM", "price_cad": 120.00 },
+    { "product_id": 102, "name": "Umbreon VMAX", "set": "Evolving Skies", "number": "215/203", "condition_or_grade": "PSA 9", "price_cad": 1850.00 }
+  ],
+  "ratesText": "We pay 75% of market value in cash (82% for PSA 10 / BGS Black Label, 70% for sealed product, 77% for near mint), or 80% in store credit toward cards in our shop."
+}
