@@ -105,7 +105,7 @@ docker run -d --name tc-local-pg -e POSTGRES_DB=tailorcards -e POSTGRES_PASSWORD
 ```
 
 ```bash
-export DB_PORT=5433 DB_NAME=tailorcards DB_PASSWORD=postgres ADMIN_PASSWORD=change-me
+export DB_PORT=5433 DB_NAME=tailorcards DB_PASSWORD=postgres ADMIN_PASSWORD=change-me TOTP_ENCRYPTION_KEY="$(openssl rand -base64 32)"
 ./mvnw spring-boot:run
 ```
 
@@ -123,6 +123,7 @@ Only the database settings and `ADMIN_PASSWORD` are required. Everything else sw
 | :--- | :--- |
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` | PostgreSQL connection |
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | Admin login |
+| `TOTP_ENCRYPTION_KEY` | Required: encrypts admins' two-factor secrets (`openssl rand -base64 32`). See [docs/security.md](docs/security.md) |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Checkout |
 | `ANTHROPIC_API_KEY` | AI buylist chat, card scanner, listing generator |
 | `CHATBOT_ENABLED` | `true` turns the AI buylist on at `/sell` |
@@ -155,4 +156,5 @@ CI runs the backend and frontend checks on every push and pull request; the live
 - [AI buylist and card scanner](docs/ai-buylist.md): flow, pricing sources, approval estimate, limits, configuration, evaluation
 - [Listing generator](docs/listing-generator.md): photo-to-draft for admins
 - [AI buylist latency](docs/performance.md): where the time goes, before/after timings, the benchmark and production queries
+- [Security](docs/security.md): admin two-factor login, lockout, headers, audit log, upload checks, scanning in CI
 - [Trade pricing engine](docs/trade-pricing-engine.md): the deterministic engine behind `/api/trade-assistant`
