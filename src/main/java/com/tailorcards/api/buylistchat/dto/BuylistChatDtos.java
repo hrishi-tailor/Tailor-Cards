@@ -35,6 +35,18 @@ public final class BuylistChatDtos {
     /** Confirm a scan: cardId picks a candidate (else the match), condition overrides the estimate. */
     public record ScanAddRequest(String cardId, String condition, Integer quantity) {}
 
+    /** A phone link: token for the QR code (only on create), and when it expires. */
+    public record PhoneLinkResponse(String token, Instant expiresAt) {}
+
+    /** For the computer to poll: has the phone opened the link, and which cards it added (newest last). */
+    public record PhoneLinkStatus(boolean connected, List<String> added, Instant expiresAt, boolean expired) {}
+
+    /** What the phone gets back after adding a card. */
+    public record PhoneAddResponse(String added) {}
+
+    /** What the phone needs to show prices: the CAD rate and when the link expires. */
+    public record PhoneOpenResponse(java.math.BigDecimal usdCadRate, Instant expiresAt) {}
+
     public record GuestSessionRequest(String turnstileToken) {}
 
     public record OtpRequest(String email, String turnstileToken) {}

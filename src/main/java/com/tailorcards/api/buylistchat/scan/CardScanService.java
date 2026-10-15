@@ -332,6 +332,13 @@ public class CardScanService {
      * at the condition they confirmed, with the front photo attached; notes the scan in the chat.
      */
     public DraftView add(String email, String draftId, String scanId, ScanAddRequest request) {
+        return addScan(email, draftId, scanId, request).view();
+    }
+
+    /** The updated draft and a short name for what was added ("Gengar (Lost Origin Trainer Gallery TG06)"). */
+    record Added(DraftView view, String label) {}
+
+    Added addScan(String email, String draftId, String scanId, ScanAddRequest request) {
         PendingScan scan = pending.get(scanId);
         if (scan == null || !scan.email().equals(email) || !scan.draftId().equals(draftId)
                 || scan.expiresAt().isBefore(clock.instant())) {
@@ -370,7 +377,7 @@ public class CardScanService {
 
         drafts.appendMessage(draft, "CUSTOMER", "[Scanned a card photo]");
         drafts.appendMessage(draft, "ASSISTANT", transcriptNote(label, quantity, condition, r, scan.backUrl()));
-        return drafts.view(drafts.ownedDraft(draftId, email));
+        return new Added(drafts.view(drafts.ownedDraft(draftId, email)), label);
     }
 
     private static ScanCard chosen(PendingScan scan, String cardId) {
