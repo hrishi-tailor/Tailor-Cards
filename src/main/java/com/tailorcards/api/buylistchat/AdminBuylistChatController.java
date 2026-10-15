@@ -19,8 +19,10 @@ public class AdminBuylistChatController {
     public record ResetRequest(String email) {}
 
     private final BuylistChatSubmissionService submissions;
+    private final com.tailorcards.api.audit.AuditLog audit;
 
-    public AdminBuylistChatController(BuylistChatSubmissionService submissions) {
+    public AdminBuylistChatController(BuylistChatSubmissionService submissions, com.tailorcards.api.audit.AuditLog audit) {
+        this.audit = audit;
         this.submissions = submissions;
     }
 
@@ -28,6 +30,7 @@ public class AdminBuylistChatController {
     @Operation(summary = "Let a customer submit again today", description = "Releases today's one-per-day slot for the email; the submission itself is kept.")
     public Map<String, Object> resetDailyLimit(@RequestBody ResetRequest request) {
         int released = submissions.resetDailyLimit(request.email());
+        audit.record("BUYLIST_DAILY_LIMIT_RESET", "CUSTOMER_EMAIL", request.email(), null, Map.of("released", released));
         return Map.of("released", released);
     }
 }

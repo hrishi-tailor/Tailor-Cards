@@ -26,8 +26,10 @@ import java.util.List;
 public class CategoryController {
 
     private final CategoryService categoryService;
+    private final com.tailorcards.api.audit.AuditLog audit;
 
-    public CategoryController(CategoryService categoryService) {
+    public CategoryController(CategoryService categoryService, com.tailorcards.api.audit.AuditLog audit) {
+        this.audit = audit;
         this.categoryService = categoryService;
     }
 
@@ -47,6 +49,7 @@ public class CategoryController {
     @Operation(summary = "Create category (Admin)", description = "Create a new category. Requires HTTP Basic authentication with ADMIN role.", security = @SecurityRequirement(name = "basicAuth"))
     public ResponseEntity<CategoryResponse> createCategory(@Valid @RequestBody CategoryRequest request) {
         CategoryResponse created = categoryService.createCategory(request);
+        audit.record("CATEGORY_CREATE", "CATEGORY", created.id(), null, created);
         URI location = URI.create("/api/categories/" + created.id());
         return ResponseEntity.created(location).body(created);
     }
@@ -57,13 +60,18 @@ public class CategoryController {
             @PathVariable Long id,
             @Valid @RequestBody CategoryRequest request
     ) {
-        return ResponseEntity.ok(categoryService.updateCategory(id, request));
+        String before = audit.snapshotOf(() -> categoryService.getCategoryById(id));
+        CategoryResponse after = categoryService.updateCategory(id, request);
+        audit.record("CATEGORY_UPDATE", "CATEGORY", id, before, after);
+        return ResponseEntity.ok(after);
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete category (Admin)", description = "Remove a category. Requires HTTP Basic authentication with ADMIN role.", security = @SecurityRequirement(name = "basicAuth"))
     public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
+        String before = audit.snapshotOf(() -> categoryService.getCategoryById(id));
         categoryService.deleteCategory(id);
+        audit.record("CATEGORY_DELETE", "CATEGORY", id, before, null);
         return ResponseEntity.noContent().build();
     }
 }

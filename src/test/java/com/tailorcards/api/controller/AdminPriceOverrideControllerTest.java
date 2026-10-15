@@ -45,7 +45,7 @@ class AdminPriceOverrideControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new AdminPriceOverrideController(overrideRepository, snapshotRepository, snapshotScheduler);
+        controller = new AdminPriceOverrideController(overrideRepository, snapshotRepository, snapshotScheduler, org.mockito.Mockito.mock(com.tailorcards.api.audit.AuditLog.class));
     }
 
     @Test

@@ -34,6 +34,8 @@ public class AdminProductSyncController {
 
     private final ProductPokemontcgBackfillService backfillService;
     private final ProductMapper productMapper;
+    private final com.tailorcards.api.service.ProductService productService;
+    private final com.tailorcards.api.audit.AuditLog audit;
 
     @GetMapping("/products/unlinked")
     @Operation(summary = "List unlinked products", description = "Retrieve all inventory products that currently lack a pokemontcg_id")
@@ -60,14 +62,18 @@ public class AdminProductSyncController {
             @PathVariable Long productId,
             @Valid @RequestBody UpdatePokemontcgIdRequest request
     ) {
+        String before = audit.snapshotOf(() -> productService.getProductById(productId));
         Product updated = backfillService.updateProductPokemontcgId(productId, request.pokemontcgId());
-        return ResponseEntity.ok(productMapper.toResponse(updated));
+        ProductResponse after = productMapper.toResponse(updated);
+        audit.record("PRODUCT_LINK_CARD", "PRODUCT", productId, before, after);
+        return ResponseEntity.ok(after);
     }
 
     @PostMapping("/pricing/sync-snapshots")
     @Operation(summary = "Trigger snapshot sync job", description = "Admin endpoint to trigger the nightly price snapshot job once on-demand")
     public ResponseEntity<SnapshotSyncResponse> triggerSnapshotSync() {
         SnapshotSyncResponse response = backfillService.triggerSnapshotSync();
+        audit.record("PRICE_SNAPSHOT_SYNC", "PRICING", null, null, response);
         return ResponseEntity.ok(response);
     }
 }

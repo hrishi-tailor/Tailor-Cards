@@ -38,8 +38,10 @@ public class BuylistController {
 
     private final BuylistService buylistService;
     private final BuylistStorageService buylistStorageService;
+    private final com.tailorcards.api.audit.AuditLog audit;
 
-    public BuylistController(BuylistService buylistService, BuylistStorageService buylistStorageService) {
+    public BuylistController(BuylistService buylistService, BuylistStorageService buylistStorageService, com.tailorcards.api.audit.AuditLog audit) {
+        this.audit = audit;
         this.buylistService = buylistService;
         this.buylistStorageService = buylistStorageService;
     }
@@ -86,7 +88,10 @@ public class BuylistController {
             @PathVariable Long id,
             @Valid @RequestBody BuylistStatusUpdateRequest request
     ) {
-        return ResponseEntity.ok(buylistService.updateSubmissionStatus(id, request));
+        String before = audit.snapshotOf(() -> buylistService.getSubmissionById(id));
+        BuylistSubmissionResponse after = buylistService.updateSubmissionStatus(id, request);
+        audit.record("BUYLIST_DECISION_" + request.status(), "BUYLIST_SUBMISSION", id, before, after);
+        return ResponseEntity.ok(after);
     }
 
     @PostMapping("/{trackingToken}/messages")

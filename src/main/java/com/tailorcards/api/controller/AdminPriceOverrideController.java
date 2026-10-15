@@ -37,6 +37,7 @@ public class AdminPriceOverrideController {
     private final ManualPriceOverrideRepository overrideRepository;
     private final PriceSnapshotRepository snapshotRepository;
     private final PriceSnapshotScheduler snapshotScheduler;
+    private final com.tailorcards.api.audit.AuditLog audit;
 
     @GetMapping("/price-overrides")
     @Operation(summary = "List all manual price overrides", description = "Retrieve all custom CAD price overrides for graded slabs, sealed items, or raw conditions")
@@ -69,13 +70,16 @@ public class AdminPriceOverrideController {
                         .cardId(request.cardId())
                         .conditionOrGrade(cleanCondition)
                         .build());
+        String before = override.getId() == null ? null : audit.snapshot(toOverrideResponse(override));
 
         override.setOverridePriceCad(request.overridePriceCad());
         override.setNotes(request.notes());
         override.setUpdatedAt(Instant.now());
 
         ManualPriceOverride saved = overrideRepository.save(override);
-        return ResponseEntity.status(HttpStatus.CREATED).body(toOverrideResponse(saved));
+        ManualPriceOverrideResponse after = toOverrideResponse(saved);
+        audit.record("PRICE_OVERRIDE_UPSERT", "PRICE_OVERRIDE", saved.getId(), before, after);
+        return ResponseEntity.status(HttpStatus.CREATED).body(after);
     }
 
     @DeleteMapping("/price-overrides/{id}")
@@ -84,7 +88,9 @@ public class AdminPriceOverrideController {
         if (!overrideRepository.existsById(id)) {
             return ResponseEntity.notFound().build();
         }
+        String before = audit.snapshotOf(() -> overrideRepository.findById(id).map(this::toOverrideResponse).orElse(null));
         overrideRepository.deleteById(id);
+        audit.record("PRICE_OVERRIDE_DELETE", "PRICE_OVERRIDE", id, before, null);
         return ResponseEntity.noContent().build();
     }
 

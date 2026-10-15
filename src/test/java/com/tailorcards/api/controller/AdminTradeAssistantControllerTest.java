@@ -39,7 +39,7 @@ class AdminTradeAssistantControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new AdminTradeAssistantController(tradeAssistantService);
+        controller = new AdminTradeAssistantController(tradeAssistantService, org.mockito.Mockito.mock(com.tailorcards.api.audit.AuditLog.class));
     }
 
     @Test

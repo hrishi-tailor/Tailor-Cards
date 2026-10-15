@@ -36,9 +36,11 @@ public class TwoFactorController {
     private final TwoFactorService twoFactor;
     private final com.tailorcards.api.security.login.LoginAttemptService loginAttempts;
     private final int trustedHops;
+    private final com.tailorcards.api.audit.AuditLog audit;
 
     public TwoFactorController(TwoFactorService twoFactor, com.tailorcards.api.security.login.LoginAttemptService loginAttempts,
-                               @Value("${app.security.trusted-proxy-hops:1}") int trustedHops) {
+                               @Value("${app.security.trusted-proxy-hops:1}") int trustedHops, com.tailorcards.api.audit.AuditLog audit) {
+        this.audit = audit;
         this.twoFactor = twoFactor;
         this.loginAttempts = loginAttempts;
         this.trustedHops = trustedHops;
@@ -72,7 +74,9 @@ public class TwoFactorController {
     @PostMapping("/enrol/confirm")
     @Operation(summary = "Finish setup with a code from the app; returns backup codes (shown once) and a session")
     public SessionResponse confirm(Authentication auth, @RequestBody CodeRequest request, HttpServletRequest http) {
-        return response(counted(auth, http, () -> twoFactor.confirmEnrolment(auth.getName(), request.code(), ClientAddress.of(http, trustedHops))));
+        SessionResponse result = response(counted(auth, http, () -> twoFactor.confirmEnrolment(auth.getName(), request.code(), ClientAddress.of(http, trustedHops))));
+        audit.record("TWO_FACTOR_ENROLLED", "ADMIN_ACCOUNT", auth.getName(), null, null);
+        return result;
     }
 
     @PostMapping("/verify")
@@ -84,7 +88,9 @@ public class TwoFactorController {
     @PostMapping("/backup-codes")
     @Operation(summary = "Replace the backup codes (needs a current code from the app)")
     public BackupCodesResponse backupCodes(Authentication auth, @RequestBody CodeRequest request, HttpServletRequest http) {
-        return new BackupCodesResponse(counted(auth, http, () -> twoFactor.regenerateBackupCodes(auth.getName(), request.code())));
+        BackupCodesResponse result = new BackupCodesResponse(counted(auth, http, () -> twoFactor.regenerateBackupCodes(auth.getName(), request.code())));
+        audit.record("TWO_FACTOR_BACKUP_CODES_REPLACED", "ADMIN_ACCOUNT", auth.getName(), null, null);
+        return result;
     }
 
     @PostMapping("/logout")
