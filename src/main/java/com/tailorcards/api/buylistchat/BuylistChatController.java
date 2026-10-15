@@ -83,6 +83,7 @@ public class BuylistChatController {
     private final com.tailorcards.api.buylistchat.pricing.StoreCardService storeCardService;
     private final CardScanService scanner;
     private final PhoneLinkService phoneLinks;
+    private final com.tailorcards.api.buylistchat.resolution.ResolutionProgress progress;
 
     public BuylistChatController(BuylistChatProperties properties, BuylistIdentityService identity,
                                  BuylistDraftService drafts, BuylistChatService chat,
@@ -90,10 +91,12 @@ public class BuylistChatController {
                                  CsvItemParser csvParser, ListingImageSanitizer sanitizer, BuylistStorageService storage,
                                  TurnstileVerifier turnstile, LlmRateLimiter rateLimiter,
                                  com.tailorcards.api.buylistchat.pricing.StoreCardService storeCardService,
-                                 CardScanService scanner, PhoneLinkService phoneLinks) {
+                                 CardScanService scanner, PhoneLinkService phoneLinks,
+                                 com.tailorcards.api.buylistchat.resolution.ResolutionProgress progress) {
         this.storeCardService = storeCardService;
         this.scanner = scanner;
         this.phoneLinks = phoneLinks;
+        this.progress = progress;
         this.properties = properties;
         this.identity = identity;
         this.drafts = drafts;
@@ -162,6 +165,18 @@ public class BuylistChatController {
                               @RequestHeader(value = SESSION_HEADER, required = false) String token) {
         BuylistChatSession session = session(token);
         return drafts.view(drafts.ownedDraft(draftId, session.getEmail()));
+    }
+
+    @GetMapping(value = "/drafts/{draftId}/progress", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "Server-sent events while cards are being checked: progress {total, done}, then done")
+    public org.springframework.http.ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.SseEmitter> progress(
+            @PathVariable String draftId, @RequestHeader(value = SESSION_HEADER, required = false) String token) {
+        BuylistChatSession session = session(token);
+        drafts.ownedDraft(draftId, session.getEmail()); // 404 for someone else's draft
+        return org.springframework.http.ResponseEntity.ok()
+                .header("Cache-Control", "no-cache, no-transform")
+                .header("X-Accel-Buffering", "no") // ask proxies not to buffer the stream
+                .body(progress.subscribe(draftId));
     }
 
     @PostMapping("/drafts/{draftId}/messages")
@@ -254,7 +269,8 @@ public class BuylistChatController {
         if (lines.size() > properties.getLimits().getMaxLines()) {
             throw new IllegalArgumentException("A list can have at most " + properties.getLimits().getMaxLines() + " items.");
         }
-        drafts.addItems(draft, normalizer.normalize(lines));
+        // Each chunk goes on the list as soon as it's read, so pricing starts while later chunks are with the model
+        normalizer.normalize(lines, chunk -> drafts.addItems(draft, chunk));
         return drafts.view(drafts.ownedDraft(draftId, session.getEmail()));
     }
 

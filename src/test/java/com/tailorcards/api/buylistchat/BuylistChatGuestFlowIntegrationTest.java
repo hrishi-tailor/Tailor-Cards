@@ -172,6 +172,24 @@ class BuylistChatGuestFlowIntegrationTest {
     }
 
     @Test
+    @DisplayName("Progress streams as server-sent events, ends with done, and is private to the draft's session")
+    void progressStream() throws Exception {
+        String token = guestToken("10.1.6.1");
+        JsonNode draft = readyDraft(token);
+        String draftId = draft.path("draftId").asText();
+
+        var started = mvc.perform(get("/api/buylist-chat/drafts/" + draftId + "/progress").header(SESSION, token))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.request().asyncStarted())
+                .andReturn();
+        String stream = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch(started))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+
+        assertThat(stream).contains("event:progress").contains("\"total\":1").contains("\"done\":1").contains("event:done");
+        mvc.perform(get("/api/buylist-chat/drafts/" + draftId + "/progress").header(SESSION, guestToken("10.1.6.2")))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     @DisplayName("Anonymous drafts are private to their session")
     void ownership() throws Exception {
         String a = guestToken("10.1.2.1");
