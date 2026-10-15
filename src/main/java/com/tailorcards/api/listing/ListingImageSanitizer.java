@@ -44,10 +44,26 @@ public class ListingImageSanitizer {
     private static final Set<String> PNG_METADATA_CHUNKS = Set.of("eXIf", "tEXt", "zTXt", "iTXt", "tIME");
     private static final int ORIENTATION_TAG = 0x0112;
 
+    /** Largest image accepted: 50 megapixels, at most 20,000 pixels on a side (a 48 MP phone photo fits). */
+    public static final long MAX_PIXELS = 50_000_000L;
+    public static final int MAX_SIDE = 20_000;
+
+    /**
+     * Accepts only JPEG, PNG and WebP, recognised by their magic bytes (the declared content type and file name are
+     * never trusted), refuses pixel bombs by their header dimensions, and strips metadata.
+     */
     public SanitizedImage sanitize(byte[] data) {
         ImageType type = detect(data);
         if (type == null) {
             throw new IllegalArgumentException("Unsupported image. Upload a JPEG, PNG or WebP photo.");
+        }
+        ImageDimensions.Size size = ImageDimensions.read(type, data);
+        if (size == null || size.width() <= 0 || size.height() <= 0) {
+            throw corrupt(type);
+        }
+        if (size.width() > MAX_SIDE || size.height() > MAX_SIDE || size.pixels() > MAX_PIXELS) {
+            throw new IllegalArgumentException("That image is too large (" + size.width() + " x " + size.height()
+                    + " pixels). Upload a photo of at most 50 megapixels.");
         }
         try {
             return switch (type) {

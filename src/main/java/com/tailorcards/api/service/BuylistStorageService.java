@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import com.tailorcards.api.listing.ListingImageSanitizer;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -16,8 +17,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
-import java.util.Locale;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -26,18 +25,6 @@ public class BuylistStorageService {
     private static final Logger log = LoggerFactory.getLogger(BuylistStorageService.class);
 
     private static final long MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
-    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
-            "image/jpeg",
-            "image/jpg",
-            "image/png",
-            "image/webp"
-    );
-    private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
-            ".jpg",
-            ".jpeg",
-            ".png",
-            ".webp"
-    );
 
     @Value("${supabase.url:}")
     private String supabaseUrl;
@@ -52,6 +39,7 @@ public class BuylistStorageService {
     private String uploadDir;
 
     private final HttpClient httpClient;
+    private final ListingImageSanitizer sanitizer = new ListingImageSanitizer();
 
     public BuylistStorageService() {
         this.httpClient = HttpClient.newBuilder()
@@ -67,23 +55,31 @@ public class BuylistStorageService {
         this.uploadDir = uploadDir;
     }
 
+    /**
+     * Stores an uploaded image. Whatever the client says the file is, it must be a JPEG, PNG or WebP by its magic
+     * bytes, within the size limit and a sane pixel count; metadata (location, camera) is stripped, and the stored
+     * name and content type come from the detected format, never from the upload.
+     */
     public String storeFile(MultipartFile file) {
-        validateFile(file);
-
-        String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload.jpg";
-        String extension = extractExtension(originalFilename);
-        String uniqueFilename = UUID.randomUUID() + extension;
-
-        byte[] bytes;
+        validateSize(file);
+        byte[] raw;
         try {
-            bytes = file.getBytes();
+            raw = file.getBytes();
         } catch (IOException e) {
             throw new RuntimeException("Failed to read uploaded file contents: " + e.getMessage(), e);
         }
+        ListingImageSanitizer.SanitizedImage image = sanitizer.sanitize(raw);
+        byte[] bytes = image.bytes();
+        String contentType = image.type().mediaType();
+        String uniqueFilename = UUID.randomUUID() + switch (image.type()) {
+            case JPEG -> ".jpg";
+            case PNG -> ".png";
+            case WEBP -> ".webp";
+        };
 
         if (isSupabaseConfigured()) {
             try {
-                String supabasePublicUrl = uploadToSupabase(file.getContentType(), bytes, uniqueFilename);
+                String supabasePublicUrl = uploadToSupabase(contentType, bytes, uniqueFilename);
                 if (supabasePublicUrl != null) {
                     log.info("Successfully uploaded image to Supabase Storage: {}", supabasePublicUrl);
                     return supabasePublicUrl;
@@ -98,24 +94,13 @@ public class BuylistStorageService {
         return storeLocally(bytes, uniqueFilename);
     }
 
-    private void validateFile(MultipartFile file) {
+    private void validateSize(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File must not be empty");
         }
-
         if (file.getSize() > MAX_FILE_SIZE_BYTES) {
-            throw new IllegalArgumentException("File size exceeds the 10MB limit");
-        }
-
-        String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
-            throw new IllegalArgumentException("Invalid file type: " + contentType + ". Only JPEG, PNG, and WEBP images are allowed");
-        }
-
-        String originalFilename = file.getOriginalFilename();
-        String extension = extractExtension(originalFilename);
-        if (!ALLOWED_EXTENSIONS.contains(extension.toLowerCase(Locale.ROOT))) {
-            throw new IllegalArgumentException("Invalid file extension: " + extension + ". Only .jpg, .jpeg, .png, and .webp are allowed");
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONTENT_TOO_LARGE,
+                    "Images can be at most 10 MB.");
         }
     }
 
@@ -167,10 +152,4 @@ public class BuylistStorageService {
         }
     }
 
-    private String extractExtension(String filename) {
-        if (filename == null || !filename.contains(".")) {
-            return ".jpg";
-        }
-        return filename.substring(filename.lastIndexOf(".")).toLowerCase(Locale.ROOT);
-    }
 }
