@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
-import { buylistChatApi } from '../api/buylistChatApi'
-import type { ChatDraft, ScanCard, ScanResult } from '../api/buylistChatApi'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
+import type { ScanCard, ScanResult } from '../api/buylistChatApi'
 import type { Money } from './buylistMoney'
 import { analyze, grayscale } from './cardQuality'
 import type { QualityReport, Rect } from './cardQuality'
@@ -13,6 +13,8 @@ const CARD_RATIO = 63 / 88
 const PAD = 0.15
 const CHECK_MS = 120
 const MAX_EDGE_PX = 1600
+/** After switching to the back, give the customer time to flip the card before auto-capture. */
+const FLIP_MS = 1800
 const CONDITIONS: [string, string][] = [
   ['NM', 'Near mint'], ['LP+', 'LP+ (one white dot)'], ['LP', 'Lightly played'], ['MP', 'Moderately played'],
   ['HP', 'Heavily played'], ['DMG', 'Damaged'], ['UNKNOWN', 'Not sure'],
@@ -53,13 +55,17 @@ function loadImage(file: Blob): Promise<HTMLImageElement> {
  * Scan a card with the camera (or an uploaded photo): live tips for light, glare, focus and framing, then the AI
  * identifies the card and estimates its condition. Nothing goes on the list until the customer confirms.
  */
-export function CardScanner({ draftId, money, initialFile, onDraft, onClose }: {
-  draftId: string
+export function CardScanner({ money, initialFile, onScan, onAdd, onClose, intro }: {
   money: Money
   /** A photo the customer already picked ("Upload a card"): skips the camera step. */
   initialFile?: File | null
-  onDraft: (draft: ChatDraft) => void
-  onClose: () => void
+  /** Sends the photos for reading; nothing is added to the list yet. */
+  onScan: (front: Blob, back: Blob | null) => Promise<ScanResult>
+  /** Adds the confirmed scan to the list; resolves to a short name of what was added. */
+  onAdd: (scanId: string, cardId: string | null, condition: string, quantity: number) => Promise<string>
+  onClose?: () => void
+  /** Shown above the camera choices before the first photo, e.g. the "use your phone" QR code. */
+  intro?: ReactNode
 }) {
   const [side, setSide] = useState<Side>('front')
   const [phase, setPhase] = useState<Phase>('capture')
@@ -75,8 +81,10 @@ export function CardScanner({ draftId, money, initialFile, onDraft, onClose }: {
   const [condition, setCondition] = useState('UNKNOWN')
   const [quantity, setQuantity] = useState(1)
   const [adding, setAdding] = useState(false)
+  const [lastAdded, setLastAdded] = useState<string | null>(null)
 
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const armedAtRef = useRef(0)
   const stageRef = useRef<HTMLDivElement>(null)
   const sampleRef = useRef<HTMLCanvasElement | null>(null)
   const capturingRef = useRef(false)
@@ -99,12 +107,15 @@ export function CardScanner({ draftId, money, initialFile, onDraft, onClose }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialFile])
 
-  useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream
-      videoRef.current.play().catch(() => undefined)
+  // The preview is removed while a photo is reviewed and comes back for the next side: attach the stream to
+  // every new video element, or it stays black.
+  const attachVideo = useCallback((el: HTMLVideoElement | null) => {
+    videoRef.current = el
+    if (el && streamRef.current && el.srcObject !== streamRef.current) {
+      el.srcObject = streamRef.current
+      el.play().catch(() => undefined)
     }
-  }, [stream])
+  }, [])
 
   const startCamera = async () => {
     setCameraError(null)
@@ -192,6 +203,10 @@ export function CardScanner({ draftId, money, initialFile, onDraft, onClose }: {
     const timer = setInterval(() => {
       const region = sampleRegion()
       if (!region || region.video.readyState < 2 || region.sw <= 0 || region.sh <= 0 || capturingRef.current) return
+      if (Date.now() < armedAtRef.current) {
+        setQuality({ ok: false, hint: 'Flip the card over', card: null, edges: 0, brightness: 0, glare: 0, sharpness: 0 })
+        return
+      }
       const { g, sx, sy, sw, sh } = region
       sampleRef.current ??= document.createElement('canvas')
       const frame = grayscale(region.video, sx, sy, sw, sh, sampleRef.current)
@@ -225,6 +240,13 @@ export function CardScanner({ draftId, money, initialFile, onDraft, onClose }: {
     }
   }
 
+  const goToSide = (s: Side) => {
+    if (s === 'back') armedAtRef.current = Date.now() + FLIP_MS
+    setSide(s)
+    setUploadWarning(null)
+    setQuality(null)
+  }
+
   const retakeSide = (s: Side) => {
     setPhotos((p) => ({ ...p, [s]: null }))
     setUploadWarning(null)
@@ -238,7 +260,7 @@ export function CardScanner({ draftId, money, initialFile, onDraft, onClose }: {
     setPhase('analyzing')
     setError(null)
     try {
-      const result = await buylistChatApi.scan(draftId, photos.front, back)
+      const result = await onScan(photos.front, back)
       setScan(result)
       setCardId(result.card?.cardId ?? null)
       setCondition(result.condition)
@@ -255,8 +277,9 @@ export function CardScanner({ draftId, money, initialFile, onDraft, onClose }: {
     setAdding(true)
     setError(null)
     try {
-      onDraft(await buylistChatApi.addScan(draftId, scan.scanId, cardId, condition, quantity))
+      const added = await onAdd(scan.scanId, cardId, condition, quantity)
       reset()
+      setLastAdded(added)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not add the card.')
     } finally {
@@ -272,12 +295,13 @@ export function CardScanner({ draftId, money, initialFile, onDraft, onClose }: {
     setSide('front')
     setPhase('capture')
     setUploadWarning(null)
+    setQuality(null)
   }
 
   const close = () => {
     stopCamera()
     Object.values(previews).forEach((u) => u && URL.revokeObjectURL(u))
-    onClose()
+    onClose?.()
   }
 
   const hint = quality?.hint ?? 'Place the card inside the frame'
@@ -288,9 +312,12 @@ export function CardScanner({ draftId, money, initialFile, onDraft, onClose }: {
     <div className="tc-scan" role="region" aria-label="Card scanner">
       <div className="tc-scan-head">
         <strong>Scan a card</strong>
-        <button type="button" className="tc-bc-link" onClick={close}>Close</button>
+        {onClose && <button type="button" className="tc-bc-link" onClick={close}>Close</button>}
       </div>
       {error && <div className="tc-bc-alert" role="alert">{error}</div>}
+      {lastAdded && phase === 'capture' && !photos.front && (
+        <div className="tc-scan-added" role="status">Added {lastAdded} to your list. Scan another card, or you're done.</div>
+      )}
 
       {phase === 'capture' && (
         <>
@@ -301,7 +328,7 @@ export function CardScanner({ draftId, money, initialFile, onDraft, onClose }: {
 
           {!photo && stream && (
             <div className="tc-scan-stage" ref={stageRef}>
-              <video ref={videoRef} playsInline muted autoPlay />
+              <video ref={attachVideo} playsInline muted autoPlay />
               <div className={`tc-scan-guide ${guideState}`}>
                 <span /><span /><span /><span />
               </div>
@@ -310,15 +337,20 @@ export function CardScanner({ draftId, money, initialFile, onDraft, onClose }: {
             </div>
           )}
 
+          {!photo && !stream && side === 'front' && intro}
+
           {!photo && !stream && (
             <div className="tc-scan-start">
+              {intro && side === 'front' && <p className="tc-scan-or">Or use this device</p>}
               <p>
                 {side === 'front'
                   ? 'Lay the card flat on a plain, dark surface in good light. Take it out of any top loader to avoid glare.'
                   : 'Now the back: this is where whitening shows, so it helps us judge the condition.'}
               </p>
               <div className="tc-bc-actions">
-                <button type="button" className="tc-bc-btn tc-bc-btn-gold" onClick={startCamera}>Use camera</button>
+                <button type="button" className="tc-bc-btn tc-bc-btn-gold" onClick={startCamera}>
+                  {intro && side === 'front' ? 'Use this camera' : 'Use camera'}
+                </button>
                 <label className="tc-bc-btn tc-bc-btn-ghost tc-bc-file">
                   Upload a photo
                   <input type="file" accept="image/jpeg,image/png,image/webp" hidden
@@ -339,7 +371,7 @@ export function CardScanner({ draftId, money, initialFile, onDraft, onClose }: {
               <div className="tc-bc-actions">
                 {side === 'front' ? (
                   <>
-                    <button type="button" className="tc-bc-btn tc-bc-btn-gold" onClick={() => { setSide('back'); setUploadWarning(null) }}>
+                    <button type="button" className="tc-bc-btn tc-bc-btn-gold" onClick={() => goToSide('back')}>
                       Next: the back
                     </button>
                     <button type="button" className="tc-bc-btn tc-bc-btn-ghost" onClick={() => analyzePhotos(null)}>

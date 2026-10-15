@@ -10,6 +10,8 @@ import {
 import type { ChatDraft, ChatLine, ChatStatus, ConfirmResult } from '../api/buylistChatApi'
 import { BuylistDealPanel } from './BuylistDealPanel'
 import { CardScanner } from './CardScanner'
+import { PhoneHandoff } from './PhoneHandoff'
+import { isTouchDevice } from './phoneLink'
 import { makeMoney } from './buylistMoney'
 import { ChatText } from './ChatText'
 import type { Money } from './buylistMoney'
@@ -346,8 +348,18 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
         <div className="tc-bc-workspace">
           <section className="tc-bc-panel tc-bc-chat">
             {scanner ? (
-              <CardScanner draftId={draft.draftId} money={money} initialFile={scanner.file} onDraft={setDraft}
-                onClose={() => setScanner(null)} />
+              <CardScanner money={money} initialFile={scanner.file} onClose={() => setScanner(null)}
+                onScan={(front, back) => buylistChatApi.scan(draft.draftId, front, back)}
+                onAdd={async (scanId, cardId, condition, quantity) => {
+                  const updated = await buylistChatApi.addScan(draft.draftId, scanId, cardId, condition, quantity)
+                  setDraft(updated)
+                  const newest = updated.lines.reduce<ChatLine | null>((a, l) => (!a || l.id > a.id ? l : a), null)
+                  return newest?.matchedName ?? newest?.name ?? 'the card'
+                }}
+                intro={!scanner.file && !isTouchDevice() ? (
+                  <PhoneHandoff draftId={draft.draftId}
+                    onAdded={() => { buylistChatApi.getDraft(draft.draftId).then(setDraft).catch(() => undefined) }} />
+                ) : undefined} />
             ) : (
               <div className="tc-bc-messages" aria-live="polite">
                 {draft.messages.length === 0 && (

@@ -25,7 +25,7 @@
 
 **Sell to us (AI buylist)**
 - Customers list cards by chatting, pasting a list or uploading a CSV, and see the store's offer at its published rates.
-- **Card scanner:** point the phone camera at a card. Live guidance (light, glare, focus, framing) takes the photo automatically, then a vision model identifies the card and estimates its condition. Nothing is added until the customer confirms.
+- **Card scanner:** point a phone camera at a card. Live guidance (light, glare, focus, framing) takes the photo automatically, then a vision model identifies the card and estimates its condition. Nothing is added until the customer confirms. On a computer, a QR code moves the scan to the customer's phone, and cards scanned there appear on the computer's list.
 - Sell for cash, trade for shop cards, or both, with an estimated approval rating that explains what would raise it.
 - Every submission is reviewed by a person in the admin queue.
 

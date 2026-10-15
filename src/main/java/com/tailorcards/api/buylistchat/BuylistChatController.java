@@ -15,6 +15,11 @@ import com.tailorcards.api.buylistchat.dto.BuylistChatDtos.ScanAddRequest;
 import com.tailorcards.api.buylistchat.dto.BuylistChatDtos.ScanResponse;
 import com.tailorcards.api.buylistchat.dto.BuylistChatDtos.StatusResponse;
 import com.tailorcards.api.buylistchat.scan.CardScanService;
+import com.tailorcards.api.buylistchat.scan.PhoneLinkService;
+import com.tailorcards.api.buylistchat.dto.BuylistChatDtos.PhoneAddResponse;
+import com.tailorcards.api.buylistchat.dto.BuylistChatDtos.PhoneLinkResponse;
+import com.tailorcards.api.buylistchat.dto.BuylistChatDtos.PhoneLinkStatus;
+import com.tailorcards.api.buylistchat.dto.BuylistChatDtos.PhoneOpenResponse;
 import com.tailorcards.api.buylistchat.entity.BuylistChatSession;
 import com.tailorcards.api.buylistchat.entity.BuylistDraft;
 import com.tailorcards.api.buylistchat.identity.BuylistIdentityService;
@@ -77,6 +82,7 @@ public class BuylistChatController {
     private final LlmRateLimiter rateLimiter;
     private final com.tailorcards.api.buylistchat.pricing.StoreCardService storeCardService;
     private final CardScanService scanner;
+    private final PhoneLinkService phoneLinks;
 
     public BuylistChatController(BuylistChatProperties properties, BuylistIdentityService identity,
                                  BuylistDraftService drafts, BuylistChatService chat,
@@ -84,9 +90,10 @@ public class BuylistChatController {
                                  CsvItemParser csvParser, ListingImageSanitizer sanitizer, BuylistStorageService storage,
                                  TurnstileVerifier turnstile, LlmRateLimiter rateLimiter,
                                  com.tailorcards.api.buylistchat.pricing.StoreCardService storeCardService,
-                                 CardScanService scanner) {
+                                 CardScanService scanner, PhoneLinkService phoneLinks) {
         this.storeCardService = storeCardService;
         this.scanner = scanner;
+        this.phoneLinks = phoneLinks;
         this.properties = properties;
         this.identity = identity;
         this.drafts = drafts;
@@ -180,6 +187,54 @@ public class BuylistChatController {
                              @RequestHeader(value = SESSION_HEADER, required = false) String token) {
         BuylistChatSession session = session(token);
         return scanner.add(session.getEmail(), draftId, scanId, request);
+    }
+
+    @PostMapping("/drafts/{draftId}/phone-link")
+    @Operation(summary = "A QR-code link that lets the customer's phone scan cards onto this draft")
+    public PhoneLinkResponse createPhoneLink(@PathVariable String draftId,
+                                             @RequestHeader(value = SESSION_HEADER, required = false) String token) {
+        BuylistChatSession session = session(token);
+        requireScanner();
+        return phoneLinks.create(session.getEmail(), session.getId(), draftId);
+    }
+
+    @GetMapping("/drafts/{draftId}/phone-link/{linkToken}")
+    @Operation(summary = "Whether the phone opened the link and which cards it added")
+    public PhoneLinkStatus phoneLinkStatus(@PathVariable String draftId, @PathVariable String linkToken,
+                                           @RequestHeader(value = SESSION_HEADER, required = false) String token) {
+        BuylistChatSession session = session(token);
+        return phoneLinks.status(session.getEmail(), draftId, linkToken);
+    }
+
+    @GetMapping("/phone/{linkToken}")
+    @Operation(summary = "Phone: open a scan link from the QR code")
+    public PhoneOpenResponse openPhoneLink(@PathVariable String linkToken) {
+        requireEnabled();
+        requireScanner();
+        PhoneLinkResponse link = phoneLinks.open(linkToken);
+        return new PhoneOpenResponse(storeCardService.usdCadRate(), link.expiresAt());
+    }
+
+    @PostMapping(value = "/phone/{linkToken}/scan", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Phone: scan a card for the linked draft (nothing is added yet)")
+    public ScanResponse phoneScan(@PathVariable String linkToken, @RequestPart("front") MultipartFile front,
+                                  @RequestPart(value = "back", required = false) MultipartFile back) throws IOException {
+        requireEnabled();
+        return phoneLinks.scan(linkToken, front, back);
+    }
+
+    @PostMapping("/phone/{linkToken}/scan/{scanId}/add")
+    @Operation(summary = "Phone: add a confirmed scan to the linked draft")
+    public PhoneAddResponse phoneAddScan(@PathVariable String linkToken, @PathVariable String scanId,
+                                         @RequestBody ScanAddRequest request) {
+        requireEnabled();
+        return new PhoneAddResponse(phoneLinks.add(linkToken, scanId, request));
+    }
+
+    private void requireScanner() {
+        if (!scanner.isAvailable()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Photo scanning is unavailable right now.");
+        }
     }
 
     @PostMapping("/drafts/{draftId}/paste")
