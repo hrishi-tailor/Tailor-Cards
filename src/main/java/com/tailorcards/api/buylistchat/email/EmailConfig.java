@@ -21,6 +21,12 @@ public class EmailConfig {
             }
             return new HttpEmailSender(email.getApiUrl(), email.getApiKey(), email.getFrom());
         }
+        if ("ses".equals(provider)) {
+            if (email.getFrom().isBlank()) {
+                throw new IllegalStateException("EMAIL_PROVIDER=ses requires EMAIL_FROM (an address on an SES-verified domain).");
+            }
+            return new SesEmailSender(email.getFrom());
+        }
         if (properties.isEnabled()) {
             log.warn("Buylist chat is enabled with EMAIL_PROVIDER=log: sign-in codes are only written to the log.");
         }

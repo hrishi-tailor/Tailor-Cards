@@ -38,6 +38,16 @@ public class BuylistStorageService {
     @Value("${buylist.upload-dir:uploads/buylist}")
     private String uploadDir;
 
+    /** S3 bucket for images (AWS deployments); takes priority over Supabase and local disk when set. */
+    @Value("${storage.s3.bucket:}")
+    private String s3Bucket;
+
+    /** Public base URL that serves the bucket (the images CloudFront distribution), e.g. https://images.example.com */
+    @Value("${storage.s3.public-base-url:}")
+    private String s3PublicBaseUrl;
+
+    private software.amazon.awssdk.services.s3.S3Client s3;
+
     private final HttpClient httpClient;
     private final ListingImageSanitizer sanitizer = new ListingImageSanitizer();
 
@@ -77,6 +87,11 @@ public class BuylistStorageService {
             case WEBP -> ".webp";
         };
 
+        if (s3Bucket != null && !s3Bucket.isBlank()) {
+            // AWS: no fallback to local disk (the instance's disk isn't served or backed up)
+            return uploadToS3(contentType, bytes, uniqueFilename);
+        }
+
         if (isSupabaseConfigured()) {
             try {
                 String supabasePublicUrl = uploadToSupabase(contentType, bytes, uniqueFilename);
@@ -102,6 +117,34 @@ public class BuylistStorageService {
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONTENT_TOO_LARGE,
                     "Images can be at most 10 MB.");
         }
+    }
+
+    /** Uses this S3 client (tests); in production one is built from the default AWS credentials (the IAM role). */
+    public void useS3(software.amazon.awssdk.services.s3.S3Client client, String bucket, String publicBaseUrl) {
+        this.s3 = client;
+        this.s3Bucket = bucket;
+        this.s3PublicBaseUrl = publicBaseUrl;
+    }
+
+    private synchronized software.amazon.awssdk.services.s3.S3Client s3() {
+        if (s3 == null) {
+            s3 = software.amazon.awssdk.services.s3.S3Client.builder()
+                    .httpClient(software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient.create()).build();
+        }
+        return s3;
+    }
+
+    private String uploadToS3(String contentType, byte[] bytes, String filename) {
+        String key = "buylist/" + filename;
+        s3().putObject(software.amazon.awssdk.services.s3.model.PutObjectRequest.builder()
+                        .bucket(s3Bucket).key(key).contentType(contentType)
+                        // Names are random and never reused, so the CDN and browsers may cache them for good
+                        .cacheControl("public, max-age=31536000, immutable")
+                        .build(),
+                software.amazon.awssdk.core.sync.RequestBody.fromBytes(bytes));
+        String base = s3PublicBaseUrl == null ? "" : s3PublicBaseUrl.replaceAll("/+$", "");
+        log.info("Stored image in S3: {}", key);
+        return base + "/" + key;
     }
 
     private boolean isSupabaseConfigured() {

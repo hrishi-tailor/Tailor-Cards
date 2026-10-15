@@ -52,6 +52,12 @@ spring:
     # SQL migrations, plus Java migrations in the db.migration package (V11_1: audit log trigger, PostgreSQL only)
     locations: classpath:db/migration
 
+storage:
+  s3:
+    # AWS deployments: images go to this bucket and are served from public-base-url (CloudFront)
+    bucket: ${S3_IMAGES_BUCKET:}
+    public-base-url: ${S3_IMAGES_PUBLIC_URL:}
+
 supabase:
   url: ${SUPABASE_URL:}
   key: ${SUPABASE_SERVICE_ROLE_KEY:${SUPABASE_KEY:${SUPABASE_ANON_KEY:}}}

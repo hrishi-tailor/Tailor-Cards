@@ -141,4 +141,21 @@ class BuylistStorageServiceTest {
         assertTrue(result.startsWith("/uploads/buylist/"));
         assertTrue(result.endsWith(".webp"));
     }
+
+    @Test
+    void storeFile_withS3Configured_uploadsSanitisedImageAndReturnsCdnUrl() throws Exception {
+        software.amazon.awssdk.services.s3.S3Client s3 = mock(software.amazon.awssdk.services.s3.S3Client.class);
+        storageService.useS3(s3, "tailorcards-staging-images", "https://images.staging.example.com/");
+
+        String url = storageService.storeFile(new MockMultipartFile("file", "card.png", "image/png", image("png")));
+
+        org.mockito.ArgumentCaptor<software.amazon.awssdk.services.s3.model.PutObjectRequest> put =
+                org.mockito.ArgumentCaptor.forClass(software.amazon.awssdk.services.s3.model.PutObjectRequest.class);
+        org.mockito.Mockito.verify(s3).putObject(put.capture(), any(software.amazon.awssdk.core.sync.RequestBody.class));
+        assertEquals("tailorcards-staging-images", put.getValue().bucket());
+        assertTrue(put.getValue().key().matches("buylist/[0-9a-f-]{36}\\.png"), put.getValue().key());
+        assertEquals("image/png", put.getValue().contentType());
+        assertTrue(put.getValue().cacheControl().contains("immutable"));
+        assertEquals("https://images.staging.example.com/" + put.getValue().key(), url);
+    }
 }
