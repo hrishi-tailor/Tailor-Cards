@@ -34,6 +34,7 @@ public class SecurityConfig {
                                                    @Value("${app.security.trusted-proxy-hops:1}") int trustedHops) throws Exception {
         var countingEntryPoint = new com.tailorcards.api.security.login.CountingAuthenticationEntryPoint(loginAttempts, trustedHops);
         http
+            .headers(SecurityConfig::securityHeaders)
             .cors(Customizer.withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -102,6 +103,35 @@ public class SecurityConfig {
                     org.springframework.security.web.authentication.www.BasicAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /** API responses: nothing may run or frame them. Swagger UI is the only HTML the backend serves. */
+    static final String API_CSP = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
+    static final String DOCS_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+            + "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+    static final String PERMISSIONS_POLICY = "accelerometer=(), camera=(), geolocation=(), gyroscope=(), "
+            + "magnetometer=(), microphone=(), payment=(), usb=()";
+
+    private static void securityHeaders(org.springframework.security.config.annotation.web.configurers.HeadersConfigurer<HttpSecurity> headers) {
+        var docs = new org.springframework.security.web.util.matcher.OrRequestMatcher(
+                org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher.withDefaults().matcher("/swagger-ui/**"),
+                org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher.withDefaults().matcher("/swagger-ui.html"));
+        headers
+            // Sent on every response: the app is behind a TLS proxy, so requests arrive as plain HTTP
+            .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31_536_000)
+                    .requestMatcher(org.springframework.security.web.util.matcher.AnyRequestMatcher.INSTANCE))
+            .frameOptions(frame -> frame.deny())
+            .contentTypeOptions(Customizer.withDefaults())
+            .referrerPolicy(referrer -> referrer.policy(
+                    org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+            .permissionsPolicyHeader(permissions -> permissions.policy(PERMISSIONS_POLICY))
+            .crossOriginOpenerPolicy(coop -> coop.policy(
+                    org.springframework.security.web.header.writers.CrossOriginOpenerPolicyHeaderWriter.CrossOriginOpenerPolicy.SAME_ORIGIN))
+            .addHeaderWriter(new org.springframework.security.web.header.writers.DelegatingRequestMatcherHeaderWriter(docs,
+                    new org.springframework.security.web.header.writers.StaticHeadersWriter("Content-Security-Policy", DOCS_CSP)))
+            .addHeaderWriter(new org.springframework.security.web.header.writers.DelegatingRequestMatcherHeaderWriter(
+                    new org.springframework.security.web.util.matcher.NegatedRequestMatcher(docs),
+                    new org.springframework.security.web.header.writers.StaticHeadersWriter("Content-Security-Policy", API_CSP)));
     }
 
     @Bean
