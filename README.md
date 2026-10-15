@@ -93,6 +93,7 @@ A few decisions worth knowing about:
 - **Optimistic locking** (`@Version` on `Product`) so two buyers can't both check out the last copy of a card; the loser gets a clean 409.
 - **Flyway with `ddl-auto=validate`.** Production was baselined at V1, so every later migration is idempotent and tested against a dump of the production schema.
 - **Prices in CAD, stored in USD.** Market data is USD (TCGplayer) or EUR (Cardmarket); customers see CAD at the daily Bank of Canada rate.
+- **Latency budget.** A 60-card lot is matched and priced in about 16 s (from 35 s), checked by a benchmark test that also fails if any price changes. See [docs/performance.md](docs/performance.md).
 - **Card scanner checks run in the browser.** Edge, light, glare and focus checks take about a millisecond per frame, so customers get instant feedback and only good photos reach the vision model.
 
 ## Running locally
@@ -153,4 +154,5 @@ CI runs the backend and frontend checks on every push and pull request; the live
 
 - [AI buylist and card scanner](docs/ai-buylist.md): flow, pricing sources, approval estimate, limits, configuration, evaluation
 - [Listing generator](docs/listing-generator.md): photo-to-draft for admins
+- [AI buylist latency](docs/performance.md): where the time goes, before/after timings, the benchmark and production queries
 - [Trade pricing engine](docs/trade-pricing-engine.md): the deterministic engine behind `/api/trade-assistant`
