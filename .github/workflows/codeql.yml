@@ -1,0 +1,62 @@
+# Static analysis for security bugs (injection, unsafe deserialisation, XSS, path traversal, workflow injection...).
+# Results appear under Security > Code scanning; pull requests get annotations.
+name: CodeQL
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '23 4 * * 1' # weekly, Monday 04:23 UTC: new queries find old bugs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: java-kotlin
+            build-mode: manual
+          - language: javascript-typescript
+            build-mode: none
+          - language: actions
+            build-mode: none
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@v6.1.0
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4.39.0
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-extended
+
+      - name: Build (Java)
+        if: matrix.language == 'java-kotlin'
+        run: ./mvnw -B -q -DskipTests compile test-compile
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v4.39.0
+        with:
+          category: /language:${{ matrix.language }}

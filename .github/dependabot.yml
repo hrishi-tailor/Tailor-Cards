@@ -1,0 +1,42 @@
+# Weekly dependency updates as pull requests. Security updates for known vulnerabilities are opened as soon as an
+# advisory is published, regardless of this schedule (enable "Dependabot security updates" in the repo settings).
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      spring:
+        patterns: ["org.springframework*", "org.springdoc*"]
+      test:
+        patterns: ["org.testcontainers*", "org.mockito*", "org.junit*", "com.h2database*"]
+
+  - package-ecosystem: npm
+    directory: "/frontend"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      react:
+        patterns: ["react", "react-dom", "react-router*", "@types/react*"]
+      build-tools:
+        dependency-type: development
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
