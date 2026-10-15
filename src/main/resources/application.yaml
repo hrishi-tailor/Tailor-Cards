@@ -70,6 +70,16 @@ stripe:
   cancel-url: ${STRIPE_CANCEL_URL:${frontend.url}/cart}
 
 app:
+  security:
+    # Proxies in front of the app that append to X-Forwarded-For (Render's load balancer: 1). Used for login limits.
+    trusted-proxy-hops: ${TRUSTED_PROXY_HOPS:1}
+    two-factor:
+      # Admin accounts need a TOTP code (or backup code) after the password. Needs TOTP_ENCRYPTION_KEY.
+      enabled: ${ADMIN_2FA_ENABLED:true}
+      # openssl rand -base64 32
+      encryption-key: ${TOTP_ENCRYPTION_KEY:}
+      session-hours: 12
+      issuer: Tailor Cards
   anthropic:
     api-key: ${ANTHROPIC_API_KEY:}
     model: ${ANTHROPIC_MODEL:claude-haiku-4-5-20251001}

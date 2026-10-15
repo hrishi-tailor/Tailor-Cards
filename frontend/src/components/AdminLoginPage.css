@@ -368,3 +368,45 @@
     font-size: 1.3rem;
   }
 }
+
+/* Two-factor steps */
+.tc-2fa-enrol {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  text-align: center;
+}
+
+.tc-2fa-qr {
+  width: 200px;
+  height: 200px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.tc-2fa-qr svg {
+  width: 100%;
+  height: 100%;
+}
+
+.tc-2fa-secret code,
+.tc-2fa-backup code {
+  font-family: var(--tc-font-mono, monospace);
+  letter-spacing: 0.04em;
+}
+
+.tc-2fa-backup {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 20px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.tc-2fa-cancel {
+  margin-top: 4px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}

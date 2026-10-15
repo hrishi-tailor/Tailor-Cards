@@ -34,6 +34,11 @@ stripe:
   cancel-url: ${STRIPE_CANCEL_URL:${frontend.url}/cart}
 
 app:
+  security:
+    two-factor:
+      # Off for the general tests (they call admin endpoints with only a password); on in the 2FA tests
+      enabled: false
+      encryption-key: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
   buylist-chat:
     resolution:
       async: false

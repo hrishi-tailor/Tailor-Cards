@@ -186,15 +186,76 @@ export function setAdminAuthHeader(authHeader: string, rememberMe = true, role =
 }
 
 export function clearAdminAuth(): void {
-  localStorage.removeItem(ADMIN_AUTH_KEY);
-  localStorage.removeItem(ADMIN_ROLE_KEY);
-  sessionStorage.removeItem(ADMIN_AUTH_KEY);
-  sessionStorage.removeItem(ADMIN_ROLE_KEY);
+  for (const store of [localStorage, sessionStorage]) {
+    store.removeItem(ADMIN_AUTH_KEY);
+    store.removeItem(ADMIN_ROLE_KEY);
+    store.removeItem(ADMIN_SESSION_KEY);
+  }
 }
 
-export function isAdminAuthenticated(): boolean {
-  return Boolean(getAdminAuthHeader());
+/** Second-factor session (X-Admin-Session), or 'off' when the server doesn't require two-factor login. */
+const ADMIN_SESSION_KEY = 'tc_admin_2fa_session';
+
+export function getAdminSession(): string | null {
+  return sessionStorage.getItem(ADMIN_SESSION_KEY) || localStorage.getItem(ADMIN_SESSION_KEY) || null;
 }
+
+export function setAdminSession(token: string, rememberMe = true): void {
+  (rememberMe ? localStorage : sessionStorage).setItem(ADMIN_SESSION_KEY, token);
+}
+
+/** Headers for an admin request: the password (HTTP Basic) plus the second-factor session. */
+export function adminHeaders(auth: string | null = getAdminAuthHeader()): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (auth) headers['Authorization'] = `Basic ${auth}`;
+  const session = getAdminSession();
+  if (session && session !== 'off') headers['X-Admin-Session'] = session;
+  return headers;
+}
+
+/** Signed in: password stored and, for admins, a second-factor session (DEMO accounts don't need one). */
+export function isAdminAuthenticated(): boolean {
+  return Boolean(getAdminAuthHeader()) && (isDemoRole() || Boolean(getAdminSession()));
+}
+
+export interface TwoFactorStatus {
+  required: boolean;
+  enrolled: boolean;
+}
+
+export interface TwoFactorSession {
+  sessionToken: string;
+  expiresAt: string;
+  backupCodes: string[];
+  backupCodesLeft: number;
+}
+
+async function twoFactorCall<T>(path: string, basic: string, body?: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}/api/auth/2fa${path}`, {
+    method: body === undefined && path === '/status' ? 'GET' : 'POST',
+    headers: { Authorization: `Basic ${basic}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!response.ok) {
+    let message = `Request failed (${response.status})`;
+    try {
+      const data = await response.json();
+      if (data?.message) message = data.message;
+    } catch {
+      // not json
+    }
+    throw new Error(message);
+  }
+  return response.json();
+}
+
+/** Two-factor login steps; each call needs the admin password as a Basic header value. */
+export const twoFactorApi = {
+  status: (basic: string) => twoFactorCall<TwoFactorStatus>('/status', basic),
+  enrol: (basic: string) => twoFactorCall<{ secret: string; otpauthUri: string }>('/enrol', basic, {}),
+  confirm: (basic: string, code: string) => twoFactorCall<TwoFactorSession>('/enrol/confirm', basic, { code }),
+  verify: (basic: string, code: string) => twoFactorCall<TwoFactorSession>('/verify', basic, { code }),
+};
 
 export async function fetchDemoStatus(): Promise<{ demoMode: boolean }> {
   try {
@@ -265,7 +326,7 @@ export async function getAdminBuylistSubmissions(
 
   const response = await fetch(`${API_BASE_URL}/api/buylist/admin/submissions?${params.toString()}`, {
     headers: {
-      'Authorization': `Basic ${auth}`,
+      ...adminHeaders(auth),
     },
   });
 
@@ -304,7 +365,7 @@ export async function updateBuylistStatus(
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Basic ${auth}`,
+      ...adminHeaders(auth),
     },
     body: JSON.stringify(counterAmountUsd !== undefined ? { status, counterAmountUsd } : { status }),
   });
@@ -336,7 +397,7 @@ export async function getAdminBuylistSubmission(submissionId: number): Promise<B
     throw new Error('Unauthorized: Admin credentials required.');
   }
   const response = await fetch(`${API_BASE_URL}/api/buylist/admin/submissions/${submissionId}`, {
-    headers: { 'Authorization': `Basic ${auth}` },
+    headers: adminHeaders(auth),
   });
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
@@ -358,7 +419,7 @@ export async function resetBuylistChatDailyLimit(email: string): Promise<number>
   }
   const response = await fetch(`${API_BASE_URL}/api/admin/buylist-chat/daily-limit/reset`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${auth}` },
+    headers: { 'Content-Type': 'application/json', ...adminHeaders(auth) },
     body: JSON.stringify({ email }),
   });
   if (!response.ok) {
@@ -385,7 +446,7 @@ export async function postAdminBuylistMessage(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Basic ${auth}`,
+      ...adminHeaders(auth),
     },
     body: JSON.stringify({
       message: message.trim(),

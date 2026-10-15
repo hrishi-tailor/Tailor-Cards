@@ -28,7 +28,8 @@ import java.util.List;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   com.tailorcards.api.security.twofactor.TwoFactorService twoFactor) throws Exception {
         http
             .cors(Customizer.withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
@@ -55,6 +56,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/trade-assistant/**").permitAll()
                 // Public Demo Mode status indicator
                 .requestMatchers("/api/auth/demo-status").permitAll()
+                // Admin second factor (setup and sign-in): needs the admin password, not a second-factor session
+                .requestMatchers("/api/auth/2fa/**").hasRole("ADMIN")
                 // Auth verify: accessible by both ADMIN and DEMO
                 .requestMatchers("/api/auth/verify").hasAnyRole("ADMIN", "DEMO")
                 // Sensitive trade parameters, margins, buy rules, liquidity tags, and price overrides: ADMIN ONLY
@@ -85,7 +88,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/**").hasRole("ADMIN")
                 .anyRequest().hasRole("ADMIN")
             )
-            .httpBasic(Customizer.withDefaults());
+            .httpBasic(Customizer.withDefaults())
+            // Every request authenticated as ADMIN also needs a second-factor session (X-Admin-Session)
+            .addFilterAfter(new com.tailorcards.api.security.twofactor.TwoFactorFilter(twoFactor),
+                    org.springframework.security.web.authentication.www.BasicAuthenticationFilter.class);
 
         return http.build();
     }
