@@ -1,0 +1,38 @@
+# Checkov runs in CI (infra workflow). These checks are skipped on purpose for a ~$10/month staging environment;
+# each line says why. Revisit them before moving production to AWS (see infra/README.md, "Hardening for prod").
+framework:
+  - terraform
+skip-check:
+  # Encryption: everything is encrypted at rest with AWS-managed keys. Customer-managed KMS keys cost $1/month
+  # each plus API calls and add key-policy management, with no extra protection against the threats in scope.
+  - CKV_AWS_145   # S3 with KMS (SSE-S3 AES-256 is used)
+  - CKV_AWS_149   # Secrets Manager with a CMK (aws/secretsmanager key is used)
+  - CKV_AWS_158   # CloudWatch Logs with KMS
+  - CKV_AWS_297   # EventBridge Scheduler with a CMK
+  # Logging and auditing that costs more than the environment: S3 server access logs, CloudFront logs, Route 53
+  # query logs, S3 event notifications. CloudTrail management events (free) already record API activity.
+  - CKV_AWS_18
+  - CKV_AWS_86
+  - CKV2_AWS_39
+  - CKV2_AWS_62
+  # Resilience features a single-instance staging copy doesn't need: cross-region replication, CloudFront origin
+  # failover, geo restriction (the store sells to anyone).
+  - CKV_AWS_144
+  - CKV_AWS_310
+  - CKV_AWS_374
+  # WAF: $5/month per web ACL plus rules. The static site has no server-side input; the API applies its own rate
+  # limits, lockout and validation. Add AWS managed rules in prod.
+  - CKV_AWS_68
+  - CKV2_AWS_47
+  # Monitoring upgrades: EC2 detailed monitoring (~$2/month), RDS enhanced monitoring and Performance Insights.
+  # Basic metrics, the CloudWatch agent (memory, disk) and the alarms cover staging.
+  - CKV_AWS_126
+  - CKV_AWS_118
+  - CKV_AWS_353
+  # Port 80 is open for Let's Encrypt HTTP validation and the redirect to HTTPS; Nginx serves nothing else on it.
+  - CKV_AWS_260
+  # Automatic rotation needs a rotation Lambda; the database password rotates by bumping password_version, which
+  # updates RDS and the secret in one apply. The app secret holds third-party keys rotated at their providers.
+  - CKV2_AWS_57
+  # DNSSEC needs a KMS key and a DS record at the parent domain's registrar; worth enabling with the prod domain.
+  - CKV2_AWS_38
