@@ -16,6 +16,20 @@ export interface ChatStatus {
   scannerEnabled?: boolean;
 }
 
+/** A QR-code link that lets the customer's phone scan cards onto the list open on their computer. */
+export interface PhoneLink {
+  token: string
+  expiresAt: string
+}
+
+export interface PhoneLinkStatus {
+  connected: boolean
+  /** Names of the cards added from the phone, newest last. */
+  added: string[]
+  expiresAt: string
+  expired: boolean
+}
+
 export interface ScanCard {
   cardId: string;
   name: string;
@@ -288,6 +302,24 @@ export const buylistChatApi = {
   },
   addScan: (draftId: string, scanId: string, cardId: string | null, condition: string, quantity: number) =>
     request<ChatDraft>(`/drafts/${draftId}/scan/${scanId}/add`, {
+      method: 'POST',
+      body: JSON.stringify({ cardId, condition, quantity }),
+    }),
+  createPhoneLink: (draftId: string) =>
+    request<PhoneLink>(`/drafts/${draftId}/phone-link`, { method: 'POST' }),
+  phoneLinkStatus: (draftId: string, token: string) =>
+    request<PhoneLinkStatus>(`/drafts/${draftId}/phone-link/${encodeURIComponent(token)}`),
+  /** Phone side: these use only the link token, never a chat session. */
+  phoneOpen: (token: string) =>
+    request<{ usdCadRate: number | null; expiresAt: string }>(`/phone/${encodeURIComponent(token)}`),
+  phoneScan: (token: string, front: Blob, back?: Blob | null) => {
+    const form = new FormData()
+    form.append('front', front, 'front.jpg')
+    if (back) form.append('back', back, 'back.jpg')
+    return request<ScanResult>(`/phone/${encodeURIComponent(token)}/scan`, { method: 'POST', body: form })
+  },
+  phoneAddScan: (token: string, scanId: string, cardId: string | null, condition: string, quantity: number) =>
+    request<{ added: string }>(`/phone/${encodeURIComponent(token)}/scan/${scanId}/add`, {
       method: 'POST',
       body: JSON.stringify({ cardId, condition, quantity }),
     }),
