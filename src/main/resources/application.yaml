@@ -143,6 +143,8 @@ app:
     resolution:
       async: true
       cache-minutes: 12
+      # Name searches carry no prices (only card ids and names), so they're kept longer than full cards
+      search-cache-minutes: 360
       concurrency: 4
       requests-per-second: 8
       search-limit: 250

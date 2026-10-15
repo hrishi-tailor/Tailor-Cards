@@ -60,6 +60,13 @@ public class CardResolutionService {
     private final GradedPriceService gradedPrices;
     private final SealedPriceService sealedPrices;
     private final ExchangeRateService exchangeRates;
+    /** Live progress for pages that are watching; null in tests that don't need it. */
+    private ResolutionProgress progress;
+
+    @Autowired(required = false)
+    void setProgress(ResolutionProgress progress) {
+        this.progress = progress;
+    }
 
     @Autowired
     public CardResolutionService(BuylistDraftLineRepository lineRepository, CardLookupService lookup,
@@ -124,18 +131,69 @@ public class CardResolutionService {
         if (pending.isEmpty()) {
             return;
         }
+        long start = System.nanoTime();
+        CardLookupService.Stats before = lookup.stats();
+        java.util.concurrent.atomic.AtomicLong lineNanosTotal = new java.util.concurrent.atomic.AtomicLong();
+        java.util.concurrent.atomic.AtomicLong lineNanosMax = new java.util.concurrent.atomic.AtomicLong();
         List<CompletableFuture<Void>> tasks = new ArrayList<>();
         for (BuylistDraftLine line : pending) {
+            Runnable task = () -> {
+                long lineStart = System.nanoTime();
+                try {
+                    resolveAndSave(line);
+                } catch (RuntimeException e) {
+                    // One bad line must not leave the rest of the job, or itself, stuck in "Checking"
+                    log.warn("Resolving a line failed: {}: {}", e.getClass().getSimpleName(), e.getMessage(), e);
+                    markError(line);
+                }
+                long took = System.nanoTime() - lineStart;
+                lineNanosTotal.addAndGet(took);
+                lineNanosMax.accumulateAndGet(took, Math::max);
+            };
             if (config.isAsync()) {
-                tasks.add(CompletableFuture.runAsync(() -> resolveAndSave(line), linePool));
+                tasks.add(CompletableFuture.runAsync(task, linePool));
             } else {
-                resolveAndSave(line);
+                task.run();
             }
         }
         CompletableFuture.allOf(tasks.toArray(CompletableFuture[]::new)).join();
+        // One line per job, greppable: "Buylist timing: resolution"
+        CardLookupService.Stats used = lookup.stats().minus(before);
+        log.info("Buylist timing: resolution lines={} totalMs={} avgLineMs={} maxLineMs={} tcgdexRequests={} cacheHits={} throttleWaitMs={} tcgdexMs={}",
+                pending.size(), (System.nanoTime() - start) / 1_000_000, lineNanosTotal.get() / 1_000_000 / pending.size(),
+                lineNanosMax.get() / 1_000_000, used.requests(), used.cacheHits(), used.throttleWaitMs(), used.requestMs());
+    }
+
+    /** Marks a line that failed unexpectedly as ERROR (needs review) so it doesn't stay pending forever. */
+    private void markError(BuylistDraftLine snapshot) {
+        try {
+            BuylistDraftLine failed = copyOf(snapshot);
+            failed.setResolveState(ERROR);
+            failed.setIdConfidence(BigDecimal.ZERO);
+            if (saveInNewTransaction != null) {
+                saveInNewTransaction.executeWithoutResult(status -> saveResult(snapshot, failed));
+            } else {
+                saveResult(snapshot, failed);
+            }
+        } catch (RuntimeException e) {
+            log.warn("Could not mark a failed line: {}", e.getClass().getSimpleName());
+        }
+        if (progress != null) {
+            progress.lineResolved(snapshot.getDraftId());
+        }
     }
 
     private void resolveAndSave(BuylistDraftLine snapshot) {
+        try {
+            saveResolved(snapshot);
+        } finally {
+            if (progress != null) {
+                progress.lineResolved(snapshot.getDraftId()); // after the save has committed
+            }
+        }
+    }
+
+    private void saveResolved(BuylistDraftLine snapshot) {
         BuylistDraftLine result = resolve(copyOf(snapshot));
         if (saveInNewTransaction != null) {
             saveInNewTransaction.executeWithoutResult(status -> saveResult(snapshot, result));
@@ -177,6 +235,7 @@ public class CardResolutionService {
         if ((target.getCardNumber() == null || target.getCardNumber().isBlank()) && result.getCardNumber() != null) {
             target.setCardNumber(result.getCardNumber()); // number found at the end of the name
         }
+        target.setResolvedAt(java.time.Instant.now());
         lineRepository.save(target);
     }
 
@@ -280,6 +339,69 @@ public class CardResolutionService {
         }
     }
 
+    /** Which candidates are left after the set filters, and how sure we are of the first one. */
+    private record Decision(List<CardMarketPrice> cards, String state, BigDecimal confidence) {}
+
+    /**
+     * Narrows candidates (non-empty, each with its set name and size) the way a person would: the printed set size
+     * ("4/102": Base Set has 102 cards, Base Set 2 has 130), then the set name. One left is RESOLVED; several are
+     * AMBIGUOUS with the first applied.
+     */
+    private Decision decide(BuylistDraftLine line, List<CardMarketPrice> cards, Integer setTotal, String number, int narrowedSize) {
+        List<CardMarketPrice> full = cards;
+        if (setTotal != null && full.size() > 1) {
+            List<CardMarketPrice> byTotal = full.stream().filter(c -> setTotal.equals(c.setOfficialCount())).toList();
+            if (!byTotal.isEmpty()) {
+                full = byTotal;
+            }
+        }
+        if (line.getSetName() != null && !line.getSetName().isBlank() && full.size() > 1) {
+            String set = line.getSetName().trim().toLowerCase(Locale.ROOT);
+            // Exact set name first ("Base Set 2" must not also match "Base Set"), then partial
+            List<CardMarketPrice> bySet = full.stream()
+                    .filter(c -> c.setName() != null && c.setName().trim().equalsIgnoreCase(set)).toList();
+            if (bySet.isEmpty()) {
+                bySet = full.stream().filter(c -> c.setName() != null
+                        && (c.setName().toLowerCase(Locale.ROOT).contains(set) || set.contains(c.setName().toLowerCase(Locale.ROOT))))
+                        .toList();
+            }
+            if (!bySet.isEmpty()) {
+                full = bySet;
+            }
+        }
+        boolean pinnedBySetTotal = setTotal != null && full.size() == 1 && setTotal.equals(full.getFirst().setOfficialCount());
+        if (full.size() == 1 && (pinnedBySetTotal || narrowedSize <= config.getMaxCandidates())) {
+            BigDecimal confidence = pinnedBySetTotal ? new BigDecimal("0.980")
+                    : number != null ? new BigDecimal("0.950") : new BigDecimal("0.600");
+            return new Decision(full, RESOLVED, confidence);
+        }
+        return new Decision(full, AMBIGUOUS, new BigDecimal("0.350"));
+    }
+
+    /**
+     * Search results with the set name and printed size filled in from the cached set list (the same values a full
+     * card fetch returns), or null when the set list is unavailable or doesn't know a set.
+     */
+    private List<CardMarketPrice> withSetInfo(List<CardMarketPrice> briefs) {
+        Map<String, com.tailorcards.api.trade.provider.TcgdexPriceProvider.SetInfo> sets = new java.util.HashMap<>();
+        for (com.tailorcards.api.trade.provider.TcgdexPriceProvider.SetInfo info : lookup.sets()) {
+            sets.put(info.id(), info);
+        }
+        if (sets.isEmpty()) {
+            return null;
+        }
+        List<CardMarketPrice> out = new ArrayList<>();
+        for (CardMarketPrice brief : briefs) {
+            int dash = brief.cardId() == null ? -1 : brief.cardId().lastIndexOf('-');
+            com.tailorcards.api.trade.provider.TcgdexPriceProvider.SetInfo info = dash > 0 ? sets.get(brief.cardId().substring(0, dash)) : null;
+            if (info == null) {
+                return null;
+            }
+            out.add(brief.toBuilder().setName(info.name()).setOfficialCount(info.officialCount()).build());
+        }
+        return out;
+    }
+
     /**
      * A 9 or 10 selling below an ungraded copy means the sales data is mixed up (wrong print, reprint):
      * leave the slab to be priced by hand rather than offer on it.
@@ -356,11 +478,24 @@ public class CardResolutionService {
                     narrowed = inSet;
                 }
             }
-            // Search results are brief; fetch full cards (set, prices) for the top candidates
+            // Search results are brief. Narrow the top candidates by set size and set name using the cached set
+            // list, then fetch the full card (prices) only for the one we apply. Fetching every candidate just to
+            // read its set was most of the TCGdex traffic for vintage and vague lines.
             Integer setTotal = setTotal(line.getCardNumber());
             int fetchLimit = setTotal != null ? config.getMaxCandidatesWithSetTotal() : config.getMaxCandidates();
+            List<CardMarketPrice> top = narrowed.stream().limit(fetchLimit).toList();
+            List<CardMarketPrice> withSets = withSetInfo(top);
+            if (withSets != null) {
+                Decision d = decide(line, withSets, setTotal, number, narrowed.size());
+                Optional<CardMarketPrice> chosen = lookup.card(d.cards().getFirst().cardId());
+                if (chosen.isPresent()) {
+                    return apply(line, chosen.get(), d.confidence(), d.state(),
+                            AMBIGUOUS.equals(d.state()) ? candidatesJson(d.cards()) : null);
+                }
+                // The chosen card has no full record: fall back to fetching every candidate, as before
+            }
             List<CardMarketPrice> full = new ArrayList<>();
-            for (CardMarketPrice brief : narrowed.stream().limit(fetchLimit).toList()) {
+            for (CardMarketPrice brief : top) {
                 lookup.card(brief.cardId()).ifPresent(full::add);
             }
             if (full.isEmpty()) {
@@ -368,35 +503,9 @@ public class CardResolutionService {
                 line.setIdConfidence(BigDecimal.ZERO);
                 return line;
             }
-            // "4/102": the printed set size picks the set (Base Set has 102 cards, Base Set 2 has 130)
-            if (setTotal != null && full.size() > 1) {
-                List<CardMarketPrice> byTotal = full.stream()
-                        .filter(c -> setTotal.equals(c.setOfficialCount())).toList();
-                if (!byTotal.isEmpty()) {
-                    full = byTotal;
-                }
-            }
-            if (line.getSetName() != null && !line.getSetName().isBlank() && full.size() > 1) {
-                String set = line.getSetName().trim().toLowerCase(Locale.ROOT);
-                // Exact set name first ("Base Set 2" must not also match "Base Set"), then partial
-                List<CardMarketPrice> bySet = full.stream()
-                        .filter(c -> c.setName() != null && c.setName().trim().equalsIgnoreCase(set)).toList();
-                if (bySet.isEmpty()) {
-                    bySet = full.stream().filter(c -> c.setName() != null
-                            && (c.setName().toLowerCase(Locale.ROOT).contains(set) || set.contains(c.setName().toLowerCase(Locale.ROOT))))
-                            .toList();
-                }
-                if (!bySet.isEmpty()) {
-                    full = bySet;
-                }
-            }
-            boolean pinnedBySetTotal = setTotal != null && full.size() == 1 && setTotal.equals(full.getFirst().setOfficialCount());
-            if (full.size() == 1 && (pinnedBySetTotal || narrowed.size() <= config.getMaxCandidates())) {
-                BigDecimal confidence = pinnedBySetTotal ? new BigDecimal("0.980")
-                        : number != null ? new BigDecimal("0.950") : new BigDecimal("0.600");
-                return apply(line, full.getFirst(), confidence, RESOLVED, null);
-            }
-            return apply(line, full.getFirst(), new BigDecimal("0.350"), AMBIGUOUS, candidatesJson(full));
+            Decision d = decide(line, full, setTotal, number, narrowed.size());
+            return apply(line, d.cards().getFirst(), d.confidence(), d.state(),
+                    AMBIGUOUS.equals(d.state()) ? candidatesJson(d.cards()) : null);
         } catch (ProviderUnavailableException e) {
             log.warn("TCGdex unavailable while resolving a line: {}", e.getCause() != null
                     ? e.getCause().getClass().getSimpleName() + ": " + e.getMessage() : e.getMessage());

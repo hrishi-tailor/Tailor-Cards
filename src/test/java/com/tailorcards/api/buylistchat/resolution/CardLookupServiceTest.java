@@ -51,4 +51,44 @@ class CardLookupServiceTest {
         Optional<CardMarketPrice> card = lookup.findBySetAndNumber(lookup.setIdsFor("Lost Origin"), "TG05");
         assertThat(card).map(CardMarketPrice::cardId).contains("swsh11tg-TG05");
     }
+
+    @Test
+    @DisplayName("Lines asking for the same card at the same moment share one TCGdex request")
+    void sharesInFlightRequests() throws Exception {
+        TcgdexPriceProvider tcgdex = mock(TcgdexPriceProvider.class);
+        java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+        when(tcgdex.fetchCardStrict("base1-4")).thenAnswer(inv -> {
+            calls.incrementAndGet();
+            Thread.sleep(200);
+            return Optional.of(CardMarketPrice.builder().cardId("base1-4").name("Charizard").build());
+        });
+        BuylistChatProperties props = new BuylistChatProperties();
+        props.getResolution().setRequestsPerSecond(1000);
+        CardLookupService lookup = new CardLookupService(tcgdex, props);
+
+        try (var pool = java.util.concurrent.Executors.newFixedThreadPool(4)) {
+            List<java.util.concurrent.Future<Optional<CardMarketPrice>>> results = new java.util.ArrayList<>();
+            for (int i = 0; i < 4; i++) results.add(pool.submit(() -> lookup.card("base1-4")));
+            for (var r : results) assertThat(r.get()).map(CardMarketPrice::name).contains("Charizard");
+        }
+        assertThat(calls.get()).isEqualTo(1);
+        assertThat(lookup.stats().requests()).isEqualTo(1);
+        assertThat(lookup.stats().cacheHits()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("A failed request reaches every waiter and isn't cached")
+    void sharedFailureNotCached() {
+        TcgdexPriceProvider tcgdex = mock(TcgdexPriceProvider.class);
+        when(tcgdex.fetchCardStrict("x-1"))
+                .thenThrow(new TcgdexPriceProvider.ProviderUnavailableException("down", null))
+                .thenReturn(Optional.empty());
+        BuylistChatProperties props = new BuylistChatProperties();
+        props.getResolution().setRequestsPerSecond(1000);
+        CardLookupService lookup = new CardLookupService(tcgdex, props);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> lookup.card("x-1"))
+                .isInstanceOf(TcgdexPriceProvider.ProviderUnavailableException.class);
+        assertThat(lookup.card("x-1")).isEmpty(); // tried again, not served a cached failure
+    }
 }

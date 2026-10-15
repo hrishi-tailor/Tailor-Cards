@@ -98,7 +98,10 @@ public class BuylistChatProperties {
     public static class Resolution {
         /** Run card resolution on a background pool (false: inline, used by tests). */
         private boolean async = true;
+        /** Full cards (with prices). */
         private int cacheMinutes = 12;
+        /** Name searches: card ids and names only, no prices, so they can be kept longer. */
+        private int searchCacheMinutes = 360;
         private int concurrency = 4;
         private int requestsPerSecond = 8;
         private int searchLimit = 250;
