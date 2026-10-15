@@ -366,6 +366,19 @@
   word-break: break-all;
 }
 
+.tc-handoff.tc-handoff-unavailable {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+}
+
+.tc-handoff-unavailable p {
+  margin: 0;
+}
+
 @media (max-width: 560px) {
   .tc-handoff {
     grid-template-columns: 1fr;
