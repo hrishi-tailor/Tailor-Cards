@@ -27,6 +27,8 @@ The scanner lives in the chat's **+** menu.
 - The guide is white with no card, amber when a card is found but needs adjusting (with a tip such as "Glare on the card: tilt it slightly away from the light"), and green when the shot is good. The photo is taken on that frame, cropped to the card, and resized to at most 1600 px.
 - An optional back photo follows, since whitening shows mostly on the back. Uploaded photos get the same light, glare and focus checks.
 
+**Phone handoff.** Phone cameras focus on cards far better than webcams, so on a computer the scanner leads with a QR code. It opens `/sell/scan/<token>` on the phone, which runs the same scanner; every card confirmed there is added to the list open on the computer, which polls and shows "Phone connected" and what was added. The token (192 random bits, 30 minutes, one active per draft, kept in memory) can only scan and add to that one draft: it can't read the list, change other lines or submit. On a phone or tablet the scanner opens the camera directly.
+
 **On the server** ([`CardScanService`](../src/main/java/com/tailorcards/api/buylistchat/scan/CardScanService.java)):
 - Photos are checked (JPEG, PNG or WebP, 5 MB max) and stripped of metadata, then sent to the vision model with a prompt that returns strict JSON: name, number, set, grading label, condition on the store's scale, notes on corners, edges, surface and centering, white-dot count, and retake tips when the card can't be read. An invalid reply is retried once with the validation errors.
 - The card is matched in TCGdex by set and number (promo numbers such as `SVP 053` or `SM60` go to their promo set), then by name filtered by number and the printed set size. If several prints fit, the customer picks from up to five.

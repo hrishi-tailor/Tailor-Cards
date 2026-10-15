@@ -4,6 +4,7 @@ import { HomePage } from './components/HomePage'
 import { ShopPage } from './components/ShopPage'
 import { Cart } from './components/Cart'
 import { TrackBuylist } from './components/TrackBuylist'
+import { PhoneScanPage } from './components/PhoneScanPage'
 import { TrackLookup } from './components/TrackLookup'
 import { AdminBuylist } from './components/AdminBuylist'
 import { AdminLoginPage } from './components/AdminLoginPage'
@@ -40,6 +41,7 @@ function AppContent() {
           <Route path="/sell" element={<SellRoute />} />
           <Route path="/track" element={<TrackLookup />} />
           <Route path="/sell/track/:token" element={<TrackBuylist />} />
+          <Route path="/sell/scan/:token" element={<PhoneScanPage />} />
           <Route path="/trade-assistant" element={<Navigate to="/sell" replace />} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route
