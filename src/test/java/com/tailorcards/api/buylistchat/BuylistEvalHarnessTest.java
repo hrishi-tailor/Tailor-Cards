@@ -124,7 +124,7 @@ class BuylistEvalHarnessTest {
         JsonNode fixtures = BuylistEval.JSON.readTree(DIR.resolve("fixtures.json").toFile());
         AnthropicClient client = mock(AnthropicClient.class);
         List<Integer> historySizes = new ArrayList<>();
-        when(client.runToolLoop(anyString(), anyList(), anyList(), any(), anyInt())).thenAnswer(inv -> {
+        when(client.runToolLoop(anyString(), anyList(), anyList(), any(), anyInt(), any())).thenAnswer(inv -> {
             List<?> messages = inv.getArgument(1);
             historySizes.add(messages.size());
             AnthropicClient.ToolExecutor tools = inv.getArgument(3);

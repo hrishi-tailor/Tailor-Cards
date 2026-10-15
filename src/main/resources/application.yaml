@@ -131,7 +131,9 @@ app:
       max-bulk-quantity: 10000
       max-paste-chars: 100000
       transcript-history: 20
-      normalize-batch-size: 100
+      # Lists are normalised in chunks of this many lines, up to normalize-concurrency Claude calls at a time
+      normalize-batch-size: 15
+      normalize-concurrency: 4
     graded-prices:
       # Graded prices (PSA/BGS/CGC/SGC/TAG/ACE): Pokémon TCG API on RapidAPI (eBay sales per grade).
       # Without a key slabs are priced by hand.

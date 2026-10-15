@@ -90,7 +90,10 @@ public class BuylistChatProperties {
         private int maxBulkQuantity = 10000;
         private int maxPasteChars = 100_000;
         private int transcriptHistory = 20;
-        private int normalizeBatchSize = 100;
+        /** Lines per Claude call when normalising a list; smaller chunks run in parallel and finish sooner. */
+        private int normalizeBatchSize = 15;
+        /** Claude calls for list chunks running at once (shared across all requests). */
+        private int normalizeConcurrency = 4;
     }
 
     @Getter

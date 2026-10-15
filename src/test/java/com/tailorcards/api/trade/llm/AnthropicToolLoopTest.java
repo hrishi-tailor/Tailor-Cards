@@ -118,4 +118,38 @@ class AnthropicToolLoopTest {
         assertThat(result.failed()).isTrue();
         assertThat(result.inputTokens()).isEqualTo(100);
     }
+
+    @Test
+    @DisplayName("Read-only tools asked for in one round run in parallel; results go back in the model's order")
+    void parallelReadOnlyTools() {
+        Setup s = setup();
+        String threeLookups = """
+                {"content":[{"type":"tool_use","id":"tu_1","name":"get_card","input":{"card_id":"a"}},
+                            {"type":"tool_use","id":"tu_2","name":"get_card","input":{"card_id":"b"}},
+                            {"type":"tool_use","id":"tu_3","name":"get_card","input":{"card_id":"c"}}],
+                 "stop_reason":"tool_use","usage":{"input_tokens":100,"output_tokens":20}}
+                """;
+        s.server().expect(requestTo("https://api.anthropic.com/v1/messages"))
+                .andRespond(withSuccess(threeLookups, MediaType.APPLICATION_JSON));
+        s.server().expect(requestTo("https://api.anthropic.com/v1/messages"))
+                .andExpect(content().string(org.hamcrest.Matchers.matchesPattern(
+                        "(?s).*tool_use_id...tu_1.*result-a.*tool_use_id...tu_2.*result-b.*tool_use_id...tu_3.*result-c.*")))
+                .andRespond(withSuccess(FINAL, MediaType.APPLICATION_JSON));
+
+        long start = System.nanoTime();
+        AnthropicClient.ToolLoopResult result = s.client().runToolLoop("sys",
+                List.of(Map.of("role", "user", "content", "hi")), TOOLS, (name, input) -> {
+                    try {
+                        Thread.sleep(300);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return "result-" + input.path("card_id").asText();
+                }, 5, java.util.Set.of("get_card"));
+        long ms = (System.nanoTime() - start) / 1_000_000;
+
+        assertThat(result.failed()).isFalse();
+        assertThat(ms).as("three 300 ms lookups in parallel").isLessThan(800);
+        s.server().verify();
+    }
 }

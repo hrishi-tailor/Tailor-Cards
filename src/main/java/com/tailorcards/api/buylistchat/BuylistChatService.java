@@ -82,9 +82,10 @@ public class BuylistChatService {
               number to find the right print.
 
             WORKING WITH THE LIST:
-            - When the customer names cards, use search_cards/get_card if needed, then add_item_to_draft once
-              per card (name, set, number, quantity, condition if stated, variant if stated, grading for
-              slabs such as "PSA 10" or "BGS 9.5").
+            - When the customer names cards, use search_cards/get_card if needed, then add them with name, set,
+              number, quantity, condition if stated, variant if stated, and grading for slabs such as "PSA 10"
+              or "BGS 9.5": add_items_to_draft once with all of them when there are two or more, else
+              add_item_to_draft.
             - Graded slabs use the market price for that exact grade (median of recent eBay sales) when the
               summary shows price_basis GRADED; otherwise they are priced by hand and any price shown is for an
               ungraded copy: say so. The customer can also set or change a grade in the list.
@@ -186,14 +187,42 @@ public class BuylistChatService {
         List<BuylistChatMessage> history = draftService.messages(draft);
         draftService.appendMessage(draft, "CUSTOMER", message.trim());
 
+        // A pasted list goes straight to the list normaliser (parallel, chunked) instead of the model writing one
+        // tool call per card: far fewer output tokens, and pricing starts as soon as the first chunk is read
+        List<String> listLines = listLines(message);
+        if (listLines != null) {
+            long start = System.nanoTime();
+            List<ItemInput> added = normalizer.normalize(listLines, chunk -> draftService.addItems(draft, chunk));
+            String reply = listReply(added.size());
+            log.info("Buylist timing: chat list lines={} items={} totalMs={}", listLines.size(), added.size(),
+                    (System.nanoTime() - start) / 1_000_000);
+            draftService.appendMessage(draft, "ASSISTANT", reply);
+            return new ChatTurnResponse(reply, draftService.view(draftService.ownedDraft(draftId, email)));
+        }
+
         String reply;
         if (!client.isConfigured()) {
             reply = OFFLINE_REPLY;
         } else if (!budget.hasBudget()) {
             reply = PAUSED_REPLY;
         } else {
+            long start = System.nanoTime();
+            java.util.concurrent.atomic.AtomicLong toolNanos = new java.util.concurrent.atomic.AtomicLong();
+            java.util.concurrent.atomic.AtomicInteger toolCalls = new java.util.concurrent.atomic.AtomicInteger();
             ToolLoopResult result = client.runToolLoop(SYSTEM_PROMPT, buildMessages(history, message.trim()),
-                    toolDefinitions(), (name, input) -> executeTool(email, draftId, name, input), limits.getMaxToolRounds());
+                    toolDefinitions(), (name, input) -> {
+                        long toolStart = System.nanoTime();
+                        try {
+                            return executeTool(email, draftId, name, input);
+                        } finally {
+                            toolNanos.addAndGet(System.nanoTime() - toolStart);
+                            toolCalls.incrementAndGet();
+                        }
+                    }, limits.getMaxToolRounds(), PARALLEL_TOOLS);
+            long totalMs = (System.nanoTime() - start) / 1_000_000;
+            log.info("Buylist timing: chat turn totalMs={} modelMs={} toolMs={} toolCalls={} rounds={} inputTokens={} outputTokens={} hitRoundLimit={}",
+                    totalMs, totalMs - toolNanos.get() / 1_000_000, toolNanos.get() / 1_000_000, toolCalls.get(),
+                    result.toolRounds(), result.inputTokens(), result.outputTokens(), result.hitRoundLimit());
             budget.record(result.costUsd(), result.toolRounds() + 1);
             if (result.failed() && result.text().isBlank()) {
                 reply = "Sorry, I couldn't reach the assistant just now. You can paste your list or try again.";
@@ -206,6 +235,41 @@ public class BuylistChatService {
         }
         draftService.appendMessage(draft, "ASSISTANT", reply);
         return new ChatTurnResponse(reply, draftService.view(draftService.ownedDraft(draftId, email)));
+    }
+
+    /** Read-only lookups that may run at the same time when the model asks for several in one round. */
+    static final java.util.Set<String> PARALLEL_TOOLS = java.util.Set.of("search_cards", "get_card",
+            "search_sealed_products", "search_store_cards");
+
+    static final int LIST_MIN_LINES = 4;
+
+    /**
+     * The card lines of a message that is a pasted list (at least four lines, three quarters of them short and
+     * card-like, no questions), or null for a normal message the model should answer.
+     */
+    List<String> listLines(String message) {
+        List<String> lines = message.lines().map(String::trim).filter(l -> !l.isEmpty()).toList();
+        if (lines.size() < LIST_MIN_LINES || lines.stream().anyMatch(l -> l.endsWith("?"))) {
+            return null;
+        }
+        List<String> cards = lines.stream().filter(this::cardLike).toList();
+        return cards.size() >= LIST_MIN_LINES && cards.size() * 4 >= lines.size() * 3 ? cards : null;
+    }
+
+    private boolean cardLike(String line) {
+        int words = line.split("\\s+").length;
+        boolean hasDigit = line.chars().anyMatch(Character::isDigit);
+        return words <= 12 && (hasDigit || words <= 5) && !line.endsWith(":")
+                && normalizer.parseHeuristic(line).isPresent();
+    }
+
+    static String listReply(int count) {
+        if (count == 0) {
+            return "I couldn't read any cards in that list. Try one card per line, like \"Charizard ex 199/165\".";
+        }
+        return "Added " + count + (count == 1 ? " item" : " items") + " to your list. I'm looking each one up and "
+                + "pricing it now, and the list fills in as they're checked. Tell me if any are graded or need a "
+                + "condition, or ask me about any card.";
     }
 
     List<Map<String, Object>> buildMessages(List<BuylistChatMessage> history, String newMessage) {
@@ -246,6 +310,7 @@ public class BuylistChatService {
                 case "search_sealed_products" -> searchSealedProducts(input);
                 case "add_sealed_product_to_draft" -> addSealedProduct(email, draftId, input);
                 case "add_item_to_draft" -> addItem(email, draftId, input);
+                case "add_items_to_draft" -> addItems(email, draftId, input);
                 case "remove_item_from_draft" -> removeItem(email, draftId, input);
                 case "get_draft_summary" -> summary(email, draftId);
                 case "search_store_cards" -> searchStoreCards(input);
@@ -447,6 +512,31 @@ public class BuylistChatService {
 
     private Object addItem(String email, String draftId, JsonNode input) {
         BuylistDraft draft = draftService.ownedOpenDraft(draftId, email);
+        BuylistDraftLine line = draftService.addItems(draft, List.of(toItem(input))).getFirst();
+        return Map.of("added", true, "line_id", line.getId(), "status", "Checking item data",
+                "note", "Price and status appear in the summary once the item is checked.");
+    }
+
+    /** Several items in one tool call and one database write. */
+    private Object addItems(String email, String draftId, JsonNode input) {
+        BuylistDraft draft = draftService.ownedOpenDraft(draftId, email);
+        JsonNode array = input.path("items");
+        if (!array.isArray() || array.isEmpty()) {
+            throw new IllegalArgumentException("items must be a non-empty list");
+        }
+        if (array.size() > MAX_ITEMS_PER_CALL) {
+            throw new IllegalArgumentException("At most " + MAX_ITEMS_PER_CALL + " items per call");
+        }
+        List<ItemInput> items = new ArrayList<>();
+        for (JsonNode item : array) {
+            items.add(toItem(item));
+        }
+        List<Long> ids = draftService.addItems(draft, items).stream().map(BuylistDraftLine::getId).toList();
+        return Map.of("added", ids.size(), "line_ids", ids, "status", "Checking item data",
+                "note", "Prices and statuses appear in the summary once the items are checked.");
+    }
+
+    private ItemInput toItem(JsonNode input) {
         String name = text(input, "name", 200);
         if (name == null) {
             throw new IllegalArgumentException("name is required");
@@ -461,9 +551,7 @@ public class BuylistChatService {
                         ItemNormalizer.normalizeCondition(text(input, "condition", 30)),
                         normalizer.clampQuantity(input.path("quantity").asInt(1), bulk), "chat", text(input, "card_id", 60),
                         ItemNormalizer.normalizeGrading(text(input, "grading", 30)));
-        BuylistDraftLine line = draftService.addItems(draft, List.of(item)).getFirst();
-        return Map.of("added", true, "line_id", line.getId(), "status", "Checking item data",
-                "note", "Price and status appear in the summary once the item is checked.");
+        return item;
     }
 
     private Object removeItem(String email, String draftId, JsonNode input) {
@@ -584,17 +672,12 @@ public class BuylistChatService {
                                 "quantity", prop("integer", "How many")),
                         List.of("name", "quantity")),
                 tool("add_item_to_draft", "Add one card (or a bulk lot or sealed product) to the customer's own list.",
-                        Map.of("name", prop("string", "Item name"),
-                                "set_name", prop("string", "Set name if known"),
-                                "card_number", prop("string", "Number as printed, e.g. 4/102"),
-                                "card_id", prop("string", "TCGdex id if you looked it up"),
-                                "quantity", prop("integer", "How many"),
-                                "condition", Map.of("type", "string", "enum", List.of("NM", "LP+", "LP", "MP", "HP", "DMG", "SEALED", "UNKNOWN")),
-                                "variant", prop("string", "normal, holofoil, reverse-holofoil or 1st-edition-holofoil"),
-                                "grading", prop("string", "Graded slabs only, e.g. 'PSA 10', 'BGS 9.5', 'CGC 10'"),
-                                "bulk", prop("boolean", "True for an unsorted bulk lot"),
-                                "sealed", prop("boolean", "True for a sealed product (booster box, ETB, bundle, collection box, tin)")),
-                        List.of("name", "quantity")),
+                        ITEM_PROPERTIES, List.of("name", "quantity")),
+                tool("add_items_to_draft", "Add several cards (or lots or sealed products) to the customer's own list in one call. "
+                                + "Use this instead of add_item_to_draft whenever there are two or more items to add.",
+                        Map.of("items", Map.of("type", "array", "maxItems", MAX_ITEMS_PER_CALL,
+                                "items", Map.of("type", "object", "properties", ITEM_PROPERTIES, "required", List.of("name", "quantity")))),
+                        List.of("items")),
                 tool("remove_item_from_draft", "Remove a line from the customer's own list.",
                         Map.of("line_id", prop("integer", "line_id from get_draft_summary")), List.of("line_id")),
                 tool("get_draft_summary", "The customer's list with statuses, CAD market references, the deal (sell/trade/partial) with our offer at our published rates, and the estimated chance.",
@@ -608,6 +691,21 @@ public class BuylistChatService {
                                 "cash_cad", prop("number", "PARTIAL only: cash in CAD the customer wants on top of the shop cards")),
                         List.of("deal_type")));
     }
+
+    private static final int MAX_ITEMS_PER_CALL = 100;
+
+    /** Fields of one item, shared by add_item_to_draft and add_items_to_draft. */
+    private static final Map<String, Object> ITEM_PROPERTIES = Map.of(
+            "name", prop("string", "Item name"),
+            "set_name", prop("string", "Set name if known"),
+            "card_number", prop("string", "Number as printed, e.g. 4/102"),
+            "card_id", prop("string", "TCGdex id if you looked it up"),
+            "quantity", prop("integer", "How many"),
+            "condition", Map.of("type", "string", "enum", List.of("NM", "LP+", "LP", "MP", "HP", "DMG", "SEALED", "UNKNOWN")),
+            "variant", prop("string", "normal, holofoil, reverse-holofoil or 1st-edition-holofoil"),
+            "grading", prop("string", "Graded slabs only, e.g. 'PSA 10', 'BGS 9.5', 'CGC 10'"),
+            "bulk", prop("boolean", "True for an unsorted bulk lot"),
+            "sealed", prop("boolean", "True for a sealed product (booster box, ETB, bundle, collection box, tin)"));
 
     private static Map<String, Object> tool(String name, String description, Map<String, Object> properties,
                                             List<String> required) {

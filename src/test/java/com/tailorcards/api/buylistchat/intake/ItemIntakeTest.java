@@ -67,7 +67,7 @@ class ItemIntakeTest {
     }
 
     @Test
-    @DisplayName("Model normalises in batches of 100 lines (never one call per item)")
+    @DisplayName("Model normalises in chunks of up to 15 lines (never one call per item)")
     void batching() {
         when(client.isConfigured()).thenReturn(true);
         when(client.sendMessage(anyString(), any())).thenReturn(Optional.of(new AnthropicResponse("[]", 10, 10, 5, BigDecimal.ZERO)));
@@ -78,7 +78,7 @@ class ItemIntakeTest {
 
         List<ItemInput> items = normalizer.normalize(lines);
 
-        verify(client, times(3)).sendMessage(anyString(), any());
+        verify(client, times(17)).sendMessage(anyString(), any()); // 250 lines / 15 per call
         assertThat(items).hasSize(250); // lines the model didn't return fall back to the Java parser
     }
 
@@ -222,5 +222,58 @@ class ItemIntakeTest {
         assertThat(ItemNormalizer.isSealed("Mew ex PSA 10 151 UPC")).isFalse();
         assertThat(ItemNormalizer.isSealed("Mew ex 053 151 Ultra Premium Collection promo")).isFalse();
         assertThat(ItemNormalizer.isSealed("Charizard ex 199/165 from the 151 UPC")).isFalse();
+    }
+
+    @Test
+    @DisplayName("Long lists are read in parallel chunks, handed over in list order as soon as each is ready")
+    void parallelChunksInOrder() {
+        when(client.isConfigured()).thenReturn(true);
+        java.util.concurrent.atomic.AtomicInteger inFlight = new java.util.concurrent.atomic.AtomicInteger();
+        java.util.concurrent.atomic.AtomicInteger maxInFlight = new java.util.concurrent.atomic.AtomicInteger();
+        when(client.sendMessage(anyString(), any())).thenAnswer(inv -> {
+            maxInFlight.accumulateAndGet(inFlight.incrementAndGet(), Math::max);
+            List<Map<String, String>> messages = inv.getArgument(1);
+            String prompt = messages.getLast().get("content");
+            StringBuilder json = new StringBuilder("[");
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?m)^(\\d+)\\. (.*)$").matcher(prompt);
+            boolean first = prompt.contains("Card 1\n");
+            while (m.find()) {
+                if (json.length() > 1) json.append(',');
+                json.append("{\"i\":").append(m.group(1)).append(",\"name\":\"").append(m.group(2)).append("\"}");
+            }
+            Thread.sleep(first ? 300 : 50); // the first chunk is the slowest
+            inFlight.decrementAndGet();
+            return Optional.of(new AnthropicResponse(json.append(']').toString(), 100, 50, 10, BigDecimal.ZERO));
+        });
+        List<String> lines = new ArrayList<>();
+        for (int i = 1; i <= 40; i++) lines.add("Card " + i);
+        List<List<String>> handedOver = new ArrayList<>();
+
+        List<ItemInput> items = normalizer.normalize(lines, chunk -> handedOver.add(chunk.stream().map(ItemInput::name).toList()));
+
+        assertThat(items).extracting(ItemInput::name).containsExactlyElementsOf(lines);
+        assertThat(handedOver).hasSize(4); // 40 lines over 4 parallel calls
+        assertThat(handedOver.getFirst()).startsWith("Card 1");
+        assertThat(handedOver.stream().flatMap(List::stream).toList()).containsExactlyElementsOf(lines);
+        assertThat(maxInFlight.get()).isGreaterThan(1);
+    }
+
+    @Test
+    @DisplayName("Model replies may leave out default fields: quantity 1, condition UNKNOWN, not bulk or sealed")
+    void compactReplies() {
+        when(client.isConfigured()).thenReturn(true);
+        when(client.sendMessage(anyString(), any())).thenReturn(Optional.of(new AnthropicResponse(
+                "[{\"i\":1,\"name\":\"Pikachu\",\"number\":\"58/102\"},{\"i\":2,\"name\":\"Charizard\",\"quantity\":2,\"condition\":\"LP+\"}]",
+                100, 30, 10, BigDecimal.ZERO)));
+
+        List<ItemInput> items = normalizer.normalize(List.of("pika 58/102", "2 zard lp+"));
+
+        assertThat(items).hasSize(2);
+        assertThat(items.get(0).quantity()).isEqualTo(1);
+        assertThat(items.get(0).condition()).isEqualTo("UNKNOWN");
+        assertThat(items.get(0).cardNumber()).isEqualTo("58/102");
+        assertThat(items.get(0).kind()).isEqualTo("CARD");
+        assertThat(items.get(1).quantity()).isEqualTo(2);
+        assertThat(items.get(1).condition()).isEqualTo("LP+");
     }
 }
