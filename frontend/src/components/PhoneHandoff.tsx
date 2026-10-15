@@ -5,6 +5,7 @@ import type { PhoneLinkStatus } from '../api/buylistChatApi'
 import { phoneScanUrl } from './phoneLink'
 
 const POLL_MS = 2500
+const FALLBACK = 'Phone scanning isn\'t available right now. Use this computer\'s camera or upload a photo below.'
 
 /**
  * "Use your phone" panel for computers: a QR code that opens the scanner on the customer's phone. Cards scanned
@@ -32,7 +33,8 @@ export function PhoneHandoff({ draftId, onAdded }: { draftId: string; onAdded: (
         setStatus(null)
         setError(null)
       })
-      .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : 'Could not make a phone code.') })
+      // Server text can be technical (a deploy in progress, an outage): customers get a plain fallback instead
+      .catch(() => { if (!cancelled) setError(FALLBACK) })
     return () => { cancelled = true }
   }, [draftId, attempt])
 
@@ -53,6 +55,15 @@ export function PhoneHandoff({ draftId, onAdded }: { draftId: string; onAdded: (
     return () => clearInterval(timer)
   }, [draftId, token])
 
+  if (error) {
+    return (
+      <div className="tc-handoff tc-handoff-unavailable" role="status">
+        <p>{error}</p>
+        <button type="button" className="tc-bc-link" onClick={() => { setError(null); setAttempt((a) => a + 1) }}>Try again</button>
+      </div>
+    )
+  }
+
   const local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname)
   const expired = status?.expired ?? false
 
@@ -62,12 +73,11 @@ export function PhoneHandoff({ draftId, onAdded }: { draftId: string; onAdded: (
         {svg && !expired
           // QR code markup generated locally from our own link
           ? <span style={{ width: '100%', height: '100%' }} dangerouslySetInnerHTML={{ __html: svg }} />
-          : <span className="tc-bc-muted">{error ? '—' : expired ? 'Expired' : '…'}</span>}
+          : <span className="tc-bc-muted">{expired ? 'Expired' : '…'}</span>}
       </div>
       <div>
         <h3>Scan with your phone <small>Recommended</small></h3>
         <p>Point your phone's camera at this code. Phone cameras focus better on cards, and every card you add there shows up here.</p>
-        {error && <p className="tc-bc-reason">{error}</p>}
         {expired ? (
           <button type="button" className="tc-bc-link" onClick={() => setAttempt((a) => a + 1)}>Make a new code</button>
         ) : (
