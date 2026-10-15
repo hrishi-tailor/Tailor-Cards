@@ -85,9 +85,12 @@ export function AdminLoginPage() {
         setEnrolment({ secret: e.secret, qrSvg })
         setStep('enrol')
       }
-    } catch {
-      // On failure: Displays a clear "Invalid credentials" error banner without leaking details
-      setErrorMessage('Invalid credentials. Please verify your admin username and password.')
+    } catch (err) {
+      // On failure: a clear message without leaking details (a lockout says how long to wait)
+      const message = err instanceof Error ? err.message : ''
+      setErrorMessage(message.startsWith('Too many')
+        ? message
+        : 'Invalid credentials. Please verify your admin username and password.')
     } finally {
       setIsSubmitting(false)
     }

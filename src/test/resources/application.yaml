@@ -35,6 +35,10 @@ stripe:
 
 app:
   security:
+    login:
+      # High for the general tests (some send wrong passwords on purpose); the lockout tests set real limits
+      max-failures: 1000
+      max-failures-per-ip: 1000
     two-factor:
       # Off for the general tests (they call admin endpoints with only a password); on in the 2FA tests
       enabled: false

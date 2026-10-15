@@ -29,7 +29,10 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   com.tailorcards.api.security.twofactor.TwoFactorService twoFactor) throws Exception {
+                                                   com.tailorcards.api.security.twofactor.TwoFactorService twoFactor,
+                                                   com.tailorcards.api.security.login.LoginAttemptService loginAttempts,
+                                                   @Value("${app.security.trusted-proxy-hops:1}") int trustedHops) throws Exception {
+        var countingEntryPoint = new com.tailorcards.api.security.login.CountingAuthenticationEntryPoint(loginAttempts, trustedHops);
         http
             .cors(Customizer.withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
@@ -88,9 +91,14 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/**").hasRole("ADMIN")
                 .anyRequest().hasRole("ADMIN")
             )
-            .httpBasic(Customizer.withDefaults())
+            // Wrong passwords count towards the login lockout
+            .httpBasic(basic -> basic.authenticationEntryPoint(countingEntryPoint))
+            .exceptionHandling(e -> e.authenticationEntryPoint(countingEntryPoint))
+            // Locked accounts and blocked IPs are refused before the password is checked
+            .addFilterBefore(new com.tailorcards.api.security.login.LoginThrottleFilter(loginAttempts, trustedHops),
+                    org.springframework.security.web.authentication.www.BasicAuthenticationFilter.class)
             // Every request authenticated as ADMIN also needs a second-factor session (X-Admin-Session)
-            .addFilterAfter(new com.tailorcards.api.security.twofactor.TwoFactorFilter(twoFactor),
+            .addFilterAfter(new com.tailorcards.api.security.twofactor.TwoFactorFilter(twoFactor, loginAttempts),
                     org.springframework.security.web.authentication.www.BasicAuthenticationFilter.class);
 
         return http.build();

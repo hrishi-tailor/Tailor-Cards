@@ -294,6 +294,16 @@ export async function verifyAdminAuth(
   });
 
   if (!response.ok) {
+    if (response.status === 429) {
+      let message = 'Too many failed sign-in attempts. Try again later.';
+      try {
+        const data = await response.json();
+        if (data?.message) message = data.message;
+      } catch {
+        // not json
+      }
+      throw new Error(message);
+    }
     if (response.status === 401 || response.status === 403) {
       throw new Error('Invalid credentials');
     }

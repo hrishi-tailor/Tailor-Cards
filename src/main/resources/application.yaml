@@ -73,6 +73,12 @@ app:
   security:
     # Proxies in front of the app that append to X-Forwarded-For (Render's load balancer: 1). Used for login limits.
     trusted-proxy-hops: ${TRUSTED_PROXY_HOPS:1}
+    login:
+      # Failed admin sign-ins (password or two-factor code) before a temporary lock
+      max-failures: 5
+      max-failures-per-ip: 20
+      window-minutes: 15
+      lockout-minutes: 15
     two-factor:
       # Admin accounts need a TOTP code (or backup code) after the password. Needs TOTP_ENCRYPTION_KEY.
       enabled: ${ADMIN_2FA_ENABLED:true}

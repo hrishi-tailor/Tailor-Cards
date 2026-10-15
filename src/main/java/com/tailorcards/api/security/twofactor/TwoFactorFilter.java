@@ -23,9 +23,11 @@ public class TwoFactorFilter extends OncePerRequestFilter {
     private static final List<String> EXEMPT = List.of("/api/auth/2fa/", "/api/auth/verify", "/api/auth/demo-status", "/error");
 
     private final TwoFactorService twoFactor;
+    private final com.tailorcards.api.security.login.LoginAttemptService loginAttempts;
 
-    public TwoFactorFilter(TwoFactorService twoFactor) {
+    public TwoFactorFilter(TwoFactorService twoFactor, com.tailorcards.api.security.login.LoginAttemptService loginAttempts) {
         this.twoFactor = twoFactor;
+        this.loginAttempts = loginAttempts;
     }
 
     @Override
@@ -35,6 +37,9 @@ public class TwoFactorFilter extends OncePerRequestFilter {
         boolean admin = auth != null && auth.isAuthenticated()
                 && auth.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
         String path = request.getRequestURI().substring(request.getContextPath().length());
+        if (admin && !twoFactor.isEnabled()) {
+            loginAttempts.success(auth.getName()); // the password is the whole sign-in
+        }
         if (!twoFactor.isEnabled() || !admin || EXEMPT.stream().anyMatch(path::startsWith)
                 || twoFactor.validSession(auth.getName(), request.getHeader(SESSION_HEADER))) {
             chain.doFilter(request, response);

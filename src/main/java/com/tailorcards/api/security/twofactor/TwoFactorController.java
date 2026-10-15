@@ -34,12 +34,26 @@ public class TwoFactorController {
     public record BackupCodesResponse(List<String> backupCodes) {}
 
     private final TwoFactorService twoFactor;
+    private final com.tailorcards.api.security.login.LoginAttemptService loginAttempts;
     private final int trustedHops;
 
-    public TwoFactorController(TwoFactorService twoFactor,
+    public TwoFactorController(TwoFactorService twoFactor, com.tailorcards.api.security.login.LoginAttemptService loginAttempts,
                                @Value("${app.security.trusted-proxy-hops:1}") int trustedHops) {
         this.twoFactor = twoFactor;
+        this.loginAttempts = loginAttempts;
         this.trustedHops = trustedHops;
+    }
+
+    /** Runs a code check, counting a wrong code as a failed sign-in and a right one as a complete sign-in. */
+    private <T> T counted(Authentication auth, HttpServletRequest http, java.util.function.Supplier<T> check) {
+        try {
+            T result = check.get();
+            loginAttempts.success(auth.getName());
+            return result;
+        } catch (TwoFactorService.BadCodeException e) {
+            loginAttempts.failure(auth.getName(), ClientAddress.of(http, trustedHops));
+            throw e;
+        }
     }
 
     @GetMapping("/status")
@@ -58,19 +72,19 @@ public class TwoFactorController {
     @PostMapping("/enrol/confirm")
     @Operation(summary = "Finish setup with a code from the app; returns backup codes (shown once) and a session")
     public SessionResponse confirm(Authentication auth, @RequestBody CodeRequest request, HttpServletRequest http) {
-        return response(twoFactor.confirmEnrolment(auth.getName(), request.code(), ClientAddress.of(http, trustedHops)));
+        return response(counted(auth, http, () -> twoFactor.confirmEnrolment(auth.getName(), request.code(), ClientAddress.of(http, trustedHops))));
     }
 
     @PostMapping("/verify")
     @Operation(summary = "Sign in with a code from the app or a backup code; returns a session for X-Admin-Session")
     public SessionResponse verify(Authentication auth, @RequestBody CodeRequest request, HttpServletRequest http) {
-        return response(twoFactor.verify(auth.getName(), request.code(), ClientAddress.of(http, trustedHops)));
+        return response(counted(auth, http, () -> twoFactor.verify(auth.getName(), request.code(), ClientAddress.of(http, trustedHops))));
     }
 
     @PostMapping("/backup-codes")
     @Operation(summary = "Replace the backup codes (needs a current code from the app)")
-    public BackupCodesResponse backupCodes(Authentication auth, @RequestBody CodeRequest request) {
-        return new BackupCodesResponse(twoFactor.regenerateBackupCodes(auth.getName(), request.code()));
+    public BackupCodesResponse backupCodes(Authentication auth, @RequestBody CodeRequest request, HttpServletRequest http) {
+        return new BackupCodesResponse(counted(auth, http, () -> twoFactor.regenerateBackupCodes(auth.getName(), request.code())));
     }
 
     @PostMapping("/logout")
