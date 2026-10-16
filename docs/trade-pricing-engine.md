@@ -2,14 +2,14 @@
 
 > The customer-facing "Sell or Trade" page was replaced by the [AI buylist](ai-buylist.md) at `/sell` (old links redirect there). This deterministic engine and its `/api/trade-assistant` API are still in the codebase. The AI buylist uses the same `buy_rules` table, which now also has per-condition rates (see the README).
 
-A conversational AI assistant allowing customers to describe Pokémon cards they want to **Sell for Cash** or **Trade for Store Cards**, receiving automated, instant quotes powered by live market rates and an immutable mathematical pricing engine.
+The first version of selling to the store: a chat where customers described the cards they wanted to **sell for cash** or **trade for store cards**, and a deterministic Java engine priced the deal from live market rates.
 
 ## The model never sets a price
 > Plain Java code executes deterministic business rules and returns mathematical results. The LLM is restricted to two isolated responsibilities:
 > 1. **Extraction**: Turning messy customer messages into structured JSON items (`name`, `set`, `condition`, `grading`, `sealed`, `quantity`) validated server-side.
-> 2. **Explanation**: Translating pre-computed code results into a courteous customer message without leaking confidential margins, walk-away numbers ($r_{\max}$), platform fees, or internal rules.
+> 2. **Explanation**: Translating pre-computed code results into a plain customer message without leaking confidential margins, walk-away numbers ($r_{\max}$), platform fees, or internal rules.
 > 
-> A customer attempting to manipulate the chat with prompt injection cannot change an offer, because the pricing engine runs on server-side Java logic with zero LLM authority.
+> A customer who tries prompt injection cannot change an offer, because the price is computed in server-side Java and the model has no say in it.
 
 
 ## How the pricing model works
@@ -60,7 +60,7 @@ To protect against trading away high-value cards for piles of low-value bulk car
 - **If customer offers $> 8$ cards total**: **`NEEDS_REVIEW`**.
 
 ### 5. Rule trace
-Every result produces a transparent, tamper-proof JSON rule trace:
+Every result records a JSON rule trace showing each rule that changed the rate:
 ```json
 {
   "entries": [
@@ -90,8 +90,8 @@ The Anthropic Messages API is called directly with Spring's `RestClient` (model 
 1. **Extraction Guard**:
    - Customer messages are sanitized and enclosed in `<customer_input>` tags.
    - Strict JSON Schema output (`name`, `set`, `cardNumber`, `condition`, `grade`, `sealed`, `quantity`).
-   - Server-side validation discards any hallucinated prices or decisions; quantities are clamped to $[1, 100]$.
-2. **Confidentiality & Zero-Leak Defense**:
+   - Server-side validation drops any price or decision the model outputs; quantities are clamped to $[1, 100]$.
+2. **Keeping internal numbers private**:
    - The explanation service provides only safe customer-facing figures (offer CAD, top-up CAD).
    - An interceptor verifies that internal parameters ($r_{\max}$, margins, fees, haircuts, cost basis) are never leaked. If detected, it immediately falls back to deterministic phrasing.
 3. **Card Confirmation Checkpoint**:
