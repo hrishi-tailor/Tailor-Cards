@@ -45,5 +45,6 @@ aws cloudfront create-invalidation --distribution-id "$FRONTEND_DISTRIBUTION_ID"
 
 echo "== Smoke test"
 curl -fsS --retry 5 --retry-delay 5 "$API_URL/api/products" > /dev/null
-curl -fsSI "$API_URL/api/products" | grep -qi "content-security-policy"
+# GET, not HEAD: the API only opens GET on public endpoints
+curl -fsS -D - -o /dev/null "$API_URL/api/products" | grep -qi "content-security-policy"
 echo "Staging is on $VERSION"
