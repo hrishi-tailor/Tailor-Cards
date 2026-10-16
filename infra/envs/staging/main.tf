@@ -16,7 +16,7 @@ module "stack" {
   instance_type         = "t4g.micro"
   db_instance_class     = "db.t4g.micro"
   db_multi_az           = false
-  backup_retention_days = 7
+  backup_retention_days = 1 # Free-plan accounts reject longer automated backup retention
   deletion_protection   = false
   enable_scheduler      = var.enable_scheduler
   monthly_budget_usd    = "30"

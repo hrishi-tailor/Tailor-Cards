@@ -59,7 +59,7 @@ These are on-demand prices in us-east-2 (the same as us-east-1 for everything he
 | Elastic IP (public IPv4) | Fixed address for `api.` and HTTPS (AWS charges $0.005/hour for every public IPv4) | $3.65 |
 | RDS PostgreSQL `db.t4g.micro`, single-AZ | The database, in private subnets | $11.68 |
 | RDS gp3 storage 20 GB (autoscaling to 50), encrypted | Data | $2.30 |
-| RDS automated backups, 7 days | Point-in-time restore | $0 (free up to the database's size) |
+| RDS automated backups, 1 day (Free-plan accounts reject 7; raise it after upgrading) | Point-in-time restore | $0 (free up to the database's size) |
 | S3: frontend, images, deploy artifacts | Static files and jars | ~$0.10 |
 | CloudFront × 2, ACM certificates × 2 | HTTPS CDN for the site and images | $0 (always-free tier: 1 TB and 10 M requests a month; certificates are free) |
 | Route 53 hosted zone | `staging.tailorcards.com` DNS | $0.50 |
