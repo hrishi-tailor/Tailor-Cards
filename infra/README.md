@@ -44,7 +44,7 @@ Terraform for a **staging copy** of Tailor Cards on AWS. It is completely separa
 The defaults target **us-east-2 (Ohio)**, the region of the AWS account this was planned against: a new-experience account on the **Free plan with $100 in credits**. Region is a variable (`region`, `azs`) if you use another.
 
 - **CloudFront certificates still go in us-east-1.** CloudFront only accepts ACM certificates from there, so a second provider (`aws.us_east_1`) creates those two certificates. Everything else is in `region`.
-- **Deploys come from CodeBuild, not GitHub Actions.** The account's service control policy explicitly denies `iam:*Provider*`, so GitHub's OIDC provider can't be created. CodeBuild instead pulls the repository through a GitHub connection and runs as an IAM role. There are still no stored AWS keys anywhere. On an account that allows OIDC providers, set `enable_github_oidc = true` to use `deploy-staging.yml` instead; both paths run the same `infra/scripts/deploy-staging.sh`.
+- **Deploys come from CodeBuild, not GitHub Actions.** The account's service control policy explicitly denies `iam:*Provider*`, so GitHub's OIDC provider can't be created. CodeBuild runs as an IAM role, so there are still no stored AWS keys anywhere. It clones the public repository itself and deploys when started (`aws codebuild start-build`). A CodeConnections GitHub connection with a deploy-on-push webhook is built in (`use_github_connection = true`), but on this account CodeBuild rejected it at project creation ("User is not authorized to access connection") even with an Available connection and a role allowed to use it, so it's off. On an account that allows OIDC providers, set `enable_github_oidc = true` to use `deploy-staging.yml` instead; both paths run the same `infra/scripts/deploy-staging.sh`.
 - **Checked against the account.** `terraform plan` ran read-only against it in us-east-2: **104 to add, 0 to change, 0 to destroy**. The AMI resolved (Amazon Linux 2023 ARM), `t4g.micro` is offered in us-east-2a/b/c, and RDS offers PostgreSQL 17 (17.9) on `db.t4g.micro`. All the services used (EC2, RDS, S3, CloudFront, ACM, Route 53, SES, Secrets Manager, SSM, EventBridge Scheduler, CloudWatch, SNS, Budgets, CodeBuild, CodeConnections) are allowed by the account's policies.
 - **How long $100 lasts.** About 3½ months always on, or about 6 with `enable_scheduler = true`. The budget counts usage **before credits** (otherwise it would read $0 and never alert), so its emails track how fast the credits go. Free-plan accounts close once the credits or the plan period run out unless you upgrade to a paid plan in the Billing console; upgrade before then if staging should stay up.
 
@@ -109,13 +109,14 @@ cp terraform.tfvars.example terraform.tfvars       # domain, account id, alert e
 terraform init -backend-config=backend.hcl
 ```
 
-**3. Create the DNS zone and the GitHub connection first.** The certificates can only validate once the subdomain points at Route 53, and the deploy webhook can only be created once the connection is authorised.
+**3. Create the DNS zone first, then delegate it.** The certificates can only validate once the subdomain points at Route 53.
 ```bash
-terraform apply -target=module.stack.module.dns -target='module.stack.module.codebuild_deploy[0].aws_codeconnections_connection.github'
+terraform apply -target=module.stack.module.dns
 terraform output name_servers
 ```
-- **Delegate DNS.** At the DNS provider for `tailorcards.com`, add an `NS` record for `staging` with those four name servers. Check that it works: `dig NS staging.tailorcards.com +short`
-- **Authorise the connection.** In the AWS console (us-east-2): Developer Tools > Settings > Connections, open `tailorcards-staging-github` (status *Pending*), choose **Update pending connection**, and install the AWS Connector for GitHub app on `hrishi-tailor/Tailor-Cards` only. The status becomes *Available*.
+At the DNS provider for `tailorcards.com` (Vercel today: Domains > tailorcards.com > DNS Records), add four `NS` records named `staging`, one per name server. Check that it works: `dig NS staging.tailorcards.com +short`
+
+With `use_github_connection = true`, also target `'module.stack.module.codebuild_deploy[0].aws_codeconnections_connection.github[0]'` here and authorise it in the console (Developer Tools > Settings > Connections > Update pending connection) before step 4.
 
 **4. Review the plan, then apply it.**
 ```bash
@@ -149,7 +150,7 @@ aws codebuild start-build --project-name "$(terraform output -raw deploy_project
 ```
 Follow it in the console (CodeBuild > Build projects > `tailorcards-staging-deploy`) or in the `/tailorcards-staging/deploy` log group. Then open `terraform output site_url`.
 
-Every push to `main` after that tests and deploys automatically. To pause that, set `enable_deploy_webhook = false` in the stack and apply.
+Run the same command to deploy again after merging to `main`. (With `use_github_connection = true`, every push to `main` deploys automatically; `enable_deploy_webhook = false` pauses that.)
 
 ## Destroy
 

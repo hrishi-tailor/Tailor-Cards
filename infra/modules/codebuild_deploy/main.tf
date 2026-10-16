@@ -1,14 +1,37 @@
-# Continuous deployment from inside AWS: CodeBuild pulls the repository through a GitHub connection, runs the tests
-# and deploys (buildspec-staging.yml) on every push to main. Its IAM role supplies the credentials, so no AWS keys
-# are stored anywhere. Used where GitHub's OIDC provider can't be created (projects on the new AWS experience deny
-# iam:*Provider*).
+# Continuous deployment from inside AWS: CodeBuild clones the repository, runs the tests and deploys
+# (buildspec-staging.yml). Its IAM role supplies the credentials, so no AWS keys are stored anywhere. Used where
+# GitHub's OIDC provider can't be created (projects on the new AWS experience deny iam:*Provider*).
 #
-# The connection is created PENDING: authorise it once in the console (Developer Tools > Settings > Connections)
-# before the webhook can be created. See infra/README.md.
+# Two ways to reach GitHub:
+# - use_github_connection = false (default): clones the public repository anonymously. Deploys start with
+#   `aws codebuild start-build` (no webhook: webhooks need GitHub credentials). On the Free-plan project this was
+#   built for, CodeBuild rejects CodeConnections at CreateProject ("User is not authorized to access connection"),
+#   even with an Available connection and a role allowed to use it.
+# - use_github_connection = true: a CodeConnections GitHub connection (authorise it once in the console, Developer
+#   Tools > Settings > Connections) and a webhook that deploys on every push. Needed for a private repository.
 
 resource "aws_codeconnections_connection" "github" {
+  count         = var.use_github_connection ? 1 : 0
   name          = substr("${var.name}-github", 0, 32)
   provider_type = "GitHub"
+}
+
+locals {
+  clone_buildspec = yamlencode({
+    version = "0.2"
+    phases = {
+      install = { "runtime-versions" = { java = "corretto21", nodejs = 22 } }
+      pre_build = { commands = [
+        "git clone --depth 1 --branch ${var.branch} https://github.com/${var.github_repository}.git .",
+      ] }
+      build = { commands = [
+        "export VERSION=\"$(git rev-parse --short=12 HEAD)\"",
+        "./mvnw -B verify",
+        "bash infra/scripts/deploy-staging.sh",
+      ] }
+    }
+    cache = { paths = ["/root/.m2/**/*", "frontend/node_modules/**/*"] }
+  })
 }
 
 resource "aws_cloudwatch_log_group" "build" {
@@ -37,10 +60,13 @@ data "aws_iam_policy_document" "build" {
     actions   = ["logs:CreateLogStream", "logs:PutLogEvents"]
     resources = ["${aws_cloudwatch_log_group.build.arn}:*"]
   }
-  statement {
-    sid       = "UseGitHubConnection"
-    actions   = ["codeconnections:GetConnection", "codeconnections:GetConnectionToken", "codeconnections:UseConnection", "codestar-connections:UseConnection"]
-    resources = [aws_codeconnections_connection.github.arn]
+  dynamic "statement" {
+    for_each = aws_codeconnections_connection.github
+    content {
+      sid       = "UseGitHubConnection"
+      actions   = ["codeconnections:GetConnection", "codeconnections:GetConnectionToken", "codeconnections:UseConnection", "codestar-connections:UseConnection"]
+      resources = [statement.value.arn]
+    }
   }
   statement {
     sid       = "UploadJar"
@@ -94,17 +120,29 @@ resource "aws_codebuild_project" "deploy" {
   queued_timeout         = 60
   concurrent_build_limit = 1 # deploys never overlap
 
-  source {
-    type            = "GITHUB"
-    location        = "https://github.com/${var.github_repository}.git"
-    buildspec       = "buildspec-staging.yml"
-    git_clone_depth = 1
-    auth {
-      type     = "CODECONNECTIONS"
-      resource = aws_codeconnections_connection.github.arn
+  # With a connection: CodeBuild checks out the branch and runs the repository's buildspec. Without one: an empty
+  # workspace and a buildspec that clones the public repository itself, then runs the same steps.
+  dynamic "source" {
+    for_each = aws_codeconnections_connection.github
+    content {
+      type            = "GITHUB"
+      location        = "https://github.com/${var.github_repository}.git"
+      buildspec       = "buildspec-staging.yml"
+      git_clone_depth = 1
+      auth {
+        type     = "CODECONNECTIONS"
+        resource = source.value.arn
+      }
     }
   }
-  source_version = var.branch
+  dynamic "source" {
+    for_each = var.use_github_connection ? [] : [1]
+    content {
+      type      = "NO_SOURCE"
+      buildspec = local.clone_buildspec
+    }
+  }
+  source_version = var.use_github_connection ? var.branch : null
 
   environment {
     type            = "ARM_CONTAINER" # Graviton: cheaper per minute
@@ -139,7 +177,7 @@ resource "aws_codebuild_project" "deploy" {
 
 # Build on every push to the branch; needs the connection authorised first
 resource "aws_codebuild_webhook" "push" {
-  count        = var.enable_webhook ? 1 : 0
+  count        = var.use_github_connection && var.enable_webhook ? 1 : 0
   project_name = aws_codebuild_project.deploy.name
   build_type   = "BUILD"
   filter_group {

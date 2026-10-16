@@ -21,6 +21,12 @@ variable "branch" {
   default = "main"
 }
 
+variable "use_github_connection" {
+  description = "Reach GitHub through a CodeConnections connection (private repos, deploy on push); false clones the public repo"
+  type        = bool
+  default     = false
+}
+
 variable "enable_webhook" {
   description = "Deploy on every push (turn on after authorising the GitHub connection)"
   type        = bool

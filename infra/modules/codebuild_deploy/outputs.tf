@@ -1,6 +1,6 @@
 output "connection_arn" {
   description = "Authorise this connection once in the console (Developer Tools > Settings > Connections)"
-  value       = aws_codeconnections_connection.github.arn
+  value       = one(aws_codeconnections_connection.github[*].arn)
 }
 
 output "project_name" {

@@ -52,6 +52,12 @@ variable "enable_codebuild_deploy" {
   default     = true
 }
 
+variable "use_github_connection" {
+  description = "CodeBuild reaches GitHub through a CodeConnections connection and deploys on every push (see modules/codebuild_deploy)"
+  type        = bool
+  default     = false
+}
+
 variable "enable_deploy_webhook" {
   description = "Turn on after authorising the GitHub connection in the console"
   type        = bool

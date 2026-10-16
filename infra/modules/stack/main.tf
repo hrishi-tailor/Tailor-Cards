@@ -146,6 +146,7 @@ module "codebuild_deploy" {
   region                    = var.region
   github_repository         = var.github_repository
   branch                    = var.deploy_branch
+  use_github_connection     = var.use_github_connection
   enable_webhook            = var.enable_deploy_webhook
   artifacts_bucket_arn      = module.app_server.artifacts_bucket_arn
   frontend_bucket_arn       = module.frontend.bucket_arn
