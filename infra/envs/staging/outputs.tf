@@ -25,3 +25,11 @@ output "db_instance_id" {
 output "github_environment_variables" {
   value = module.stack.github_environment_variables
 }
+
+output "github_connection_arn" {
+  value = module.stack.github_connection_arn
+}
+
+output "deploy_project" {
+  value = module.stack.deploy_project
+}

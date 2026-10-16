@@ -29,14 +29,18 @@ output "db_instance_id" {
 }
 
 output "github_environment_variables" {
-  description = "Set these as variables of the GitHub environment used by the deploy workflow"
-  value = {
-    AWS_DEPLOY_ROLE_ARN      = module.github_oidc.role_arn
-    AWS_REGION               = var.region
-    ARTIFACTS_BUCKET         = module.app_server.artifacts_bucket
-    FRONTEND_BUCKET          = module.frontend.bucket
-    FRONTEND_DISTRIBUTION_ID = module.frontend.distribution_id
-    INSTANCE_ID              = module.app_server.instance_id
-    API_URL                  = "https://${local.api_domain}"
-  }
+  description = "Variables of the GitHub environment used by deploy-staging.yml (only with enable_github_oidc)"
+  value = var.enable_github_oidc ? merge(local.deploy_variables, {
+    AWS_DEPLOY_ROLE_ARN = module.github_oidc[0].role_arn
+  }) : null
+}
+
+output "github_connection_arn" {
+  description = "Authorise once in the console: Developer Tools > Settings > Connections"
+  value       = var.enable_codebuild_deploy ? module.codebuild_deploy[0].connection_arn : null
+}
+
+output "deploy_project" {
+  description = "aws codebuild start-build --project-name <this> deploys now"
+  value       = var.enable_codebuild_deploy ? module.codebuild_deploy[0].project_name : null
 }

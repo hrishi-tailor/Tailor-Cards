@@ -141,6 +141,12 @@ resource "aws_budgets_budget" "monthly" {
   limit_unit   = "USD"
   time_unit    = "MONTHLY"
 
+  # Count usage before credits: with promotional credits applied, spend shows $0 and the alerts never fire
+  cost_types {
+    include_credit = false
+    include_refund = false
+  }
+
   dynamic "cost_filter" {
     for_each = var.budget_tag == null ? [] : [var.budget_tag]
     content {

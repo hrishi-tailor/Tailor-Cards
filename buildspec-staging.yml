@@ -1,0 +1,19 @@
+# AWS CodeBuild: test and deploy to staging on every push to main (infra/modules/codebuild_deploy).
+# Credentials come from the CodeBuild project's IAM role; nothing is stored in GitHub.
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+      nodejs: 22
+  build:
+    commands:
+      - ./mvnw -B verify # unit, integration and PostgreSQL (Testcontainers) tests
+      - export VERSION="$(echo "$CODEBUILD_RESOLVED_SOURCE_VERSION" | cut -c1-12)"
+      - bash infra/scripts/deploy-staging.sh
+
+cache:
+  paths:
+    - /root/.m2/**/*
+    - frontend/node_modules/**/*

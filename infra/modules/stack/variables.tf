@@ -40,6 +40,29 @@ variable "github_repository" {
   default = "hrishi-tailor/Tailor-Cards"
 }
 
+variable "enable_github_oidc" {
+  description = "GitHub Actions deploy role via OIDC (accounts on the new AWS experience deny creating OIDC providers)"
+  type        = bool
+  default     = false
+}
+
+variable "enable_codebuild_deploy" {
+  description = "Deploy from CodeBuild on every push (works where OIDC providers are denied)"
+  type        = bool
+  default     = true
+}
+
+variable "enable_deploy_webhook" {
+  description = "Turn on after authorising the GitHub connection in the console"
+  type        = bool
+  default     = true
+}
+
+variable "deploy_branch" {
+  type    = string
+  default = "main"
+}
+
 variable "create_oidc_provider" {
   type    = bool
   default = true

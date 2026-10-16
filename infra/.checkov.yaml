@@ -1,4 +1,4 @@
-# Checkov runs in CI (infra workflow). These checks are skipped on purpose for a ~$10/month staging environment;
+# Checkov runs in CI (infra workflow). These checks are skipped on purpose for a low-cost staging environment;
 # each line says why. Revisit them before moving production to AWS (see infra/README.md, "Hardening for prod").
 framework:
   - terraform

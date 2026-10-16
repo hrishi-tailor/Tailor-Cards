@@ -99,7 +99,7 @@ resource "aws_s3_bucket_policy" "state" {
 
 variable "region" {
   type    = string
-  default = "us-east-1"
+  default = "us-east-2"
 }
 
 output "state_bucket" {

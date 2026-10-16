@@ -10,6 +10,16 @@ locals {
   # swapped for this environment's
   vercel_headers = { for h in jsondecode(file(var.vercel_config_path)).headers[0].headers : h.key => h.value }
   frontend_csp   = replace(local.vercel_headers["Content-Security-Policy"], "https://tailor-cards-api.onrender.com", "https://${local.api_domain}")
+
+  # What infra/scripts/deploy-staging.sh needs, wherever it runs (CodeBuild or GitHub Actions)
+  deploy_variables = {
+    AWS_REGION               = var.region
+    ARTIFACTS_BUCKET         = module.app_server.artifacts_bucket
+    FRONTEND_BUCKET          = module.frontend.bucket
+    FRONTEND_DISTRIBUTION_ID = module.frontend.distribution_id
+    INSTANCE_ID              = module.app_server.instance_id
+    API_URL                  = "https://${local.api_domain}"
+  }
 }
 
 module "dns" {
@@ -115,6 +125,7 @@ module "database" {
 }
 
 module "github_oidc" {
+  count                      = var.enable_github_oidc ? 1 : 0
   source                     = "../github_oidc"
   name                       = local.name
   region                     = var.region
@@ -126,6 +137,22 @@ module "github_oidc" {
   frontend_bucket_arn        = module.frontend.bucket_arn
   frontend_distribution_arn  = module.frontend.distribution_arn
   instance_arn               = module.app_server.instance_arn
+}
+
+module "codebuild_deploy" {
+  count                     = var.enable_codebuild_deploy ? 1 : 0
+  source                    = "../codebuild_deploy"
+  name                      = local.name
+  region                    = var.region
+  github_repository         = var.github_repository
+  branch                    = var.deploy_branch
+  enable_webhook            = var.enable_deploy_webhook
+  artifacts_bucket_arn      = module.app_server.artifacts_bucket_arn
+  frontend_bucket_arn       = module.frontend.bucket_arn
+  frontend_distribution_arn = module.frontend.distribution_arn
+  instance_arn              = module.app_server.instance_arn
+  deploy_variables          = local.deploy_variables
+  log_retention_days        = var.log_retention_days
 }
 
 module "scheduler" {

@@ -19,5 +19,5 @@ module "stack" {
   backup_retention_days = 7
   deletion_protection   = false
   enable_scheduler      = var.enable_scheduler
-  monthly_budget_usd    = "10"
+  monthly_budget_usd    = "30"
 }

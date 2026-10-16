@@ -1,6 +1,7 @@
 # Build, test and deploy to the AWS staging environment (infra/envs/staging). Authenticates to AWS with GitHub's
-# OIDC token: no AWS keys are stored in GitHub. Turned on by the repository variable STAGING_DEPLOY_ENABLED=true,
-# set after the first `terraform apply` (see infra/README.md). Production (Render/Vercel) is not affected.
+# OIDC token: no AWS keys are stored in GitHub. Only for accounts that allow OIDC providers (enable_github_oidc);
+# otherwise CodeBuild runs the same deploy (buildspec-staging.yml). Turned on by the repository variable
+# STAGING_DEPLOY_ENABLED=true (see infra/README.md). Production (Render/Vercel) is not affected.
 name: Deploy to staging
 
 on:
@@ -67,38 +68,13 @@ jobs:
         uses: actions/download-artifact@v8.0.2
         with:
           name: api-jar
-          path: build
+          path: target
 
       - name: AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
-
-      - name: Upload the jar
-        run: |
-          version="${GITHUB_SHA::12}"
-          echo "VERSION=$version" >> "$GITHUB_ENV"
-          aws s3 cp build/api-*.jar "s3://$ARTIFACTS_BUCKET/api/$version.jar" --only-show-errors
-
-      - name: Deploy on the server (SSM Run Command, health check, automatic rollback)
-        run: |
-          command_id=$(aws ssm send-command \
-            --instance-ids "$INSTANCE_ID" \
-            --document-name AWS-RunShellScript \
-            --comment "deploy $VERSION" \
-            --timeout-seconds 600 \
-            --parameters "commands=[\"/opt/tailorcards/bin/deploy.sh s3://$ARTIFACTS_BUCKET/api/$VERSION.jar $VERSION\"]" \
-            --query Command.CommandId --output text)
-          for _ in $(seq 1 120); do
-            status=$(aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" \
-              --query Status --output text 2>/dev/null || echo Pending)
-            case "$status" in Pending|InProgress|Delayed) sleep 5 ;; *) break ;; esac
-          done
-          aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" \
-            --query '[StandardOutputContent, StandardErrorContent]' --output text
-          echo "Deploy status: $status"
-          test "$status" = "Success"
 
       - name: Set up Node.js
         uses: actions/setup-node@v7.1.0
@@ -107,22 +83,8 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Build and publish the frontend
-        working-directory: frontend
+      # Jar to the server through SSM (health check, automatic rollback), frontend to S3 and CloudFront, smoke test
+      - name: Deploy
         env:
-          VITE_API_URL: ${{ vars.API_URL }}
-        run: |
-          npm ci
-          npm run build
-          # Hashed assets never change: cache for a year. Everything else must be revalidated.
-          aws s3 sync dist "s3://$FRONTEND_BUCKET" --delete --only-show-errors \
-            --exclude "*" --include "assets/*" --cache-control "public, max-age=31536000, immutable"
-          aws s3 sync dist "s3://$FRONTEND_BUCKET" --delete --only-show-errors \
-            --exclude "assets/*" --cache-control "no-cache"
-          aws cloudfront create-invalidation --distribution-id "$FRONTEND_DISTRIBUTION_ID" --paths "/*" \
-            --query Invalidation.Id --output text
-
-      - name: Smoke test
-        run: |
-          curl -fsS --retry 5 --retry-delay 5 "$API_URL/api/products" > /dev/null
-          curl -fsSI "$API_URL/api/products" | grep -i "content-security-policy"
+          VERSION: ${{ github.sha }}
+        run: VERSION="${VERSION::12}" bash infra/scripts/deploy-staging.sh

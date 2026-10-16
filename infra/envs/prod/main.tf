@@ -15,9 +15,11 @@ module "stack" {
   ami_id             = var.ami_id
   vercel_config_path = "${path.root}/../../../frontend/vercel.json"
 
-  # One GitHub OIDC provider per account: staging created it
+  # Only where the account allows OIDC providers; one per account, so reuse staging's
+  enable_github_oidc         = var.github_oidc_provider_arn != null
   create_oidc_provider       = false
   existing_oidc_provider_arn = var.github_oidc_provider_arn
+  enable_codebuild_deploy    = false # buildspec-staging.yml deploys staging; add a prod buildspec when moving
 
   instance_type         = "t4g.small"
   db_instance_class     = "db.t4g.small"

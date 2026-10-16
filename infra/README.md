@@ -16,7 +16,7 @@ Terraform for a **staging copy** of Tailor Cards on AWS. It is completely separa
             │   no SSH: SSM Session Manager           encrypted, daily backups   │
             │   ──► Secrets Manager, SES, S3 (gateway endpoint), CloudWatch       │
             └────────────────────────────────────────────────────────────────────┘
-  GitHub Actions ──OIDC──► deploy role ──► S3 (jar, frontend), SSM Run Command, CloudFront invalidation
+  push to main ──► CodeBuild (GitHub connection, IAM role) ──► S3 (jar, frontend), SSM Run Command, CloudFront invalidation
 ```
 
 ## Layout
@@ -35,12 +35,22 @@ Terraform for a **staging copy** of Tailor Cards on AWS. It is completely separa
 | `modules/email/` | SES domain identity with DKIM, SPF and DMARC records |
 | `modules/secrets/` | The app's Secrets Manager secret (values set outside Terraform) |
 | `modules/monitoring/` | Log groups, alarms, SNS email alerts, monthly budget |
-| `modules/github_oidc/` | GitHub OIDC provider and the deploy role |
+| `modules/codebuild_deploy/` | CodeBuild project, GitHub connection, push webhook and its least-privilege role: tests and deploys on every push to `main` (on by default) |
+| `modules/github_oidc/` | GitHub OIDC provider and deploy role for GitHub Actions. Off by default (`enable_github_oidc`): see [Region and account](#region-and-account) |
 | `modules/scheduler/` | Optional: stop the server and database nights and weekends |
+
+## Region and account
+
+The defaults target **us-east-2 (Ohio)**, the region of the AWS account this was planned against: a new-experience account on the **Free plan with $100 in credits**. Region is a variable (`region`, `azs`) if you use another.
+
+- **CloudFront certificates still go in us-east-1.** CloudFront only accepts ACM certificates from there, so a second provider (`aws.us_east_1`) creates those two certificates. Everything else is in `region`.
+- **Deploys come from CodeBuild, not GitHub Actions.** The account's service control policy explicitly denies `iam:*Provider*`, so GitHub's OIDC provider can't be created. CodeBuild instead pulls the repository through a GitHub connection and runs as an IAM role. There are still no stored AWS keys anywhere. On an account that allows OIDC providers, set `enable_github_oidc = true` to use `deploy-staging.yml` instead; both paths run the same `infra/scripts/deploy-staging.sh`.
+- **Checked against the account.** `terraform plan` ran read-only against it in us-east-2: **104 to add, 0 to change, 0 to destroy**. The AMI resolved (Amazon Linux 2023 ARM), `t4g.micro` is offered in us-east-2a/b/c, and RDS offers PostgreSQL 17 (17.9) on `db.t4g.micro`. All the services used (EC2, RDS, S3, CloudFront, ACM, Route 53, SES, Secrets Manager, SSM, EventBridge Scheduler, CloudWatch, SNS, Budgets, CodeBuild, CodeConnections) are allowed by the account's policies.
+- **How long $100 lasts.** About 3½ months always on, or about 6 with `enable_scheduler = true`. The budget counts usage **before credits** (otherwise it would read $0 and never alert), so its emails track how fast the credits go. Free-plan accounts close once the credits or the plan period run out unless you upgrade to a paid plan in the Billing console; upgrade before then if staging should stay up.
 
 ## Every resource, and what it costs
 
-These are on-demand prices in us-east-1, assuming 730 hours a month. They're from AWS's published pricing as I know it, so check them in the [AWS Pricing Calculator](https://calculator.aws/) before you rely on them. The plan creates **101 resources**; most (IAM, security groups, route tables, DNS records, policies) cost nothing.
+These are on-demand prices in us-east-2 (the same as us-east-1 for everything here), assuming 730 hours a month. They're from AWS's published pricing as I know it, so check them in the [AWS Pricing Calculator](https://calculator.aws/) before you rely on them. The plan creates **104 resources**; most (IAM, security groups, route tables, DNS records, policies) cost nothing.
 
 | Resource | Why it's there | Monthly |
 | :--- | :--- | ---: |
@@ -57,17 +67,19 @@ These are on-demand prices in us-east-1, assuming 730 hours a month. They're fro
 | SES | Sign-in codes and notifications | ~$0.01 ($0.10 per 1,000 emails) |
 | CloudWatch: 4 log groups (30 days), 7 alarms, agent metrics, metric filters | Logs, alarms | ~$0.30 (alarms and metrics within the free tier) |
 | VPC flow logs (rejected traffic only) | See scans and blocked connections | ~$0.10 |
+| CodeBuild, ARM small, ~8 minutes a deploy | Test and deploy on every push to `main` | ~$0.03 a deploy ($0.0034/minute; the first 100 minutes a month are free on the free tier) |
+| CodeConnections GitHub connection | Lets CodeBuild read the repository | $0 |
 | S3 gateway endpoint, SNS email, AWS Budgets (first 2), SSM Session Manager, IAM, KMS AWS-managed keys | | $0 |
 | Data out to the internet | First 100 GB a month free | $0 |
 | **Total** | | **≈ $26.50** |
 
-**The $10 budget will alert.** The two fixed items alone, the RDS instance ($14) and the public IPv4 address ($3.65), are already over $10 at on-demand prices. The budget is set at $10 as you asked: it emails at 80% of actual spend and when the forecast passes 100%. Ways to bring the cost down:
+**The budget is $30** (it was $10, which the RDS instance and public IPv4 address alone exceed). It emails at 80% of actual spend and when the forecast passes 100%, counting usage before credits. Ways to bring the cost down:
 
 | Option | Monthly | Trade-off |
 | :--- | ---: | :--- |
 | As configured | ≈ $26.50 | Always on |
 | `enable_scheduler = true` (running 8am–8pm Toronto time, weekdays) | ≈ $15 | Staging is off nights and weekends; deploys then fail until morning |
-| A new AWS account | $0 for months | Accounts opened since July 2025 get up to $200 in credits for 6 months, which covers this many times over |
+| Credits | $0 out of pocket | The $100 in credits on this account cover about 3½ months as configured |
 | PostgreSQL on the EC2 instance instead of RDS | ≈ $12 | Loses managed backups and point-in-time restore. Not done, since you asked for RDS |
 
 **Optional costs that are off by default:**
@@ -79,6 +91,8 @@ These are on-demand prices in us-east-1, assuming 730 hours a month. They're fro
 ## Apply
 
 **You need:** an AWS account, an admin login for it through `aws configure sso` (recommended) or an access key, the AWS CLI v2, and Terraform 1.11 or newer.
+
+Use the profile for the account: `export AWS_PROFILE=tailorcards` (sign in with `aws login --profile tailorcards` when it expires).
 
 **1. State bucket (once per account).**
 ```bash
@@ -95,15 +109,13 @@ cp terraform.tfvars.example terraform.tfvars       # domain, account id, alert e
 terraform init -backend-config=backend.hcl
 ```
 
-**3. Create the DNS zone first, then delegate it.** The certificates can only validate once the subdomain points at Route 53.
+**3. Create the DNS zone and the GitHub connection first.** The certificates can only validate once the subdomain points at Route 53, and the deploy webhook can only be created once the connection is authorised.
 ```bash
-terraform apply -target=module.stack.module.dns
+terraform apply -target=module.stack.module.dns -target='module.stack.module.codebuild_deploy[0].aws_codeconnections_connection.github'
 terraform output name_servers
 ```
-At the DNS provider for `tailorcards.com`, add an `NS` record for `staging` with those four name servers. Check that it works:
-```bash
-dig NS staging.tailorcards.com +short
-```
+- **Delegate DNS.** At the DNS provider for `tailorcards.com`, add an `NS` record for `staging` with those four name servers. Check that it works: `dig NS staging.tailorcards.com +short`
+- **Authorise the connection.** In the AWS console (us-east-2): Developer Tools > Settings > Connections, open `tailorcards-staging-github` (status *Pending*), choose **Update pending connection**, and install the AWS Connector for GitHub app on `hrishi-tailor/Tailor-Cards` only. The status becomes *Available*.
 
 **4. Review the plan, then apply it.**
 ```bash
@@ -131,12 +143,13 @@ rm /tmp/app-secret.json
 
 **6. Confirm the alerts email** (SNS sends a confirmation link). Then in the SES console, **request production access**. Until then, SES only delivers to addresses you've verified.
 
-**7. Connect GitHub.**
-- In the repository, create an environment named **`staging`**.
-- Add a variable for each entry in `terraform output github_environment_variables`.
-- Add the repository variable `STAGING_DEPLOY_ENABLED = true`.
+**7. First deploy.** The server has no app until the first deploy. Start one now, or push to `main`:
+```bash
+aws codebuild start-build --project-name "$(terraform output -raw deploy_project)"
+```
+Follow it in the console (CodeBuild > Build projects > `tailorcards-staging-deploy`) or in the `/tailorcards-staging/deploy` log group. Then open `terraform output site_url`.
 
-The next push to `main`, or a manual run of **Deploy to staging**, builds, tests and deploys.
+Every push to `main` after that tests and deploys automatically. To pause that, set `enable_deploy_webhook = false` in the stack and apply.
 
 ## Destroy
 
@@ -158,9 +171,10 @@ The state bucket in `bootstrap/` is protected (`prevent_destroy`). Remove it las
 | Workflow | Does | AWS access |
 | :--- | :--- | :--- |
 | `infra.yml` | `terraform fmt -check`, `validate` (bootstrap, staging, prod), TFLint with the AWS ruleset, Checkov | None |
-| `deploy-staging.yml` | Builds and tests (`mvn verify`), uploads the jar, runs `deploy.sh` on the server through SSM Run Command (health check, rollback on failure), builds and syncs the frontend, invalidates CloudFront, smoke test | GitHub OIDC: a short-lived token, no stored keys |
+| CodeBuild `tailorcards-staging-deploy` (`buildspec-staging.yml`) | On every push to `main`: builds and tests (`mvn verify`, with Docker for the PostgreSQL tests), then `infra/scripts/deploy-staging.sh`: uploads the jar, runs `deploy.sh` on the server through SSM Run Command (health check, rollback on failure), builds and syncs the frontend, invalidates CloudFront, smoke test. One build at a time | The project's IAM role; no stored keys |
+| `deploy-staging.yml` | The same steps from GitHub Actions. Only for accounts that allow OIDC providers (`enable_github_oidc = true`); stays off until the repository variable `STAGING_DEPLOY_ENABLED = true` is set | GitHub OIDC: a short-lived token, no stored keys |
 
-**How the deploy role is limited.** It trusts only tokens for `repo:hrishi-tailor/Tailor-Cards:environment:staging`. It can only put jars in the artifacts bucket, sync the frontend bucket, invalidate that one distribution, and run `AWS-RunShellScript` on that one instance.
+**How the deploy role is limited.** It can only put jars in the artifacts bucket, sync the frontend bucket, invalidate that one distribution, run `AWS-RunShellScript` on that one instance, write its own log group and use its own GitHub connection. The GitHub Actions role additionally trusts only tokens for `repo:hrishi-tailor/Tailor-Cards:environment:staging`.
 
 **Checkov exceptions.** Checkov's accepted exceptions (mostly cost trade-offs for staging) are listed with reasons in `.checkov.yaml`.
 

@@ -1,11 +1,11 @@
 variable "region" {
   type    = string
-  default = "us-east-1"
+  default = "us-east-2"
 }
 
 variable "azs" {
   type    = list(string)
-  default = ["us-east-1a", "us-east-1b"]
+  default = ["us-east-2a", "us-east-2b"]
 }
 
 variable "domain" {
@@ -27,6 +27,7 @@ variable "ami_id" {
 }
 
 variable "github_oidc_provider_arn" {
-  description = "The GitHub OIDC provider created by the staging environment"
+  description = "An existing GitHub OIDC provider, to deploy from GitHub Actions instead of CodeBuild"
   type        = string
+  default     = null
 }

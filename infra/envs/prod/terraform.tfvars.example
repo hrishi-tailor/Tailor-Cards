@@ -1,4 +1,4 @@
 domain                   = "aws.tailorcards.com"
 bucket_suffix            = "123456789012"
 alert_email              = "you@example.com"
-github_oidc_provider_arn = "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
+# github_oidc_provider_arn = "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
