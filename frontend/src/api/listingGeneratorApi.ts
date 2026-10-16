@@ -1,5 +1,5 @@
 import { API_BASE_URL } from './config';
-import { clearAdminAuth, getAdminAuthHeader } from './buylistApi';
+import { adminHeaders, clearAdminAuth, getAdminAuthHeader } from './buylistApi';
 import type {
   Category,
   CreateProductPayload,
@@ -19,12 +19,13 @@ export class ListingApiError extends Error {
   }
 }
 
-function authHeader(): string {
+/** Admin password plus second-factor session headers. */
+function authHeaders(): Record<string, string> {
   const auth = getAdminAuthHeader();
   if (!auth) {
     throw new ListingApiError('Unauthorized: Admin credentials required.', 401);
   }
-  return `Basic ${auth}`;
+  return adminHeaders(auth);
 }
 
 async function readError(response: Response, fallback: string): Promise<ListingApiError> {
@@ -57,7 +58,7 @@ export async function generateListingDraft(files: File[], note: string): Promise
 
   const response = await fetch(`${API_BASE_URL}/api/admin/listing-generator/draft`, {
     method: 'POST',
-    headers: { Authorization: authHeader() },
+    headers: authHeaders(),
     body: formData,
   });
   if (!response.ok) {
@@ -81,7 +82,7 @@ export async function getListingMarketReference(params: {
   }
 
   const response = await fetch(`${API_BASE_URL}/api/admin/listing-generator/market-reference?${query}`, {
-    headers: { Authorization: authHeader() },
+    headers: authHeaders(),
   });
   if (!response.ok) {
     throw await readError(response, `Market reference failed (${response.status})`);
@@ -104,7 +105,7 @@ export async function uploadProductPhoto(file: File): Promise<string> {
   formData.append('file', file);
   const response = await fetch(`${API_BASE_URL}/api/products/photos`, {
     method: 'POST',
-    headers: { Authorization: authHeader() },
+    headers: authHeaders(),
     body: formData,
   });
   if (!response.ok) {
@@ -118,7 +119,7 @@ export async function uploadProductPhoto(file: File): Promise<string> {
 export async function createProduct(payload: CreateProductPayload): Promise<Product> {
   const response = await fetch(`${API_BASE_URL}/api/products`, {
     method: 'POST',
-    headers: { Authorization: authHeader(), 'Content-Type': 'application/json' },
+    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
@@ -133,7 +134,7 @@ export async function addProductPhotos(productId: number, files: File[]): Promis
   files.forEach((f) => formData.append('files', f));
   const response = await fetch(`${API_BASE_URL}/api/products/${productId}/photos`, {
     method: 'POST',
-    headers: { Authorization: authHeader() },
+    headers: authHeaders(),
     body: formData,
   });
   if (!response.ok) {
@@ -146,7 +147,7 @@ export async function addProductPhotos(productId: number, files: File[]): Promis
 export async function removeProductPhoto(productId: number, index: number): Promise<Product> {
   const response = await fetch(`${API_BASE_URL}/api/products/${productId}/photos/${index}`, {
     method: 'DELETE',
-    headers: { Authorization: authHeader() },
+    headers: authHeaders(),
   });
   if (!response.ok) {
     throw await readError(response, `Could not remove the photo (${response.status})`);
@@ -158,7 +159,7 @@ export async function removeProductPhoto(productId: number, index: number): Prom
 export async function applyOfficialProductImage(productId: number): Promise<Product> {
   const response = await fetch(`${API_BASE_URL}/api/products/${productId}/official-image`, {
     method: 'POST',
-    headers: { Authorization: authHeader() },
+    headers: authHeaders(),
   });
   if (!response.ok) {
     throw await readError(response, `No official image found (${response.status})`);
@@ -175,7 +176,7 @@ export interface OfficialImageBackfill {
 export async function applyOfficialImagesForAll(): Promise<OfficialImageBackfill> {
   const response = await fetch(`${API_BASE_URL}/api/products/official-images`, {
     method: 'POST',
-    headers: { Authorization: authHeader() },
+    headers: authHeaders(),
   });
   if (!response.ok) {
     throw await readError(response, `Could not update images (${response.status})`);
@@ -190,7 +191,7 @@ export async function applyOfficialImagesForAll(): Promise<OfficialImageBackfill
 export async function linkProductCard(productId: number, cardId: string): Promise<Product> {
   const response = await fetch(`${API_BASE_URL}/api/admin/products/${productId}/pokemontcg-id`, {
     method: 'PUT',
-    headers: { Authorization: authHeader(), 'Content-Type': 'application/json' },
+    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify({ pokemontcgId: cardId.trim() }),
   });
   if (!response.ok) {

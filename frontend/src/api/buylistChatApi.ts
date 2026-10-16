@@ -239,7 +239,51 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return response.json();
 }
 
+export interface ProgressEvent {
+  total: number
+  done: number
+}
+
+/**
+ * Reads the draft's progress stream (server-sent events) until it ends. Uses fetch rather than EventSource so the
+ * session header can be sent. Resolves true when the server said "done"; throws when the stream can't be opened.
+ */
+async function watchProgress(draftId: string, onEvent: (event: 'progress' | 'done', data: ProgressEvent) => void,
+  signal: AbortSignal): Promise<boolean> {
+  const headers = new Headers({ Accept: 'text/event-stream' })
+  const token = getSessionToken()
+  if (token) headers.set('X-Buylist-Session', token)
+  const response = await fetch(`${API_BASE_URL}/api/buylist-chat/drafts/${draftId}/progress`, { headers, signal })
+  if (!response.ok || !response.body) throw new ChatApiError(`Progress stream failed (${response.status})`, response.status)
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
+  let buffer = ''
+  let sawDone = false
+  for (;;) {
+    const { value, done } = await reader.read()
+    if (done) break
+    buffer += value.replace(/\r\n/g, '\n')
+    let end = buffer.indexOf('\n\n')
+    while (end >= 0) {
+      const frame = buffer.slice(0, end)
+      buffer = buffer.slice(end + 2)
+      let event = ''
+      let data = ''
+      for (const line of frame.split('\n')) {
+        if (line.startsWith('event:')) event = line.slice(6).trim()
+        else if (line.startsWith('data:')) data += line.slice(5).trim()
+      }
+      if ((event === 'progress' || event === 'done') && data) {
+        onEvent(event, JSON.parse(data) as ProgressEvent)
+        if (event === 'done') sawDone = true
+      }
+      end = buffer.indexOf('\n\n')
+    }
+  }
+  return sawDone
+}
+
 export const buylistChatApi = {
+  watchProgress,
   status: () => request<ChatStatus>('/status'),
   requestCode: (email: string, turnstileToken?: string) =>
     request<void>('/otp/request', { method: 'POST', body: JSON.stringify({ email, turnstileToken }) }),

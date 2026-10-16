@@ -84,6 +84,7 @@ Changes to the assistant are measured with an **evaluation harness**: 40 labelle
 - **Stock is checked twice:** once before the Stripe session is created and again when the signed webhook arrives, and repeated webhook deliveries for the same session are recorded once.
 - **Flyway with `ddl-auto=validate`.** Production was baselined at V1, so every later migration is idempotent and tested against a dump of the production schema.
 - **Prices in CAD, stored in USD.** Market data is USD (TCGplayer) or EUR (Cardmarket); customers see CAD at the daily Bank of Canada rate.
+- **Latency budget.** A 60-card lot is matched and priced in about 16 s (from 35 s), checked by a benchmark test that also fails if any price changes. See [docs/performance.md](docs/performance.md).
 - **Card scanner checks run in the browser.** Edge, light, glare and focus checks take about a millisecond per frame, so customers get instant feedback and only good photos reach the vision model.
 - **Rates are data, not code.** Buy rates and trade parameters live in database tables the owner edits in the admin, so a pricing change never needs a deploy.
 
@@ -139,7 +140,7 @@ docker run -d --name tc-local-pg -e POSTGRES_DB=tailorcards -e POSTGRES_PASSWORD
 ```
 
 ```bash
-export DB_PORT=5433 DB_NAME=tailorcards DB_PASSWORD=postgres ADMIN_PASSWORD=change-me
+export DB_PORT=5433 DB_NAME=tailorcards DB_PASSWORD=postgres ADMIN_PASSWORD=change-me TOTP_ENCRYPTION_KEY="$(openssl rand -base64 32)"
 ./mvnw spring-boot:run
 ```
 
@@ -157,6 +158,7 @@ Only the database settings and `ADMIN_PASSWORD` are required; the app refuses to
 | :--- | :--- |
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` | PostgreSQL connection |
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | Admin login |
+| `TOTP_ENCRYPTION_KEY` | Required: encrypts admins' two-factor secrets (`openssl rand -base64 32`). See [docs/security.md](docs/security.md) |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Checkout |
 | `ANTHROPIC_API_KEY` | AI buylist chat, card scanner, listing generator |
 | `CHATBOT_ENABLED` | `true` turns the AI buylist on at `/sell` |
@@ -228,4 +230,6 @@ Store credit is 80% of market value; played and damaged cards get their cash rat
 
 - [AI buylist and card scanner](docs/ai-buylist.md): flow, pricing sources, approval estimate, limits, configuration, evaluation
 - [Listing generator](docs/listing-generator.md): photo-to-draft for admins
+- [AI buylist latency](docs/performance.md): where the time goes, before/after timings, the benchmark and production queries
+- [Security](docs/security.md): admin two-factor login, lockout, headers, audit log, upload checks, scanning in CI
 - [Trade pricing engine](docs/trade-pricing-engine.md): the deterministic engine behind `/api/trade-assistant` (legacy; the AI buylist replaced its customer page)

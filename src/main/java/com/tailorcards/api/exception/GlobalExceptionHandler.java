@@ -1,5 +1,6 @@
 package com.tailorcards.api.exception;
 
+import com.tailorcards.api.security.LogSafe;
 import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -138,10 +139,21 @@ public class GlobalExceptionHandler {
             Exception ex,
             HttpServletRequest request
     ) {
+        // Spring's own client errors (method not allowed, no such path, unsupported media type, missing parameter)
+        // keep their 4xx status instead of turning into a 500
+        if (ex instanceof org.springframework.web.ErrorResponse framework && framework.getStatusCode().is4xxClientError()) {
+            HttpStatusCode code = framework.getStatusCode();
+            HttpStatus status = HttpStatus.resolve(code.value());
+            String reason = status != null ? status.getReasonPhrase() : "Error";
+            return ResponseEntity.status(code).body(new ErrorResponse(code.value(), reason, reason, request.getRequestURI()));
+        }
+        // Unexpected errors: details go to the log, never to the caller (they can include SQL or internal state)
+        org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class)
+                .error("Unhandled error on {} {}", LogSafe.of(request.getMethod()), LogSafe.of(request.getRequestURI()), ex);
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
-                ex.getMessage(),
+                "Something went wrong on our side. Please try again.",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);

@@ -41,6 +41,8 @@ public class ItemNormalizer {
                "sealed": boolean (true for sealed products like booster boxes, ETBs, booster bundles, tins)}
             or {"i": <line number>, "skip": true} if the line is not a card or lot.
             "name" is the card name only (no set, number, grade, condition or quantity). Use UNKNOWN when no condition is given.
+            Leave out any field whose value would be null, false, 1 or "UNKNOWN" (they are the defaults), so
+            {"i": 3, "name": "Pikachu", "number": "58/102"} means quantity 1, condition UNKNOWN, not bulk or sealed.
             Reply with a single JSON array and nothing else.
             """;
 
@@ -79,6 +81,8 @@ public class ItemNormalizer {
     private final AnthropicClient client;
     private final BuylistLlmBudget budget;
     private final BuylistChatProperties.Limits limits;
+    /** Claude calls for list chunks; shared by all requests, so this also caps concurrent normalisation calls. */
+    private final java.util.concurrent.ExecutorService modelPool;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
@@ -90,25 +94,72 @@ public class ItemNormalizer {
         this.client = client;
         this.budget = budget;
         this.limits = properties.getLimits();
+        this.modelPool = java.util.concurrent.Executors.newFixedThreadPool(Math.max(1, limits.getNormalizeConcurrency()),
+                Thread.ofPlatform().name("buylist-normalise-", 0).daemon().factory());
+    }
+
+    @jakarta.annotation.PreDestroy
+    void shutdown() {
+        modelPool.shutdownNow();
     }
 
     /** Normalises up to maxLines non-empty lines; extra lines are rejected by the caller. */
     public List<ItemInput> normalize(List<String> rawLines) {
+        return normalize(rawLines, chunk -> { });
+    }
+
+    /**
+     * Normalises a list in chunks of at most {@code normalize-batch-size} lines (smaller for short lists), up to {@code normalize-concurrency}
+     * Claude calls at a time. onChunk receives each chunk's items in list order as soon as it and every earlier
+     * chunk are done, so callers can add them to the draft (and start pricing) while later chunks are still with
+     * the model. Returns every item, in order.
+     */
+    public List<ItemInput> normalize(List<String> rawLines, java.util.function.Consumer<List<ItemInput>> onChunk) {
         List<String> lines = rawLines.stream().map(String::trim).filter(l -> !l.isEmpty())
                 .map(l -> l.length() > 300 ? l.substring(0, 300) : l).toList();
-        List<ItemInput> items = new ArrayList<>();
-        int batchSize = Math.max(1, limits.getNormalizeBatchSize());
+        long started = System.nanoTime();
+        // Spread the list over the parallel calls (at least 5 lines each), up to normalize-batch-size per call
+        int maxBatch = Math.max(1, limits.getNormalizeBatchSize());
+        int spread = (lines.size() + Math.max(1, limits.getNormalizeConcurrency()) - 1) / Math.max(1, limits.getNormalizeConcurrency());
+        int batchSize = Math.min(maxBatch, Math.max(Math.min(5, maxBatch), spread));
+        List<java.util.concurrent.CompletableFuture<List<ItemInput>>> chunks = new ArrayList<>();
         for (int start = 0; start < lines.size(); start += batchSize) {
             List<String> batch = lines.subList(start, Math.min(lines.size(), start + batchSize));
-            Map<Integer, Optional<ItemInput>> fromModel = client.isConfigured() && budget.hasBudget()
-                    ? normalizeWithModel(batch) : Map.of();
-            for (int i = 0; i < batch.size(); i++) {
-                Optional<ItemInput> modelItem = fromModel.get(i + 1);
-                if (modelItem == null) {
-                    parseHeuristic(batch.get(i)).ifPresent(items::add); // model missed it or unavailable
-                } else {
-                    modelItem.ifPresent(items::add); // empty = model said "not a card"
-                }
+            chunks.add(java.util.concurrent.CompletableFuture.supplyAsync(() -> normalizeBatch(batch), modelPool));
+        }
+        List<ItemInput> items = new ArrayList<>();
+        long firstChunkMs = -1;
+        for (java.util.concurrent.CompletableFuture<List<ItemInput>> chunk : chunks) {
+            List<ItemInput> chunkItems;
+            try {
+                chunkItems = chunk.join();
+            } catch (java.util.concurrent.CompletionException e) {
+                chunkItems = List.of(); // normalizeBatch doesn't throw; this is a safety net
+            }
+            if (firstChunkMs < 0) {
+                firstChunkMs = (System.nanoTime() - started) / 1_000_000;
+            }
+            items.addAll(chunkItems);
+            if (!chunkItems.isEmpty()) {
+                onChunk.accept(chunkItems);
+            }
+        }
+        log.info("Buylist timing: normalise lines={} batches={} firstBatchMs={} totalMs={}", lines.size(), chunks.size(),
+                Math.max(0, firstChunkMs), (System.nanoTime() - started) / 1_000_000);
+        return items;
+    }
+
+    /** One chunk: the model's reading of each line, with the Java parser for any line it missed. */
+    private List<ItemInput> normalizeBatch(List<String> batch) {
+        List<ItemInput> items = new ArrayList<>();
+        Map<Integer, Optional<ItemInput>> fromModel = client != null && client.isConfigured() && budget.hasBudget()
+                ? normalizeWithModel(batch) : Map.of();
+        for (int i = 0; i < batch.size(); i++) {
+            Optional<ItemInput> modelItem = fromModel.get(i + 1);
+            if (modelItem == null) {
+                parseHeuristic(batch.get(i)).ifPresent(items::add); // model missed it or unavailable
+            } else {
+                modelItem.ifPresent(items::add); // empty = model said "not a card"
             }
         }
         return items;

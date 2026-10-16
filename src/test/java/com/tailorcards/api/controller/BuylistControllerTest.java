@@ -43,7 +43,7 @@ class BuylistControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new BuylistController(buylistService, buylistStorageService);
+        controller = new BuylistController(buylistService, buylistStorageService, org.mockito.Mockito.mock(com.tailorcards.api.audit.AuditLog.class));
     }
 
     @Test

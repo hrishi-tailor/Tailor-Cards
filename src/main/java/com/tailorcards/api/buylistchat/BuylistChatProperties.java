@@ -90,7 +90,10 @@ public class BuylistChatProperties {
         private int maxBulkQuantity = 10000;
         private int maxPasteChars = 100_000;
         private int transcriptHistory = 20;
-        private int normalizeBatchSize = 100;
+        /** Lines per Claude call when normalising a list; smaller chunks run in parallel and finish sooner. */
+        private int normalizeBatchSize = 15;
+        /** Claude calls for list chunks running at once (shared across all requests). */
+        private int normalizeConcurrency = 4;
     }
 
     @Getter
@@ -98,7 +101,10 @@ public class BuylistChatProperties {
     public static class Resolution {
         /** Run card resolution on a background pool (false: inline, used by tests). */
         private boolean async = true;
+        /** Full cards (with prices). */
         private int cacheMinutes = 12;
+        /** Name searches: card ids and names only, no prices, so they can be kept longer. */
+        private int searchCacheMinutes = 360;
         private int concurrency = 4;
         private int requestsPerSecond = 8;
         private int searchLimit = 250;

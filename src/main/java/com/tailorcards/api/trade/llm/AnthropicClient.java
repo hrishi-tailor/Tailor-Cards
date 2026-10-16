@@ -213,6 +213,17 @@ public class AnthropicClient {
      */
     public ToolLoopResult runToolLoop(String systemPrompt, List<Map<String, Object>> messages,
                                       List<Map<String, Object>> tools, ToolExecutor executor, int maxToolRounds) {
+        return runToolLoop(systemPrompt, messages, tools, executor, maxToolRounds, java.util.Set.of());
+    }
+
+    /**
+     * As above; tools named in {@code parallelTools} (read-only lookups) run concurrently when the model asks for
+     * several in one round. Other tools run one at a time in the order the model gave them. Results go back in
+     * the model's order either way.
+     */
+    public ToolLoopResult runToolLoop(String systemPrompt, List<Map<String, Object>> messages,
+                                      List<Map<String, Object>> tools, ToolExecutor executor, int maxToolRounds,
+                                      java.util.Set<String> parallelTools) {
         List<Map<String, Object>> conversation = new ArrayList<>(messages);
         int rounds = 0;
         int inTokens = 0;
@@ -253,23 +264,36 @@ public class AnthropicClient {
             rounds++;
 
             conversation.add(Map.of("role", "assistant", "content", objectMapper.convertValue(content, List.class)));
-            List<Map<String, Object>> results = new ArrayList<>();
+            List<java.util.concurrent.CompletableFuture<Map<String, Object>>> pending = new ArrayList<>();
             for (JsonNode toolUse : toolUses) {
                 String name = toolUse.path("name").asText();
-                Map<String, Object> result = new HashMap<>();
-                result.put("type", "tool_result");
-                result.put("tool_use_id", toolUse.path("id").asText());
-                try {
-                    result.put("content", executor.execute(name, toolUse.path("input")));
-                } catch (Exception e) {
-                    result.put("content", "{\"error\":\"" + (e.getMessage() == null ? "Tool failed" : e.getMessage().replace("\"", "'")) + "\"}");
-                    result.put("is_error", true);
+                if (parallelTools.contains(name) && toolUses.size() > 1) {
+                    pending.add(java.util.concurrent.CompletableFuture.supplyAsync(() -> runTool(executor, toolUse), TOOL_POOL));
+                } else {
+                    pending.add(java.util.concurrent.CompletableFuture.completedFuture(runTool(executor, toolUse)));
                 }
-                log.info("Tool executed: {}", name);
-                results.add(result);
             }
+            List<Map<String, Object>> results = pending.stream().map(java.util.concurrent.CompletableFuture::join).toList();
             conversation.add(Map.of("role", "user", "content", results));
         }
+    }
+
+    /** Virtual threads for parallel read-only tool calls; they mostly wait on network lookups. */
+    private static final java.util.concurrent.ExecutorService TOOL_POOL = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor();
+
+    private static Map<String, Object> runTool(ToolExecutor executor, JsonNode toolUse) {
+        String name = toolUse.path("name").asText();
+        Map<String, Object> result = new HashMap<>();
+        result.put("type", "tool_result");
+        result.put("tool_use_id", toolUse.path("id").asText());
+        try {
+            result.put("content", executor.execute(name, toolUse.path("input")));
+        } catch (Exception e) {
+            result.put("content", "{\"error\":\"" + (e.getMessage() == null ? "Tool failed" : e.getMessage().replace("\"", "'")) + "\"}");
+            result.put("is_error", true);
+        }
+        log.info("Tool executed: {}", name);
+        return result;
     }
 
     /**

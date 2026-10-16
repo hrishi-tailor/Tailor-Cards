@@ -137,7 +137,8 @@ public final class BuylistEval {
     static final class ToolHarness implements AnthropicClient.ToolExecutor {
         private final BuylistChatService service;
         private final JsonNode fixtures;
-        final List<ToolCall> calls = new ArrayList<>();
+        // Lookups in one round can run in parallel, as in production
+        final List<ToolCall> calls = java.util.Collections.synchronizedList(new ArrayList<>());
         private final List<JsonNode> adds = new ArrayList<>();
         private String dealType = "SELL";
 
@@ -163,6 +164,14 @@ public final class BuylistEval {
                         adds.add(recorded);
                         yield COMPACT.writeValueAsString(Map.of("added", true, "line_id", adds.size(), "status",
                                 "Checking item data", "note", "Price and status appear in the summary once the item is checked."));
+                    }
+                    case "add_items_to_draft" -> {
+                        int first = adds.size() + 1;
+                        if (input != null) {
+                            input.path("items").forEach(item -> adds.add(item.isObject() ? item.deepCopy() : JSON.createObjectNode()));
+                        }
+                        yield COMPACT.writeValueAsString(Map.of("added", adds.size() - first + 1, "status", "Checking item data",
+                                "note", "Prices and statuses appear in the summary once the items are checked."));
                     }
                     case "remove_item_from_draft" -> COMPACT.writeValueAsString(Map.of("removed", true,
                             "line_id", input.path("line_id").asLong()));
@@ -270,7 +279,7 @@ public final class BuylistEval {
         for (String turn : c.turns()) {
             history.add(Map.of("role", "user", "content", BuylistChatService.wrapCustomer(turn)));
             AnthropicClient.ToolLoopResult r = client.runToolLoop(BuylistChatService.SYSTEM_PROMPT, List.copyOf(history),
-                    BuylistChatService.toolDefinitions(), tools, maxToolRounds);
+                    BuylistChatService.toolDefinitions(), tools, maxToolRounds, BuylistChatService.PARALLEL_TOOLS);
             in += r.inputTokens();
             out += r.outputTokens();
             rounds += r.toolRounds();
@@ -334,7 +343,7 @@ public final class BuylistEval {
 
     private static final Map<String, List<String>> TOOL_ALIASES = Map.of(
             "search_cards", List.of("search_cards", "get_card"),
-            "add_item_to_draft", List.of("add_item_to_draft", "add_sealed_product_to_draft"));
+            "add_item_to_draft", List.of("add_item_to_draft", "add_items_to_draft", "add_sealed_product_to_draft"));
 
     /** Case-specific expectations: the right adds, tools and reply content. */
     static List<String> caseFailures(Case c, Transcript t) {

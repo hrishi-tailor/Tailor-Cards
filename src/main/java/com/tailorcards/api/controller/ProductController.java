@@ -33,8 +33,10 @@ public class ProductController {
 
     private final ProductService productService;
     private final PriceHistoryService priceHistoryService;
+    private final com.tailorcards.api.audit.AuditLog audit;
 
-    public ProductController(ProductService productService, PriceHistoryService priceHistoryService) {
+    public ProductController(ProductService productService, PriceHistoryService priceHistoryService, com.tailorcards.api.audit.AuditLog audit) {
+        this.audit = audit;
         this.productService = productService;
         this.priceHistoryService = priceHistoryService;
     }
@@ -69,6 +71,7 @@ public class ProductController {
     @Operation(summary = "Create product (Admin)", description = "Create a new catalog product. Requires HTTP Basic authentication with ADMIN role.", security = @SecurityRequirement(name = "basicAuth"))
     public ResponseEntity<ProductResponse> createProduct(@Valid @RequestBody ProductRequest request) {
         ProductResponse created = productService.createProduct(request);
+        audit.record("PRODUCT_CREATE", "PRODUCT", created.id(), null, created);
         URI location = URI.create("/api/products/" + created.id());
         return ResponseEntity.created(location).body(created);
     }
@@ -79,13 +82,18 @@ public class ProductController {
             @PathVariable Long id,
             @Valid @RequestBody ProductRequest request
     ) {
-        return ResponseEntity.ok(productService.updateProduct(id, request));
+        String before = audit.snapshotOf(() -> productService.getProductById(id));
+        ProductResponse updated = productService.updateProduct(id, request);
+        audit.record("PRODUCT_UPDATE", "PRODUCT", id, before, updated);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete product (Admin)", description = "Remove a product from inventory. Requires HTTP Basic authentication with ADMIN role.", security = @SecurityRequirement(name = "basicAuth"))
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+        String before = audit.snapshotOf(() -> productService.getProductById(id));
         productService.deleteProduct(id);
+        audit.record("PRODUCT_DELETE", "PRODUCT", id, before, null);
         return ResponseEntity.noContent().build();
     }
 }

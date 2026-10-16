@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
-import { verifyAdminAuth, setAdminAuth, isAdminAuthenticated, fetchDemoStatus } from '../api/buylistApi'
+import QRCode from 'qrcode'
+import { verifyAdminAuth, setAdminAuth, setAdminSession, isAdminAuthenticated, fetchDemoStatus, twoFactorApi } from '../api/buylistApi'
+import type { TwoFactorSession } from '../api/buylistApi'
 import logoImg from '../assets/logo.jpg'
 import './AdminLoginPage.css'
 
@@ -15,6 +17,12 @@ export function AdminLoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [demoModeEnabled, setDemoModeEnabled] = useState(false)
+  // Two-factor steps after the password: a code, first-time setup (QR code), then backup codes shown once
+  const [step, setStep] = useState<'password' | 'code' | 'enrol' | 'backup'>('password')
+  const [pendingBasic, setPendingBasic] = useState<string | null>(null)
+  const [code, setCode] = useState('')
+  const [enrolment, setEnrolment] = useState<{ secret: string; qrSvg: string } | null>(null)
+  const [backupCodes, setBackupCodes] = useState<string[]>([])
 
   // Where to redirect after successful login
   const fromLocation = (location.state as { from?: { pathname?: string } })?.from?.pathname || '/admin/buylist'
@@ -53,12 +61,64 @@ export function AdminLoginPage() {
       // Submits credentials to GET /api/auth/verify using Basic Auth
       const authResult = await verifyAdminAuth(trimmedUser, password)
 
-      // On success: Stores the base64 auth header and role securely and redirects to /admin/buylist
-      setAdminAuth(trimmedUser, password, rememberMe, authResult.role || 'ADMIN')
+      const role = authResult.role || 'ADMIN'
+      const basic = btoa(`${trimmedUser}:${password.trim()}`)
+      if (role !== 'ADMIN') {
+        setAdminAuth(trimmedUser, password, rememberMe, role)
+        navigate(fromLocation, { replace: true })
+        return
+      }
+      // Admins: second factor
+      const status = await twoFactorApi.status(basic)
+      if (!status.required) {
+        setAdminAuth(trimmedUser, password, rememberMe, role)
+        setAdminSession('off', rememberMe)
+        navigate(fromLocation, { replace: true })
+        return
+      }
+      setPendingBasic(basic)
+      if (status.enrolled) {
+        setStep('code')
+      } else {
+        const e = await twoFactorApi.enrol(basic)
+        const qrSvg = await QRCode.toString(e.otpauthUri, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' })
+        setEnrolment({ secret: e.secret, qrSvg })
+        setStep('enrol')
+      }
+    } catch (err) {
+      // On failure: a clear message without leaking details (a lockout says how long to wait)
+      const message = err instanceof Error ? err.message : ''
+      setErrorMessage(message.startsWith('Too many')
+        ? message
+        : 'Invalid credentials. Please verify your admin username and password.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const finish = (session: TwoFactorSession) => {
+    setAdminAuth(username.trim(), password, rememberMe, 'ADMIN')
+    setAdminSession(session.sessionToken, rememberMe)
+    if (session.backupCodes.length > 0) {
+      setBackupCodes(session.backupCodes)
+      setStep('backup')
+    } else {
       navigate(fromLocation, { replace: true })
-    } catch {
-      // On failure: Displays a clear "Invalid credentials" error banner without leaking details
-      setErrorMessage('Invalid credentials. Please verify your admin username and password.')
+    }
+  }
+
+  const submitCode = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!pendingBasic || !code.trim()) return
+    setErrorMessage(null)
+    setIsSubmitting(true)
+    try {
+      finish(step === 'enrol'
+        ? await twoFactorApi.confirm(pendingBasic, code.trim())
+        : await twoFactorApi.verify(pendingBasic, code.trim()))
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'That code isn\'t right.')
+      setCode('')
     } finally {
       setIsSubmitting(false)
     }
@@ -116,7 +176,55 @@ export function AdminLoginPage() {
           </div>
         )}
 
+        {(step === 'code' || step === 'enrol') && (
+          <form onSubmit={submitCode} className="tc-login-form" noValidate>
+            {step === 'enrol' && enrolment && (
+              <div className="tc-2fa-enrol">
+                <p className="tc-login-subtitle">
+                  Two-factor login is required for admin accounts. Scan this code with an authenticator app
+                  (Google Authenticator, 1Password, Authy), then enter the 6-digit code it shows.
+                </p>
+                {/* QR code markup generated locally from the enrolment URI */}
+                <div className="tc-2fa-qr" dangerouslySetInnerHTML={{ __html: enrolment.qrSvg }} />
+                <p className="tc-2fa-secret">Can't scan? Enter this key: <code>{enrolment.secret.match(/.{1,4}/g)?.join(' ')}</code></p>
+              </div>
+            )}
+            {step === 'code' && (
+              <p className="tc-login-subtitle">Enter the 6-digit code from your authenticator app, or one of your backup codes.</p>
+            )}
+            <div className="tc-login-field">
+              <label htmlFor="totp" className="tc-login-label">Authentication code</label>
+              <div className="tc-login-input-wrap">
+                <input id="totp" className="tc-login-input" inputMode={step === 'enrol' ? 'numeric' : 'text'}
+                  autoComplete="one-time-code" autoFocus value={code} maxLength={11} placeholder="123456"
+                  onChange={(e) => setCode(e.target.value)} disabled={isSubmitting} />
+              </div>
+            </div>
+            <button type="submit" className="tc-login-submit-btn" disabled={isSubmitting || !code.trim()}>
+              {isSubmitting ? 'Checking…' : step === 'enrol' ? 'Turn on two-factor login' : 'Verify'}
+            </button>
+            <button type="button" className="tc-login-back-link tc-2fa-cancel"
+              onClick={() => { setStep('password'); setPendingBasic(null); setCode(''); setPassword('') }}>
+              Use a different account
+            </button>
+          </form>
+        )}
+
+        {step === 'backup' && (
+          <div className="tc-login-form">
+            <p className="tc-login-subtitle">
+              Save these backup codes somewhere safe (a password manager). Each works once if you lose your phone.
+              They won't be shown again.
+            </p>
+            <ol className="tc-2fa-backup">{backupCodes.map((c) => <li key={c}><code>{c}</code></li>)}</ol>
+            <button type="button" className="tc-login-submit-btn" onClick={() => navigate(fromLocation, { replace: true })}>
+              I've saved them, continue
+            </button>
+          </div>
+        )}
+
         {/* Login Form */}
+        {step === 'password' && (
         <form onSubmit={handleSubmit} className="tc-login-form" noValidate>
           <div className="tc-login-field">
             <label htmlFor="username" className="tc-login-label">
@@ -216,6 +324,7 @@ export function AdminLoginPage() {
             )}
           </button>
         </form>
+        )}
 
         {/* Footer back link */}
         <div className="tc-login-footer">

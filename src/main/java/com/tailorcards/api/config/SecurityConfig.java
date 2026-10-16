@@ -28,8 +28,13 @@ import java.util.List;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   com.tailorcards.api.security.twofactor.TwoFactorService twoFactor,
+                                                   com.tailorcards.api.security.login.LoginAttemptService loginAttempts,
+                                                   @Value("${app.security.trusted-proxy-hops:1}") int trustedHops) throws Exception {
+        var countingEntryPoint = new com.tailorcards.api.security.login.CountingAuthenticationEntryPoint(loginAttempts, trustedHops);
         http
+            .headers(SecurityConfig::securityHeaders)
             .cors(Customizer.withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -55,6 +60,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/trade-assistant/**").permitAll()
                 // Public Demo Mode status indicator
                 .requestMatchers("/api/auth/demo-status").permitAll()
+                // Admin second factor (setup and sign-in): needs the admin password, not a second-factor session
+                .requestMatchers("/api/auth/2fa/**").hasRole("ADMIN")
                 // Auth verify: accessible by both ADMIN and DEMO
                 .requestMatchers("/api/auth/verify").hasAnyRole("ADMIN", "DEMO")
                 // Sensitive trade parameters, margins, buy rules, liquidity tags, and price overrides: ADMIN ONLY
@@ -85,9 +92,46 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/**").hasRole("ADMIN")
                 .anyRequest().hasRole("ADMIN")
             )
-            .httpBasic(Customizer.withDefaults());
+            // Wrong passwords count towards the login lockout
+            .httpBasic(basic -> basic.authenticationEntryPoint(countingEntryPoint))
+            .exceptionHandling(e -> e.authenticationEntryPoint(countingEntryPoint))
+            // Locked accounts and blocked IPs are refused before the password is checked
+            .addFilterBefore(new com.tailorcards.api.security.login.LoginThrottleFilter(loginAttempts, trustedHops),
+                    org.springframework.security.web.authentication.www.BasicAuthenticationFilter.class)
+            // Every request authenticated as ADMIN also needs a second-factor session (X-Admin-Session)
+            .addFilterAfter(new com.tailorcards.api.security.twofactor.TwoFactorFilter(twoFactor, loginAttempts),
+                    org.springframework.security.web.authentication.www.BasicAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /** API responses: nothing may run or frame them. Swagger UI is the only HTML the backend serves. */
+    static final String API_CSP = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
+    static final String DOCS_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+            + "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+    static final String PERMISSIONS_POLICY = "accelerometer=(), camera=(), geolocation=(), gyroscope=(), "
+            + "magnetometer=(), microphone=(), payment=(), usb=()";
+
+    private static void securityHeaders(org.springframework.security.config.annotation.web.configurers.HeadersConfigurer<HttpSecurity> headers) {
+        var docs = new org.springframework.security.web.util.matcher.OrRequestMatcher(
+                org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher.withDefaults().matcher("/swagger-ui/**"),
+                org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher.withDefaults().matcher("/swagger-ui.html"));
+        headers
+            // Sent on every response: the app is behind a TLS proxy, so requests arrive as plain HTTP
+            .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31_536_000)
+                    .requestMatcher(org.springframework.security.web.util.matcher.AnyRequestMatcher.INSTANCE))
+            .frameOptions(frame -> frame.deny())
+            .contentTypeOptions(Customizer.withDefaults())
+            .referrerPolicy(referrer -> referrer.policy(
+                    org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+            .permissionsPolicyHeader(permissions -> permissions.policy(PERMISSIONS_POLICY))
+            .crossOriginOpenerPolicy(coop -> coop.policy(
+                    org.springframework.security.web.header.writers.CrossOriginOpenerPolicyHeaderWriter.CrossOriginOpenerPolicy.SAME_ORIGIN))
+            .addHeaderWriter(new org.springframework.security.web.header.writers.DelegatingRequestMatcherHeaderWriter(docs,
+                    new org.springframework.security.web.header.writers.StaticHeadersWriter("Content-Security-Policy", DOCS_CSP)))
+            .addHeaderWriter(new org.springframework.security.web.header.writers.DelegatingRequestMatcherHeaderWriter(
+                    new org.springframework.security.web.util.matcher.NegatedRequestMatcher(docs),
+                    new org.springframework.security.web.header.writers.StaticHeadersWriter("Content-Security-Policy", API_CSP)));
     }
 
     @Bean

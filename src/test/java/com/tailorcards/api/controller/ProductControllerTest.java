@@ -40,7 +40,7 @@ class ProductControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new ProductController(productService, priceHistoryService);
+        controller = new ProductController(productService, priceHistoryService, org.mockito.Mockito.mock(com.tailorcards.api.audit.AuditLog.class));
     }
 
     @Test

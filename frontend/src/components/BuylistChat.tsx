@@ -128,16 +128,54 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
     buylistChatApi.openDraft().then(setDraft).catch(fail)
   }, [step, draft, fail])
 
-  // Poll while cards are being checked
+  // While cards are being checked: follow the progress stream (a live count, and the list refreshed at most once a
+  // second as lines fill in). If the stream can't be used, poll instead.
   const pending = draft?.progress.pending ?? 0
   const draftId = draft?.draftId
+  const [live, setLive] = useState<{ done: number; total: number; etaSeconds: number | null } | null>(null)
+  const [streamFailed, setStreamFailed] = useState(false)
+  const streaming = !!draftId && pending > 0 && !streamFailed
   useEffect(() => {
-    if (!draftId || pending === 0) return
+    if (!draftId || !streaming) return
+    const controller = new AbortController()
+    let lastRefresh = 0
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined
+    let first: { at: number; done: number } | null = null
+    const refresh = () => {
+      lastRefresh = Date.now()
+      buylistChatApi.getDraft(draftId).then(setDraft).catch(() => undefined)
+    }
+    buylistChatApi.watchProgress(draftId, (event, data) => {
+      if (event === 'done') {
+        clearTimeout(refreshTimer)
+        setLive(null)
+        refresh()
+        return
+      }
+      const now = Date.now()
+      first ??= { at: now, done: data.done }
+      const rate = (data.done - first.done) / Math.max(1, now - first.at) // lines per ms
+      const etaSeconds = data.done - first.done >= 2 && rate > 0 ? Math.ceil((data.total - data.done) / rate / 1000) : null
+      setLive({ done: data.done, total: data.total, etaSeconds })
+      clearTimeout(refreshTimer)
+      refreshTimer = setTimeout(refresh, Math.max(0, 1000 - (now - lastRefresh)))
+    }, controller.signal)
+      .then((sawDone) => { if (!sawDone && !controller.signal.aborted) setStreamFailed(true) })
+      .catch(() => { if (!controller.signal.aborted) setStreamFailed(true) })
+    return () => {
+      controller.abort()
+      clearTimeout(refreshTimer)
+    }
+  }, [draftId, streaming])
+
+  // Fallback: poll while cards are being checked
+  useEffect(() => {
+    if (!draftId || pending === 0 || !streamFailed) return
     const timer = setTimeout(() => {
       buylistChatApi.getDraft(draftId).then(setDraft).catch(fail)
     }, 1500)
     return () => clearTimeout(timer)
-  }, [draftId, pending, draft, fail])
+  }, [draftId, pending, draft, fail, streamFailed])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: 'end' })
@@ -428,12 +466,20 @@ export function BuylistChat({ status }: { status: ChatStatus }) {
               <h2>Your list <span className="tc-bc-muted">({draft.progress.total}/{draft.maxLines})</span></h2>
               <button type="button" className="tc-bc-link" onClick={signOut}>{verificationOn ? 'Sign out' : 'Start over'}</button>
             </div>
-            {pending > 0 && (
-              <div className="tc-bc-progress" aria-label="Checking cards">
-                <div style={{ width: `${Math.round(((draft.progress.total - pending) / draft.progress.total) * 100)}%` }} />
-                <span>Checking cards… {draft.progress.total - pending}/{draft.progress.total}</span>
-              </div>
-            )}
+            {pending > 0 && (() => {
+              const total = live?.total ?? draft.progress.total
+              const done = Math.min(total, live?.done ?? draft.progress.total - pending)
+              return (
+                <div className="tc-bc-progress" role="progressbar" aria-label="Checking cards"
+                  aria-valuemin={0} aria-valuemax={total} aria-valuenow={done}>
+                  <div style={{ width: `${Math.round((done / Math.max(1, total)) * 100)}%` }} />
+                  <span>
+                    Checking cards… {done}/{total}
+                    {live?.etaSeconds != null && live.etaSeconds > 1 && ` · about ${live.etaSeconds}s left`}
+                  </span>
+                </div>
+              )
+            })()}
             {draft.lines.length === 0 ? (
               <p className="tc-bc-muted">No cards yet. Tell the assistant what you have, or tap + to scan a card.</p>
             ) : (

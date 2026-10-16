@@ -40,6 +40,7 @@ import java.util.List;
 public class AdminTradeAssistantController {
 
     private final TradeAssistantService tradeAssistantService;
+    private final com.tailorcards.api.audit.AuditLog audit;
 
     @GetMapping("/requests")
     @Operation(summary = "List trade requests", description = "Retrieve paginated list of trade submissions with optional status filter")
@@ -62,7 +63,10 @@ public class AdminTradeAssistantController {
             @PathVariable Long id,
             @RequestBody(required = false) TradeAdminReviewRequest request
     ) {
-        return ResponseEntity.ok(tradeAssistantService.approveRequest(id, request));
+        String before = audit.snapshotOf(() -> tradeAssistantService.getRequestById(id));
+        TradeSubmissionResponse after = tradeAssistantService.approveRequest(id, request);
+        audit.record("TRADE_APPROVE", "TRADE_REQUEST", id, before, after);
+        return ResponseEntity.ok(after);
     }
 
     @PostMapping("/requests/{id}/counter")
@@ -71,7 +75,10 @@ public class AdminTradeAssistantController {
             @PathVariable Long id,
             @RequestBody(required = false) TradeAdminReviewRequest request
     ) {
-        return ResponseEntity.ok(tradeAssistantService.counterRequest(id, request));
+        String before = audit.snapshotOf(() -> tradeAssistantService.getRequestById(id));
+        TradeSubmissionResponse after = tradeAssistantService.counterRequest(id, request);
+        audit.record("TRADE_COUNTER", "TRADE_REQUEST", id, before, after);
+        return ResponseEntity.ok(after);
     }
 
     @PostMapping("/requests/{id}/decline")
@@ -80,7 +87,10 @@ public class AdminTradeAssistantController {
             @PathVariable Long id,
             @RequestBody(required = false) TradeAdminReviewRequest request
     ) {
-        return ResponseEntity.ok(tradeAssistantService.declineRequest(id, request));
+        String before = audit.snapshotOf(() -> tradeAssistantService.getRequestById(id));
+        TradeSubmissionResponse after = tradeAssistantService.declineRequest(id, request);
+        audit.record("TRADE_DECLINE", "TRADE_REQUEST", id, before, after);
+        return ResponseEntity.ok(after);
     }
 
     @GetMapping("/buy-rules")
@@ -95,7 +105,11 @@ public class AdminTradeAssistantController {
             @PathVariable Long id,
             @Valid @RequestBody BuyRuleUpdateRequest request
     ) {
-        return ResponseEntity.ok(tradeAssistantService.updateBuyRule(id, request));
+        String before = audit.snapshotOf(() -> tradeAssistantService.getBuyRules().stream()
+                .filter(r -> id.equals(r.getId())).findFirst().orElse(null));
+        BuyRule after = tradeAssistantService.updateBuyRule(id, request);
+        audit.record("BUY_RULE_UPDATE", "BUY_RULE", id, before, after);
+        return ResponseEntity.ok(after);
     }
 
     @GetMapping("/parameters")
@@ -110,7 +124,11 @@ public class AdminTradeAssistantController {
             @PathVariable String key,
             @Valid @RequestBody TradeParameterUpdateRequest request
     ) {
-        return ResponseEntity.ok(tradeAssistantService.updateTradeParameter(key, request));
+        String before = audit.snapshotOf(() -> tradeAssistantService.getTradeParameters().stream()
+                .filter(p -> key.equals(p.getParamKey())).findFirst().orElse(null));
+        TradeParameter after = tradeAssistantService.updateTradeParameter(key, request);
+        audit.record("TRADE_PARAMETER_UPDATE", "TRADE_PARAMETER", key, before, after);
+        return ResponseEntity.ok(after);
     }
 
     @GetMapping("/liquidity")
@@ -124,14 +142,20 @@ public class AdminTradeAssistantController {
     public ResponseEntity<CardLiquidity> upsertLiquidity(
             @Valid @RequestBody CardLiquidityRequest request
     ) {
+        String before = audit.snapshotOf(() -> tradeAssistantService.getCardLiquidities().stream()
+                .filter(l -> request.pokemontcgId().equals(l.getPokemontcgId())).findFirst().orElse(null));
         CardLiquidity saved = tradeAssistantService.upsertCardLiquidity(request);
+        audit.record("LIQUIDITY_UPSERT", "CARD_LIQUIDITY", saved.getPokemontcgId(), before, saved);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @DeleteMapping("/liquidity/{pokemontcgId}")
     @Operation(summary = "Delete card liquidity tag", description = "Remove custom liquidity tag for a card")
     public ResponseEntity<Void> deleteLiquidity(@PathVariable String pokemontcgId) {
+        String before = audit.snapshotOf(() -> tradeAssistantService.getCardLiquidities().stream()
+                .filter(l -> pokemontcgId.equals(l.getPokemontcgId())).findFirst().orElse(null));
         tradeAssistantService.deleteCardLiquidity(pokemontcgId);
+        audit.record("LIQUIDITY_DELETE", "CARD_LIQUIDITY", pokemontcgId, before, null);
         return ResponseEntity.noContent().build();
     }
 }

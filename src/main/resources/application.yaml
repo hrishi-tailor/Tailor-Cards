@@ -49,7 +49,14 @@ spring:
     enabled: true
     baseline-on-migrate: true
     baseline-version: 1
+    # SQL migrations, plus Java migrations in the db.migration package (V11_1: audit log trigger, PostgreSQL only)
     locations: classpath:db/migration
+
+storage:
+  s3:
+    # AWS deployments: images go to this bucket and are served from public-base-url (CloudFront)
+    bucket: ${S3_IMAGES_BUCKET:}
+    public-base-url: ${S3_IMAGES_PUBLIC_URL:}
 
 supabase:
   url: ${SUPABASE_URL:}
@@ -70,6 +77,22 @@ stripe:
   cancel-url: ${STRIPE_CANCEL_URL:${frontend.url}/cart}
 
 app:
+  security:
+    # Proxies in front of the app that append to X-Forwarded-For (Render's load balancer: 1). Used for login limits.
+    trusted-proxy-hops: ${TRUSTED_PROXY_HOPS:1}
+    login:
+      # Failed admin sign-ins (password or two-factor code) before a temporary lock
+      max-failures: 5
+      max-failures-per-ip: 20
+      window-minutes: 15
+      lockout-minutes: 15
+    two-factor:
+      # Admin accounts need a TOTP code (or backup code) after the password. Needs TOTP_ENCRYPTION_KEY.
+      enabled: ${ADMIN_2FA_ENABLED:true}
+      # openssl rand -base64 32
+      encryption-key: ${TOTP_ENCRYPTION_KEY:}
+      session-hours: 12
+      issuer: Tailor Cards
   anthropic:
     api-key: ${ANTHROPIC_API_KEY:}
     model: ${ANTHROPIC_MODEL:claude-haiku-4-5-20251001}
@@ -131,7 +154,9 @@ app:
       max-bulk-quantity: 10000
       max-paste-chars: 100000
       transcript-history: 20
-      normalize-batch-size: 100
+      # Lists are normalised in chunks of this many lines, up to normalize-concurrency Claude calls at a time
+      normalize-batch-size: 15
+      normalize-concurrency: 4
     graded-prices:
       # Graded prices (PSA/BGS/CGC/SGC/TAG/ACE): Pokémon TCG API on RapidAPI (eBay sales per grade).
       # Without a key slabs are priced by hand.
@@ -143,6 +168,8 @@ app:
     resolution:
       async: true
       cache-minutes: 12
+      # Name searches carry no prices (only card ids and names), so they're kept longer than full cards
+      search-cache-minutes: 360
       concurrency: 4
       requests-per-second: 8
       search-limit: 250

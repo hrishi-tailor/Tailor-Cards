@@ -1,0 +1,6 @@
+# Copy to backend.hcl (git-ignored); the bucket name is the bootstrap output
+bucket       = "tailorcards-terraform-state-123456789012"
+key          = "staging/terraform.tfstate"
+region       = "us-east-2"
+encrypt      = true
+use_lockfile = true # S3-native state locking (no DynamoDB table needed)

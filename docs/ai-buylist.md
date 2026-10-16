@@ -13,7 +13,7 @@ Customer messages, pasted lists, CSV cells, card text and photo contents are wra
 
 1. **Start.** An anonymous session (10 per IP per hour, Cloudflare Turnstile if configured) and the customer types a contact email at Confirm. With `BUYLIST_CHAT_REQUIRE_EMAIL=true` they verify a 6-digit email code first (HMAC-hashed, 10-minute expiry, 5 attempts, 60 s resend cooldown, 5 codes per hour).
 2. **Add cards.** Type or paste into the chat (a list longer than one message is parsed line by line), or use the **+** menu: *Scan a card*, *Upload a card* (a photo) or *Upload CSV* (up to 1000 lines). Resolution runs in the background and the page shows progress.
-3. **Review.** Each line gets a status: `ELIGIBLE`, `BELOW_MINIMUM`, `NEEDS_PHOTO`, `NEEDS_REVIEW` (ambiguous match, no price, provider outage) or `UNIDENTIFIED`. Customers can change quantity, condition, grade and their asking price per line.
+3. **Review.** Lines appear right away and fill in as each card is matched and priced, with a live count from a progress stream (see [performance](performance.md)). Each line gets a status: `ELIGIBLE`, `BELOW_MINIMUM`, `NEEDS_PHOTO`, `NEEDS_REVIEW` (ambiguous match, no price, provider outage) or `UNIDENTIFIED`. Customers can change quantity, condition, grade and their asking price per line.
 4. **Choose a deal.** Sell for cash, trade for in-stock shop cards, or trade plus cash.
 5. **Confirm.** One submission per email per day. The quote is a market reference, valid 48 hours and re-checked when the cards arrive.
 

@@ -95,5 +95,17 @@ class PostgreSqlFlywayMigrationIntegrationTest {
         Integer v3 = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM flyway_schema_history WHERE version = '3' AND success = true", Integer.class);
         assertThat(v3).isEqualTo(1);
+
+        // 4. The admin audit log is append-only in the database itself
+        jdbcTemplate.update("INSERT INTO admin_audit_log (occurred_at, actor, action) VALUES (now(), 'admin', 'TEST')");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                jdbcTemplate.update("UPDATE admin_audit_log SET actor = 'someone-else'"))
+                .hasMessageContaining("append-only");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbcTemplate.update("DELETE FROM admin_audit_log"))
+                .hasMessageContaining("append-only");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbcTemplate.execute("TRUNCATE admin_audit_log"))
+                .hasMessageContaining("append-only");
+        assertThat(jdbcTemplate.queryForObject("SELECT actor FROM admin_audit_log WHERE action = 'TEST'", String.class))
+                .isEqualTo("admin");
     }
 }

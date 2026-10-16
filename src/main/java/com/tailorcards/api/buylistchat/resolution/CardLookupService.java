@@ -23,8 +23,27 @@ public class CardLookupService {
 
     private record Entry<T>(T value, Instant expiresAt) {}
 
+    /**
+     * Running totals since startup, for timing logs: TCGdex requests made, cache hits, time spent waiting for a
+     * rate-limit slot and time spent in requests. Callers log the difference between two snapshots.
+     */
+    public record Stats(long requests, long cacheHits, long throttleWaitMs, long requestMs) {
+        public Stats minus(Stats before) {
+            return new Stats(requests - before.requests, cacheHits - before.cacheHits,
+                    throttleWaitMs - before.throttleWaitMs, requestMs - before.requestMs);
+        }
+    }
+
+    private final java.util.concurrent.atomic.AtomicLong requests = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong cacheHits = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong throttleWaitNanos = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong requestNanos = new java.util.concurrent.atomic.AtomicLong();
+
     private final TcgdexPriceProvider tcgdex;
     private final Duration ttl;
+    private final Duration searchTtl;
+    /** Requests in progress, so lines asking for the same thing at the same moment share one TCGdex call. */
+    private final Map<String, java.util.concurrent.CompletableFuture<Object>> inFlight = new ConcurrentHashMap<>();
     private final int searchLimit;
     private final long nanosPerRequest;
     private final Clock clock;
@@ -45,6 +64,8 @@ public class CardLookupService {
     CardLookupService(TcgdexPriceProvider tcgdex, BuylistChatProperties properties, Clock clock) {
         this.tcgdex = tcgdex;
         this.ttl = Duration.ofMinutes(properties.getResolution().getCacheMinutes());
+        this.searchTtl = Duration.ofMinutes(Math.max(properties.getResolution().getCacheMinutes(),
+                properties.getResolution().getSearchCacheMinutes()));
         this.searchLimit = properties.getResolution().getSearchLimit();
         this.nanosPerRequest = 1_000_000_000L / Math.max(1, properties.getResolution().getRequestsPerSecond());
         this.clock = clock;
@@ -55,12 +76,14 @@ public class CardLookupService {
         String key = name.trim().toLowerCase(Locale.ROOT);
         Entry<List<CardMarketPrice>> cached = searchCache.get(key);
         if (cached != null && cached.expiresAt().isAfter(clock.instant())) {
+            cacheHits.incrementAndGet();
             return cached.value();
         }
-        throttle();
-        List<CardMarketPrice> results = List.copyOf(tcgdex.searchCardsStrict(name.trim(), searchLimit));
-        searchCache.put(key, new Entry<>(results, clock.instant().plus(ttl)));
-        return results;
+        return once("search:" + key, () -> {
+            List<CardMarketPrice> results = timed(() -> List.copyOf(tcgdex.searchCardsStrict(name.trim(), searchLimit)));
+            searchCache.put(key, new Entry<>(results, clock.instant().plus(searchTtl)));
+            return results;
+        });
     }
 
     /** Full card with prices; empty when TCGdex has no such card. */
@@ -68,12 +91,14 @@ public class CardLookupService {
         String key = cardId.trim();
         Entry<Optional<CardMarketPrice>> cached = cardCache.get(key);
         if (cached != null && cached.expiresAt().isAfter(clock.instant())) {
+            cacheHits.incrementAndGet();
             return cached.value();
         }
-        throttle();
-        Optional<CardMarketPrice> card = tcgdex.fetchCardStrict(key);
-        cardCache.put(key, new Entry<>(card, clock.instant().plus(ttl)));
-        return card;
+        return once("card:" + key, () -> {
+            Optional<CardMarketPrice> card = timed(() -> tcgdex.fetchCardStrict(key));
+            cardCache.put(key, new Entry<>(card, clock.instant().plus(ttl)));
+            return card;
+        });
     }
 
     /**
@@ -170,8 +195,7 @@ public class CardLookupService {
             return cached.value();
         }
         try {
-            throttle();
-            List<TcgdexPriceProvider.SetInfo> sets = List.copyOf(tcgdex.fetchSetsStrict());
+            List<TcgdexPriceProvider.SetInfo> sets = timed(() -> List.copyOf(tcgdex.fetchSetsStrict()));
             // Set lists change rarely: keep them for 12 hours
             setsCache = new Entry<>(sets, clock.instant().plus(Duration.ofHours(12)));
             return sets;
@@ -213,6 +237,52 @@ public class CardLookupService {
     /** True when the card id belongs to one of the set ids ("me02-125" is in "me02"). */
     public static boolean inSets(String cardId, List<String> setIds) {
         return cardId != null && setIds.stream().anyMatch(id -> cardId.startsWith(id + "-"));
+    }
+
+    public Stats stats() {
+        return new Stats(requests.get(), cacheHits.get(), throttleWaitNanos.get() / 1_000_000, requestNanos.get() / 1_000_000);
+    }
+
+    /**
+     * Runs load once for concurrent callers with the same key: the first caller makes the request, the others wait
+     * for its result (counted as cache hits). Failures reach every waiter and are not cached.
+     */
+    @SuppressWarnings("unchecked")
+    private <T> T once(String key, java.util.function.Supplier<T> load) {
+        java.util.concurrent.CompletableFuture<Object> mine = new java.util.concurrent.CompletableFuture<>();
+        java.util.concurrent.CompletableFuture<Object> existing = inFlight.putIfAbsent(key, mine);
+        if (existing != null) {
+            cacheHits.incrementAndGet();
+            try {
+                return (T) existing.join();
+            } catch (java.util.concurrent.CompletionException e) {
+                throw e.getCause() instanceof RuntimeException re ? re : e;
+            }
+        }
+        try {
+            T value = load.get();
+            mine.complete(value);
+            return value;
+        } catch (RuntimeException e) {
+            mine.completeExceptionally(e);
+            throw e;
+        } finally {
+            inFlight.remove(key, mine);
+        }
+    }
+
+    /** One TCGdex request: waits for a rate-limit slot, then runs it, counting both times. */
+    private <T> T timed(java.util.function.Supplier<T> call) {
+        long waitStart = System.nanoTime();
+        throttle();
+        long start = System.nanoTime();
+        throttleWaitNanos.addAndGet(start - waitStart);
+        requests.incrementAndGet();
+        try {
+            return call.get();
+        } finally {
+            requestNanos.addAndGet(System.nanoTime() - start);
+        }
     }
 
     /** Spaces outgoing TCGdex calls to the configured requests per second across all threads. */

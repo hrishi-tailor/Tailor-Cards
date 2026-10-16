@@ -48,6 +48,29 @@ services:
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
+    # Security headers (same as frontend/vercel.json)
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https://tailor-cards-api.onrender.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; upgrade-insecure-requests"
+      - path: /*
+        name: Strict-Transport-Security
+        value: "max-age=31536000; includeSubDomains"
+      - path: /*
+        name: X-Frame-Options
+        value: "DENY"
+      - path: /*
+        name: X-Content-Type-Options
+        value: "nosniff"
+      - path: /*
+        name: Referrer-Policy
+        value: "strict-origin-when-cross-origin"
+      - path: /*
+        name: Permissions-Policy
+        value: "camera=(self), microphone=(), geolocation=(), payment=(), usb=(), accelerometer=(), gyroscope=(), magnetometer=()"
+      - path: /*
+        name: Cross-Origin-Opener-Policy
+        value: "same-origin"
     routes:
       - type: rewrite
         source: /*

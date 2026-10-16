@@ -124,4 +124,8 @@ public class BuylistDraftLine {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+
+    /** When resolution finished (matched and priced, or gave up); null while pending. */
+    @Column(name = "resolved_at")
+    private Instant resolvedAt;
 }

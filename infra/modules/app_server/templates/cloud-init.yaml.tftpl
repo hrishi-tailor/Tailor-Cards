@@ -1,0 +1,190 @@
+#cloud-config
+# Tailor Cards app server (Amazon Linux 2023, ARM). Installs Java 21, Nginx (HTTPS via Let's Encrypt), the
+# CloudWatch agent and a systemd service; the jar itself arrives with the first deploy (deploy.sh).
+package_update: true
+packages:
+  - java-21-amazon-corretto-headless
+  - nginx
+  - amazon-cloudwatch-agent
+  - jq
+  - python3-pip
+  - augeas-libs
+
+swap:
+  filename: /swapfile
+  size: 2G
+
+write_files:
+  - path: /etc/tailorcards/env
+    permissions: "0640"
+    content: |
+      # Non-secret settings. Secrets are read from Secrets Manager by start.sh at every start.
+      AWS_REGION=${region}
+      SERVER_PORT=8080
+      LOGGING_FILE_NAME=/var/log/tailorcards/app.log
+      FRONTEND_URL=${frontend_url}
+      TRUSTED_PROXY_HOPS=1
+      S3_IMAGES_BUCKET=${images_bucket}
+      S3_IMAGES_PUBLIC_URL=${images_public_url}
+      EMAIL_PROVIDER=ses
+      EMAIL_FROM=${email_from}
+      DB_SECRET_ID=${db_secret_arn}
+      APP_SECRET_ID=${app_secret_arn}
+      JAVA_OPTS=-XX:MaxRAMPercentage=55 -XX:+ExitOnOutOfMemoryError
+
+  - path: /opt/tailorcards/bin/start.sh
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      # Reads secrets from Secrets Manager (never written to disk), exports them, then runs the jar.
+      set -euo pipefail
+      db=$(aws secretsmanager get-secret-value --region "$AWS_REGION" --secret-id "$DB_SECRET_ID" --query SecretString --output text)
+      export DB_HOST=$(jq -r .host <<<"$db") DB_PORT=$(jq -r .port <<<"$db") DB_NAME=$(jq -r .dbname <<<"$db")
+      export DB_USERNAME=$(jq -r .username <<<"$db") DB_PASSWORD=$(jq -r .password <<<"$db")
+      app=$(aws secretsmanager get-secret-value --region "$AWS_REGION" --secret-id "$APP_SECRET_ID" --query SecretString --output text 2>/dev/null || echo '{}')
+      while IFS='=' read -r key value; do
+        [ -n "$key" ] && export "$key=$value"
+      done < <(jq -r 'to_entries[] | "\(.key)=\(.value)"' <<<"$app")
+      exec java $JAVA_OPTS -jar /opt/tailorcards/current.jar
+
+  - path: /opt/tailorcards/bin/deploy.sh
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      # Usage: deploy.sh s3://bucket/key.jar <version>. Installs the jar, restarts, checks health, rolls back on failure.
+      set -euo pipefail
+      src="$1"; version="$2"; dir=/opt/tailorcards
+      aws s3 cp "$src" "$dir/releases/$version.jar" --region "${region}" --only-show-errors
+      chown tailorcards:tailorcards "$dir/releases/$version.jar"
+      previous=$(readlink -f "$dir/current.jar" || true)
+      ln -sfn "$dir/releases/$version.jar" "$dir/current.jar"
+      systemctl restart tailorcards
+      for attempt in $(seq 1 60); do
+        if curl -fs http://127.0.0.1:8080/api/products > /dev/null; then
+          echo "Deployed $version (healthy after $attempt checks)"
+          ls -1t "$dir"/releases/*.jar | tail -n +6 | xargs -r rm -f   # keep the last 5 releases
+          exit 0
+        fi
+        sleep 3
+      done
+      echo "Health check failed for $version; rolling back" >&2
+      journalctl -u tailorcards -n 80 --no-pager >&2 || true
+      if [ -n "$previous" ] && [ -f "$previous" ] && [ "$previous" != "$dir/releases/$version.jar" ]; then
+        ln -sfn "$previous" "$dir/current.jar"
+        systemctl restart tailorcards
+      fi
+      exit 1
+
+  - path: /etc/systemd/system/tailorcards.service
+    content: |
+      [Unit]
+      Description=Tailor Cards API
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      User=tailorcards
+      Group=tailorcards
+      EnvironmentFile=/etc/tailorcards/env
+      WorkingDirectory=/opt/tailorcards/data
+      ExecStart=/opt/tailorcards/bin/start.sh
+      Restart=on-failure
+      RestartSec=5
+      SuccessExitStatus=143
+      TimeoutStopSec=30
+      # Hardening: read-only system, no privilege escalation, private /tmp
+      NoNewPrivileges=yes
+      PrivateTmp=yes
+      ProtectSystem=strict
+      ProtectHome=yes
+      ProtectKernelTunables=yes
+      ProtectKernelModules=yes
+      ProtectControlGroups=yes
+      RestrictSUIDSGID=yes
+      LockPersonality=yes
+      ReadWritePaths=/var/log/tailorcards /opt/tailorcards/data
+
+      [Install]
+      WantedBy=multi-user.target
+
+  - path: /etc/nginx/conf.d/00-hardening.conf
+    content: |
+      server_tokens off;
+
+  - path: /etc/nginx/conf.d/tailorcards.conf
+    content: |
+      # Plain HTTP until certbot adds HTTPS and the redirect on first boot
+      server {
+          listen 80;
+          server_name ${api_domain};
+          client_max_body_size 50m;
+
+          location / {
+              proxy_pass http://127.0.0.1:8080;
+              proxy_set_header Host $host;
+              # Overwrite (not append): the app trusts exactly one proxy hop
+              proxy_set_header X-Forwarded-For $remote_addr;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_read_timeout 120s;
+              proxy_buffering off;   # server-sent events (card checking progress)
+          }
+      }
+
+  - path: /etc/systemd/system/certbot-renew.service
+    content: |
+      [Unit]
+      Description=Renew Let's Encrypt certificates
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/certbot renew --quiet --deploy-hook "systemctl reload nginx"
+
+  - path: /etc/systemd/system/certbot-renew.timer
+    content: |
+      [Unit]
+      Description=Renew Let's Encrypt certificates twice a day
+      [Timer]
+      OnCalendar=*-*-* 03,15:17:00
+      RandomizedDelaySec=1h
+      Persistent=true
+      [Install]
+      WantedBy=timers.target
+
+  - path: /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+    content: |
+      {
+        "agent": { "metrics_collection_interval": 60, "run_as_user": "root" },
+        "metrics": {
+          "namespace": "CWAgent",
+          "append_dimensions": { "InstanceId": "$${aws:InstanceId}" },
+          "metrics_collected": {
+            "mem": { "measurement": ["mem_used_percent"] },
+            "disk": { "measurement": ["used_percent"], "resources": ["/"] }
+          }
+        },
+        "logs": {
+          "logs_collected": {
+            "files": {
+              "collect_list": [
+                { "file_path": "/var/log/tailorcards/app.log", "log_group_name": "${log_group_app}", "log_stream_name": "{instance_id}" },
+                { "file_path": "/var/log/nginx/access.log", "log_group_name": "${log_group_nginx_access}", "log_stream_name": "{instance_id}" },
+                { "file_path": "/var/log/nginx/error.log", "log_group_name": "${log_group_nginx_error}", "log_stream_name": "{instance_id}" }
+              ]
+            }
+          }
+        }
+      }
+
+runcmd:
+  - useradd --system --home-dir /opt/tailorcards --shell /sbin/nologin tailorcards || true
+  - mkdir -p /opt/tailorcards/releases /opt/tailorcards/data /var/log/tailorcards
+  - chown -R tailorcards:tailorcards /opt/tailorcards/releases /opt/tailorcards/data /var/log/tailorcards
+  - chgrp tailorcards /etc/tailorcards/env
+  - python3 -m venv /opt/certbot && /opt/certbot/bin/pip install --quiet certbot certbot-nginx
+  - ln -sf /opt/certbot/bin/certbot /usr/local/bin/certbot
+  - systemctl enable --now nginx
+  # The DNS record may still be propagating on first boot: keep trying for up to 30 minutes
+  - for i in $(seq 1 30); do /usr/local/bin/certbot --nginx -d ${api_domain} --non-interactive --agree-tos -m ${letsencrypt_email} --redirect && break; sleep 60; done
+  - systemctl daemon-reload
+  - systemctl enable --now certbot-renew.timer
+  - systemctl enable tailorcards
+  - /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json

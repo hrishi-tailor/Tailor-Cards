@@ -37,9 +37,11 @@ public class ProductPhotoController {
     private final ProductService productService;
     private final BuylistStorageService storage;
     private final ListingImageSanitizer sanitizer;
+    private final com.tailorcards.api.audit.AuditLog audit;
 
     public ProductPhotoController(ProductService productService, BuylistStorageService storage,
-                                  ListingImageSanitizer sanitizer) {
+                                  ListingImageSanitizer sanitizer, com.tailorcards.api.audit.AuditLog audit) {
+        this.audit = audit;
         this.productService = productService;
         this.storage = storage;
         this.sanitizer = sanitizer;
@@ -62,25 +64,36 @@ public class ProductPhotoController {
         for (MultipartFile file : files) {
             urls.add(store(file));
         }
-        return ResponseEntity.ok(productService.addPhotos(id, urls));
+        String before = audit.snapshotOf(() -> productService.getProductById(id));
+        ProductResponse after = productService.addPhotos(id, urls);
+        audit.record("PRODUCT_PHOTOS_ADD", "PRODUCT", id, before, after);
+        return ResponseEntity.ok(after);
     }
 
     @DeleteMapping("/{id}/photos/{index}")
     @Operation(summary = "Remove a product photo (Admin)", security = @SecurityRequirement(name = "basicAuth"))
     public ResponseEntity<ProductResponse> removePhoto(@PathVariable Long id, @PathVariable int index) {
-        return ResponseEntity.ok(productService.removePhoto(id, index));
+        String before = audit.snapshotOf(() -> productService.getProductById(id));
+        ProductResponse after = productService.removePhoto(id, index);
+        audit.record("PRODUCT_PHOTO_REMOVE", "PRODUCT", id, before, after);
+        return ResponseEntity.ok(after);
     }
 
     @PostMapping("/{id}/official-image")
     @Operation(summary = "Use the official card image (Admin)", description = "Sets the default picture to the card's official image (by linked card id, or set and number). A previous seller photo moves into the photos.", security = @SecurityRequirement(name = "basicAuth"))
     public ResponseEntity<ProductResponse> useOfficialImage(@PathVariable Long id) {
-        return ResponseEntity.ok(productService.useOfficialImage(id));
+        String before = audit.snapshotOf(() -> productService.getProductById(id));
+        ProductResponse after = productService.useOfficialImage(id);
+        audit.record("PRODUCT_OFFICIAL_IMAGE", "PRODUCT", id, before, after);
+        return ResponseEntity.ok(after);
     }
 
     @PostMapping("/official-images")
     @Operation(summary = "Use official card images for all products (Admin)", description = "Applies the official image to every product that doesn't show one yet; returns how many changed and which couldn't be matched.", security = @SecurityRequirement(name = "basicAuth"))
     public ResponseEntity<ProductService.OfficialImageBackfill> useOfficialImagesForAll() {
-        return ResponseEntity.ok(productService.useOfficialImagesForAll());
+        ProductService.OfficialImageBackfill result = productService.useOfficialImagesForAll();
+        audit.record("PRODUCT_OFFICIAL_IMAGES_ALL", "PRODUCT", null, null, result);
+        return ResponseEntity.ok(result);
     }
 
     private String store(MultipartFile file) throws IOException {

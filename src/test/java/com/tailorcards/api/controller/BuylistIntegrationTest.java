@@ -32,7 +32,7 @@ class BuylistIntegrationTest {
                 "file",
                 "card.jpg",
                 "image/jpeg",
-                "fake-card-data".getBytes()
+                realJpeg() // uploads are checked by content: it must really be an image
         );
 
         MvcResult uploadResult = mockMvc.perform(multipart("/api/buylist/upload").file(file))
@@ -170,5 +170,11 @@ class BuylistIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.senderRole", is("ADMIN")))
                 .andExpect(jsonPath("$.message", is("We reviewed your card and can proceed with inspection.")));
+    }
+
+    private static byte[] realJpeg() throws java.io.IOException {
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(8, 8, java.awt.image.BufferedImage.TYPE_INT_RGB), "jpg", out);
+        return out.toByteArray();
     }
 }

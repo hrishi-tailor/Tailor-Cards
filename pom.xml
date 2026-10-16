@@ -30,6 +30,19 @@
 		<java.version>21</java.version>
 		<testcontainers.version>1.20.5</testcontainers.version>
 	</properties>
+	<dependencyManagement>
+		<dependencies>
+			<!-- AWS SDK (S3 image storage and SES email on AWS deployments) -->
+			<dependency>
+				<groupId>software.amazon.awssdk</groupId>
+				<artifactId>bom</artifactId>
+				<version>2.56.0</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -63,6 +76,34 @@
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>2.8.5</version>
+		</dependency>
+		<!-- AWS: only S3 and SES, on the JDK's HTTP client (no Netty or Apache client) -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>s3</artifactId>
+			<exclusions>
+				<exclusion><groupId>software.amazon.awssdk</groupId><artifactId>netty-nio-client</artifactId></exclusion>
+				<exclusion><groupId>software.amazon.awssdk</groupId><artifactId>apache-client</artifactId></exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>sesv2</artifactId>
+			<exclusions>
+				<exclusion><groupId>software.amazon.awssdk</groupId><artifactId>netty-nio-client</artifactId></exclusion>
+				<exclusion><groupId>software.amazon.awssdk</groupId><artifactId>apache-client</artifactId></exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>url-connection-client</artifactId>
+		</dependency>
+		<!-- Newer Swagger UI than springdoc 2.8.5 bundles: 5.18.3 ships DOMPurify 3.1.6, which has known XSS CVEs
+		     (found by the ZAP baseline scan). springdoc serves whichever swagger-ui webjar is on the classpath. -->
+		<dependency>
+			<groupId>org.webjars</groupId>
+			<artifactId>swagger-ui</artifactId>
+			<version>5.33.2</version>
 		</dependency>
 
 		<dependency>

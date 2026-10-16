@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -51,6 +52,27 @@ class GlobalExceptionHandlerTest {
         public void throwSpringOptimisticLock() {
             throw new ObjectOptimisticLockingFailureException("Product", 1L);
         }
+        @GetMapping("/unexpected")
+        public void throwUnexpected() {
+            throw new IllegalStateException("could not execute statement [insert into secret_table (password) values (?)]");
+        }
+    }
+
+    @Test
+    void unexpectedError_returns500WithoutInternalDetails() throws Exception {
+        mockMvc.perform(get("/api/test-conflict/unexpected"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("Something went wrong on our side. Please try again."))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("secret_table"))));
+    }
+
+    @Test
+    void frameworkClientErrors_keepTheir4xxStatus() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/test-conflict/unexpected")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic("admin", "test-admin-password")))
+                .andExpect(status().isMethodNotAllowed());
+        mockMvc.perform(get("/api/test-conflict/no-such-path"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
