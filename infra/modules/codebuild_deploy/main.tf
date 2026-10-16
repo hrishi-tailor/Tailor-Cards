@@ -85,6 +85,8 @@ resource "aws_iam_role_policy" "build" {
 
 resource "aws_codebuild_project" "deploy" {
   # checkov:skip=CKV_AWS_316: Docker is needed for the PostgreSQL integration tests; the build only runs this repository's main branch
+  # CodeBuild checks the role can use the connection when the project is created
+  depends_on             = [aws_iam_role_policy.build]
   name                   = "${var.name}-deploy"
   description            = "Test and deploy ${var.github_repository} (${var.branch}) to ${var.name}"
   service_role           = aws_iam_role.build.arn
