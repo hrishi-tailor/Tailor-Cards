@@ -3,7 +3,7 @@ package com.tailorcards.api.security.twofactor;
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import java.nio.ByteBuffer;
+import java.io.ByteArrayOutputStream;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -38,8 +38,10 @@ public final class SecretCipher {
             random.nextBytes(iv);
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(TAG_BITS, iv));
-            byte[] sealed = cipher.doFinal(plain);
-            return Base64.getEncoder().encodeToString(ByteBuffer.allocate(iv.length + sealed.length).put(iv).put(sealed).array());
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            out.writeBytes(iv);
+            out.writeBytes(cipher.doFinal(plain));
+            return Base64.getEncoder().encodeToString(out.toByteArray());
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException("Could not encrypt", e);
         }

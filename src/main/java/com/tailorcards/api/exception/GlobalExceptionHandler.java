@@ -1,5 +1,6 @@
 package com.tailorcards.api.exception;
 
+import com.tailorcards.api.security.LogSafe;
 import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -148,7 +149,7 @@ public class GlobalExceptionHandler {
         }
         // Unexpected errors: details go to the log, never to the caller (they can include SQL or internal state)
         org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class)
-                .error("Unhandled error on {} {}", request.getMethod(), request.getRequestURI(), ex);
+                .error("Unhandled error on {} {}", LogSafe.of(request.getMethod()), LogSafe.of(request.getRequestURI()), ex);
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),

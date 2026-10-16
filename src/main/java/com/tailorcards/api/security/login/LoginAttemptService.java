@@ -1,5 +1,6 @@
 package com.tailorcards.api.security.login;
 
+import com.tailorcards.api.security.LogSafe;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -82,7 +83,7 @@ public class LoginAttemptService {
     public void failure(String username, String ip) {
         if (username != null && !username.isBlank()
                 && record(accounts, key(username), properties.getMaxFailures())) {
-            log.warn("Admin sign-in locked for '{}' for {} min after {} failures", username,
+            log.warn("Admin sign-in locked for '{}' for {} min after {} failures", LogSafe.of(username),
                     properties.getLockoutMinutes(), properties.getMaxFailures());
         }
         if (ip != null && record(ips, ip, properties.getMaxFailuresPerIp())) {

@@ -1,5 +1,6 @@
 package com.tailorcards.api.audit;
 
+import com.tailorcards.api.security.LogSafe;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.tailorcards.api.security.ClientAddress;
@@ -85,7 +86,7 @@ public class AuditLog {
         String path = request == null ? null : truncate(request.getMethod() + " " + request.getRequestURI(), 200);
         entries.save(new AdminAuditEntry(clock.instant(), truncate(actor, 100), role, action, entityType,
                 entityId == null ? null : truncate(String.valueOf(entityId), 100), snapshot(before), snapshot(after), ip, path));
-        log.info("Audit: {} {} {} by {}", action, entityType, entityId, actor);
+        log.info("Audit: {} {} {} by {}", action, entityType, LogSafe.of(entityId), LogSafe.of(actor));
     }
 
     private static HttpServletRequest currentRequest() {
