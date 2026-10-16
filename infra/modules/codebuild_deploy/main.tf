@@ -164,8 +164,9 @@ resource "aws_codebuild_project" "deploy" {
   }
 
   cache {
-    type  = "LOCAL"
-    modes = ["LOCAL_SOURCE_CACHE", "LOCAL_DOCKER_LAYER_CACHE", "LOCAL_CUSTOM_CACHE"]
+    type = "LOCAL"
+    # The source cache needs a source CodeBuild checks out itself
+    modes = concat(var.use_github_connection ? ["LOCAL_SOURCE_CACHE"] : [], ["LOCAL_DOCKER_LAYER_CACHE", "LOCAL_CUSTOM_CACHE"])
   }
 
   logs_config {
