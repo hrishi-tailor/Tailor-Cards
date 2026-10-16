@@ -53,8 +53,9 @@ resource "aws_db_parameter_group" "this" {
   family = "postgres${var.engine_major_version}"
 
   parameter {
-    name  = "rds.force_ssl"
-    value = "1"
+    name         = "rds.force_ssl"
+    value        = "1"
+    apply_method = "pending-reboot" # static parameter; otherwise every plan shows a change
   }
   parameter {
     name  = "log_min_duration_statement"

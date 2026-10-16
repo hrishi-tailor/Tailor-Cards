@@ -30,7 +30,7 @@ resource "aws_vpc_security_group_ingress_rule" "https" {
 
 resource "aws_vpc_security_group_ingress_rule" "http" {
   security_group_id = aws_security_group.app.id
-  description       = "HTTP: redirects to HTTPS, and Let's Encrypt domain validation"
+  description       = "HTTP: redirects to HTTPS, and Lets Encrypt domain validation"
   ip_protocol       = "tcp"
   from_port         = 80
   to_port           = 80
@@ -39,7 +39,7 @@ resource "aws_vpc_security_group_ingress_rule" "http" {
 
 resource "aws_vpc_security_group_egress_rule" "https_out" {
   security_group_id = aws_security_group.app.id
-  description       = "HTTPS out: AWS APIs (SSM, Secrets Manager, S3, SES, CloudWatch), OS packages, Let's Encrypt, card price APIs"
+  description       = "HTTPS out: AWS APIs (SSM, Secrets Manager, S3, SES, CloudWatch), OS packages, Lets Encrypt, card price APIs"
   ip_protocol       = "tcp"
   from_port         = 443
   to_port           = 443
