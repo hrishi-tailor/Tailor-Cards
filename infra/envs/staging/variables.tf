@@ -34,3 +34,9 @@ variable "enable_scheduler" {
   type        = bool
   default     = false
 }
+
+variable "deploy_branch" {
+  description = "Branch CodeBuild deploys. Staging tries work before it reaches main (main deploys production on Render)"
+  type        = string
+  default     = "main"
+}

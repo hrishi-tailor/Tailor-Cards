@@ -19,5 +19,6 @@ module "stack" {
   backup_retention_days = 1 # Free-plan accounts reject longer automated backup retention
   deletion_protection   = false
   enable_scheduler      = var.enable_scheduler
+  deploy_branch         = var.deploy_branch
   monthly_budget_usd    = "30"
 }
