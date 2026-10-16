@@ -21,8 +21,11 @@ locals {
     version = "0.2"
     phases = {
       install = { "runtime-versions" = { java = "corretto21", nodejs = 22 } }
+      # Not `git clone .`: the cache has already put frontend/node_modules here, so the directory isn't empty
       pre_build = { commands = [
-        "git clone --depth 1 --branch ${var.branch} https://github.com/${var.github_repository}.git .",
+        "git init -q .",
+        "git fetch -q --depth 1 https://github.com/${var.github_repository}.git ${var.branch}",
+        "git checkout -q FETCH_HEAD",
       ] }
       build = { commands = [
         "export VERSION=\"$(git rev-parse --short=12 HEAD)\"",
