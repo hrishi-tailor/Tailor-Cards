@@ -1,5 +1,6 @@
 package com.tailorcards.api.pipeline;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -29,6 +30,7 @@ public class PipelineSignature {
     private final byte[] secret;
     private final Clock clock;
 
+    @Autowired
     public PipelineSignature(@Value("${app.pipeline.shared-secret:}") String secret) {
         this(secret, Clock.systemUTC());
     }
