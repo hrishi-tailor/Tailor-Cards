@@ -9,3 +9,7 @@ output "workgroup" {
 output "function_name" {
   value = aws_lambda_function.this.function_name
 }
+
+output "report_function_name" {
+  value = local.report_enabled ? aws_lambda_function.report[0].function_name : null
+}
