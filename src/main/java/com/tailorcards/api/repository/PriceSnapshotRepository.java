@@ -19,4 +19,7 @@ public interface PriceSnapshotRepository extends JpaRepository<PriceSnapshot, Lo
     List<PriceSnapshot> findByCardIdAndFetchedAtGreaterThanEqualOrderByFetchedAtAsc(String cardId, java.time.Instant fetchedAt);
 
     List<PriceSnapshot> findTop100ByOrderByFetchedAtDesc();
+
+    /** True when this exact price has already been recorded, so a retried pipeline run doesn't duplicate it. */
+    boolean existsByCardIdAndSourceAndFetchedAt(String cardId, String source, java.time.Instant fetchedAt);
 }

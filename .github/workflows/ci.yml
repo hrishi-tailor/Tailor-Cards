@@ -49,3 +49,20 @@ jobs:
       - name: Build Frontend
         working-directory: frontend
         run: npm run build
+
+  pipeline:
+    name: Price Pipeline (Python 3.13)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: pipeline/uv.lock
+
+      - name: Run pytest
+        working-directory: pipeline
+        run: uv run --frozen --python 3.13 --group dev pytest -q

@@ -33,3 +33,7 @@ output "github_connection_arn" {
 output "deploy_project" {
   value = module.stack.deploy_project
 }
+
+output "price_pipeline" {
+  value = module.stack.price_pipeline
+}

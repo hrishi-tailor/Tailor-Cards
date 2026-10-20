@@ -44,3 +44,12 @@ output "deploy_project" {
   description = "aws codebuild start-build --project-name <this> deploys now"
   value       = var.enable_codebuild_deploy ? module.codebuild_deploy[0].project_name : null
 }
+
+output "price_pipeline" {
+  description = "Where the price pipeline lands data and which secret it signs with (null when disabled)"
+  value = var.enable_price_pipeline ? {
+    bucket            = module.price_pipeline[0].bucket
+    function_name     = module.price_pipeline[0].function_name
+    shared_secret_arn = module.price_pipeline[0].shared_secret_arn
+  } : null
+}
