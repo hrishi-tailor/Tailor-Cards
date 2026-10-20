@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 dependencies = []
 
 [dependency-groups]
-dev = ["pytest==8.3.4", "moto[s3,secretsmanager]==5.0.26", "boto3==1.35.90"]
+dev = ["pytest==8.3.4", "moto[s3,secretsmanager,athena]==5.0.26", "boto3==1.35.90", "duckdb==1.1.3"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

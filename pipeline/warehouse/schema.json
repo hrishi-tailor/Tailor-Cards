@@ -1,0 +1,37 @@
+{
+  "_comment": "Raw warehouse tables: one per export dataset. Read by Terraform (Glue Data Catalog) and by the SQL tests (DuckDB), so both always agree. Types are Hive/Glue types.",
+  "tables": {
+    "raw_ledger_lots": {
+      "dataset": "ledger_lots",
+      "columns": [
+        ["id", "bigint"], ["title", "string"], ["kind", "string"], ["card_ref", "string"], ["quantity", "int"],
+        ["total_cost_cad", "decimal(12,2)"], ["acquired_on", "date"], ["acquired_channel", "string"],
+        ["listed_on", "date"], ["listed_price_cad", "decimal(12,2)"], ["source", "string"],
+        ["created_at", "string"], ["updated_at", "string"]
+      ]
+    },
+    "raw_ledger_sales": {
+      "dataset": "ledger_sales",
+      "columns": [
+        ["id", "bigint"], ["lot_id", "bigint"], ["sold_on", "date"], ["quantity", "int"],
+        ["unit_price_cad", "decimal(12,2)"], ["channel", "string"], ["payment_method", "string"],
+        ["source", "string"], ["created_at", "string"]
+      ]
+    },
+    "raw_products": {
+      "dataset": "products",
+      "columns": [
+        ["id", "bigint"], ["name", "string"], ["category", "string"], ["card_set", "string"],
+        ["card_number", "string"], ["condition", "string"], ["grading", "string"], ["price", "decimal(10,2)"],
+        ["stock", "int"], ["cost_basis", "decimal(10,2)"], ["pokemontcg_id", "string"], ["status", "string"]
+      ]
+    },
+    "raw_price_snapshots": {
+      "dataset": "price_snapshots",
+      "columns": [
+        ["id", "bigint"], ["card_id", "string"], ["price_usd", "decimal(10,2)"], ["price_cad", "decimal(10,2)"],
+        ["source", "string"], ["fetched_at", "string"]
+      ]
+    }
+  }
+}
