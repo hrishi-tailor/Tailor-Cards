@@ -5,6 +5,7 @@ import com.tailorcards.api.repository.ProductRepository;
 import com.tailorcards.api.trade.service.CardPriceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -23,11 +24,27 @@ public class PriceSnapshotScheduler {
     private final ProductRepository productRepository;
     private final CardPriceService cardPriceService;
 
+    /** Who records nightly prices: "app" (this job) or "pipeline" (the AWS price pipeline, see docs/price-pipeline.md). */
+    @Value("${app.pricing.snapshot-source:app}")
+    private String snapshotSource;
+
     /**
-     * Nightly scheduled sync job (default 3:00 AM) that pulls latest market prices
-     * for all listed products in inventory and records snapshots.
+     * Nightly sync (default 3:00 AM). Skipped where the AWS price pipeline records prices instead, so the same
+     * cards aren't priced twice a night.
      */
     @Scheduled(cron = "${app.pricing.sync-cron:0 0 3 * * ?}")
+    public void nightlySync() {
+        if ("pipeline".equalsIgnoreCase(snapshotSource == null ? "" : snapshotSource.trim())) {
+            log.info("Nightly price sync skipped: prices are recorded by the AWS price pipeline");
+            return;
+        }
+        syncListedCardPrices();
+    }
+
+    /**
+     * Pulls latest market prices for all listed products in inventory and records snapshots. Also run on demand
+     * from the admin API and after a product backfill, wherever nightly prices come from.
+     */
     public int syncListedCardPrices() {
         log.info("Starting nightly price snapshot sync job...");
 
