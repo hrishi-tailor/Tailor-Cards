@@ -158,3 +158,15 @@ variable "enable_warehouse" {
   type        = bool
   default     = false
 }
+
+variable "enable_weekly_report" {
+  description = "Email last week's results every Monday (needs enable_warehouse)"
+  type        = bool
+  default     = false
+}
+
+variable "report_recipients" {
+  description = "Who gets the Monday email; null means alert_email"
+  type        = list(string)
+  default     = null
+}

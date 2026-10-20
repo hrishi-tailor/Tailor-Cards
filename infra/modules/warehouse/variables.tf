@@ -62,3 +62,27 @@ variable "log_retention_days" {
   type    = number
   default = 30
 }
+
+variable "report_recipients" {
+  description = "Who gets the Monday email; empty turns the report off"
+  type        = list(string)
+  default     = []
+}
+
+variable "report_from" {
+  description = "Sender of the Monday email, an address on the SES identity"
+  type        = string
+  default     = null
+}
+
+variable "ses_identity_arn" {
+  description = "The verified SES domain identity the report is sent from"
+  type        = string
+  default     = null
+}
+
+variable "report_cron" {
+  description = "When the Monday email is sent"
+  type        = string
+  default     = "0 8 ? * MON *"
+}
