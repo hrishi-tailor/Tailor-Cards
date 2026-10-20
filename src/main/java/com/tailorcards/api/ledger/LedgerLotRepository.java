@@ -19,4 +19,11 @@ public interface LedgerLotRepository extends JpaRepository<LedgerLot, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select l from LedgerLot l where l.id = :id")
     Optional<LedgerLot> findForUpdate(@Param("id") Long id);
+
+    /** Card ids of lots that still have units on hand, for the price pipeline's watchlist. */
+    @Query("""
+            select distinct l.cardRef from LedgerLot l
+            where l.cardRef is not null and trim(l.cardRef) <> ''
+              and l.quantity > (select coalesce(sum(s.quantity), 0) from LedgerSale s where s.lot = l)""")
+    List<String> cardRefsInStock();
 }
