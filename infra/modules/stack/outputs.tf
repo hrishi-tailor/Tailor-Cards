@@ -53,3 +53,12 @@ output "price_pipeline" {
     shared_secret_arn = module.price_pipeline[0].shared_secret_arn
   } : null
 }
+
+output "warehouse" {
+  description = "The Glue database and Athena workgroup to query (null when disabled)"
+  value = var.enable_price_pipeline && var.enable_warehouse ? {
+    database      = module.warehouse[0].database
+    workgroup     = module.warehouse[0].workgroup
+    function_name = module.warehouse[0].function_name
+  } : null
+}

@@ -142,7 +142,7 @@ variable "enable_price_pipeline" {
 }
 
 variable "price_pipeline_app_url" {
-  description = "The app the pipeline prices for; null means this environment's own API"
+  description = "The app the price pipeline and warehouse read from and report to; null means this environment's own API"
   type        = string
   default     = null
 }
@@ -151,4 +151,10 @@ variable "price_pipeline_schedule" {
   description = "Daily start, America/Toronto (minutes hours day-of-month month day-of-week year)"
   type        = string
   default     = "0 3 * * ? *"
+}
+
+variable "enable_warehouse" {
+  description = "Run the nightly warehouse refresh (Glue catalog, Athena, Lambda); needs enable_price_pipeline"
+  type        = bool
+  default     = false
 }

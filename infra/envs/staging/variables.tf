@@ -46,3 +46,15 @@ variable "enable_price_pipeline" {
   type        = bool
   default     = false
 }
+
+variable "enable_warehouse" {
+  description = "Run the nightly warehouse refresh into Athena (docs/warehouse.md); needs enable_price_pipeline"
+  type        = bool
+  default     = false
+}
+
+variable "price_pipeline_app_url" {
+  description = "The app the pipelines read from and report to; null means staging's own API"
+  type        = string
+  default     = null
+}
