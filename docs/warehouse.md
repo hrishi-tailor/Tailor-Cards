@@ -19,8 +19,10 @@ Every night a Lambda copies the app's ledger, products and price history into S3
         1. GET /api/internal/export/{dataset}?after=…   ──► app (signed, paged)
         2. S3  warehouse/raw/<table>/data.jsonl.gz          (current copy, read by Glue tables)
            S3  warehouse/history/<table>/dt=YYYY-MM-DD/     (that night's copy)
-        3. Athena: CREATE OR REPLACE VIEW × 15              (DDL is free)
+        3. Athena: CREATE OR REPLACE VIEW × 18              (DDL is free)
         4. Athena: SELECT … FROM dq_results                 ──► run log + metrics + alarm
+        5. S3  dashboard/<view>.csv                         ──► Tableau (docs/dashboard.md)
+Mon 8 AM  report Lambda ──► SES email                   (docs/weekly-report.md)
 ```
 
 | Part | Where |
@@ -58,6 +60,8 @@ Every night a Lambda copies the app's ledger, products and price history into S3
 | Mart | `mart_kind_channel` | The same measures by item kind × channel, with median days listed |
 | Mart | `mart_inventory_valuation` | Lots with units on hand: cost on hand, latest market price and its age, market value, unrealised gain |
 | Mart | `mart_price_movers` | Latest price against the latest price at least 7 days earlier, for cards held or listed |
+| Mart | `mart_weekly_pnl` | The monthly measures by Monday-start week, for the Monday email |
+| Dashboard | `dash_sales`, `dash_prices` | Flat copies of the sales and price facts with names and calendar fields joined, for Tableau |
 | Quality | `dq_results` | One row per check (below) |
 
 **Cost of goods** follows the app's rule. A lot's cost is shared by units, rounded to the cent, so a $1,832 case of 20 costs $91.60 per unit sold. A giveaway still carries its cost.
