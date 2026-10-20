@@ -4,15 +4,12 @@ import type { LedgerSummaryLine } from '../types'
 import { createLot, deleteLot, deleteSale, recordSale } from '../api/ledgerApi'
 import { useLedger } from '../hooks/useLedger'
 import { LotForm, SaleForm } from './LedgerForms'
-import { CHANNEL_LABELS, KIND_LABELS, formatCad, summaryLabel } from './ledgerFormat'
+import { LedgerImport } from './LedgerImport'
+import { CHANNEL_LABELS, KIND_LABELS, count, formatCad, summaryLabel } from './ledgerFormat'
 import './AdminLedger.css'
 
 function pct(value: number | null): string {
   return value === null ? '—' : `${value.toFixed(1)}%`
-}
-
-function count(n: number, word: string): string {
-  return `${n} ${word}${n === 1 ? '' : 's'}`
 }
 
 function days(value: number | null): string {
@@ -141,6 +138,8 @@ export function AdminLedger() {
           </>
         )}
       </section>
+
+      <LedgerImport onImported={reload} />
 
       <section className="tc-ledger-lots" aria-labelledby="tc-ledger-lots-title">
         <div className="tc-ledger-section-head">

@@ -33,6 +33,11 @@ export function formatCad(amount: number): string {
   return cad.format(amount)
 }
 
+/** "1 sale", "2 sales". */
+export function count(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? '' : 's'}`
+}
+
 /** Today's date in the store's time zone (Toronto), as YYYY-MM-DD. */
 export function storeToday(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto' }).format(new Date())
