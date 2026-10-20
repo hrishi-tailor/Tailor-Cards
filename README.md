@@ -120,6 +120,7 @@ src/main/java/com/tailorcards/
 │   ├── buylistchat/     AI buylist: chat, intake, card resolution, pricing, scanner, email codes
 │   ├── ledger/          Purchases and sales ledger, results summary, CSV import
 │   ├── listing/         Listing generator (photos to product draft)
+│   ├── pipeline/        Signed endpoints for the AWS price pipeline
 │   ├── trade/           Deterministic trade pricing engine (legacy, see docs)
 │   ├── controller/      REST controllers for products, admin and buylist
 │   ├── service/         Catalog, prices, photos, exchange rates
@@ -131,6 +132,8 @@ src/main/java/com/tailorcards/
 src/main/resources/db/migration/   Flyway migrations
 frontend/                          React app (Vite)
 evaluation/                        AI evaluation harness, scenario suite and trade backtester
+pipeline/                          Nightly price pipeline (Python Lambda) and its tests
+infra/                             Terraform for the AWS staging environment
 docs/                              Feature documentation
 ```
 
@@ -167,6 +170,8 @@ Only the database settings and `ADMIN_PASSWORD` are required; the app refuses to
 | `CHATBOT_ENABLED` | `true` turns the AI buylist on at `/sell` |
 | `RAPIDAPI_KEY` | Graded card prices (median of recent eBay sales) |
 | `FRONTEND_URL` | Where Stripe sends customers after checkout |
+| `PIPELINE_SHARED_SECRET` | Turns on the signed endpoints for the AWS price pipeline (`openssl rand -hex 32`, same value as its Secrets Manager secret). See [docs/price-pipeline.md](docs/price-pipeline.md) |
+| `PRICE_SNAPSHOT_SOURCE` | `pipeline` stops the app's own 3 AM price job where the AWS pipeline records prices (default `app`) |
 
 The full list, including email, Turnstile, spend limits and storefront settings, is in [docs/ai-buylist.md](docs/ai-buylist.md#configuration) and [`application.yaml`](src/main/resources/application.yaml).
 
@@ -175,6 +180,7 @@ The full list, including email, Turnstile, spend limits and storefront settings,
 ```bash
 ./mvnw test                      # backend: 350+ unit, integration, migration and concurrency tests
 cd frontend && npm run build     # type check and production build
+cd pipeline && uv run --group dev pytest   # price pipeline (Python)
 ```
 
 Integration tests run against a real PostgreSQL container (Testcontainers), including migration tests against a dump of the production schema.
@@ -233,6 +239,7 @@ Store credit is 80% of market value; played and damaged cards get their cash rat
 
 - [AI buylist and card scanner](docs/ai-buylist.md): flow, pricing sources, approval estimate, limits, configuration, evaluation
 - [Ledger and show mode](docs/ledger.md): how purchases and sales are recorded, the API, the CSV format, the offline queue and the test cases
+- [Price pipeline](docs/price-pipeline.md): the nightly AWS Lambda that prices stock from TCGdex into an S3 data lake, its signed API, alarms, runbook and test cases
 - [Listing generator](docs/listing-generator.md): photo-to-draft for admins
 - [AI buylist latency](docs/performance.md): where the time goes, before/after timings, the benchmark and production queries
 - [Security](docs/security.md): admin two-factor login, lockout, headers, audit log, upload checks, scanning in CI
