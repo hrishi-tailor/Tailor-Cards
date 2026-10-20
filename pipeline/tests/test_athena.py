@@ -61,3 +61,8 @@ def test_rows_reads_every_page_and_skips_the_header():
         {"check_name": "oversold_lot", "failing_rows": "0"},
         {"check_name": "price_spike", "failing_rows": None},
     ]
+
+
+def test_table_keeps_the_header_when_there_are_no_rows():
+    pages = [{"ResultSet": {"Rows": [{"Data": [{"VarCharValue": "week_start"}, {"VarCharValue": "sales"}]}]}}]
+    assert athena(FakeAthena(["SUCCEEDED"], pages)).table("SELECT ...") == (["week_start", "sales"], [])

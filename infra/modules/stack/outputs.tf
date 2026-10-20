@@ -60,5 +60,6 @@ output "warehouse" {
     database      = module.warehouse[0].database
     workgroup     = module.warehouse[0].workgroup
     function_name = module.warehouse[0].function_name
+    report        = module.warehouse[0].report_function_name
   } : null
 }

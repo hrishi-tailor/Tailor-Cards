@@ -42,18 +42,24 @@ class Athena:
 
     def rows(self, sql: str) -> list[dict]:
         """Runs a query and returns its result rows as dicts of strings (Athena returns every value as text)."""
+        header, values = self.table(sql)
+        return [dict(zip(header, row)) for row in values]
+
+    def table(self, sql: str) -> tuple[list[str], list[list[str | None]]]:
+        """Runs a query and returns its column names and rows, reading every result page. The names are kept even
+        when there are no rows."""
         query_id = self.run(sql)
-        out: list[dict] = []
-        header = None
+        header: list[str] | None = None
+        out: list[list[str | None]] = []
         kwargs = {"QueryExecutionId": query_id}
         while True:
             page = self.client.get_query_results(**kwargs)
             for row in page["ResultSet"]["Rows"]:
                 values = [cell.get("VarCharValue") for cell in row["Data"]]
                 if header is None:
-                    header = values
+                    header = [v or "" for v in values]
                 else:
-                    out.append(dict(zip(header, values)))
+                    out.append(values)
             if not page.get("NextToken"):
-                return out
+                return header or [], out
             kwargs["NextToken"] = page["NextToken"]

@@ -190,6 +190,7 @@ data "aws_iam_policy_document" "function" {
       "${var.bucket_arn}/warehouse/*",
       "${var.bucket_arn}/runs/warehouse/*",
       "${var.bucket_arn}/athena-results/*",
+      "${var.bucket_arn}/dashboard/*",
     ]
   }
   # Athena reads source data and writes results with the caller's permissions
@@ -355,6 +356,176 @@ resource "aws_cloudwatch_metric_alarm" "this" {
   threshold           = 1
   comparison_operator = each.value.comparison
   treat_missing_data  = each.value.missing
+  alarm_actions       = [var.alerts_topic_arn]
+  ok_actions          = [var.alerts_topic_arn]
+}
+
+# ---------------------------------------------------------------- Monday email
+
+locals {
+  report_enabled = length(var.report_recipients) > 0
+  report_name    = "${var.name}-weekly-report"
+}
+
+resource "aws_cloudwatch_log_group" "report" {
+  # checkov:skip=CKV_AWS_338: each report is kept in the bucket (reports/weekly/); these are debug logs
+  count             = local.report_enabled ? 1 : 0
+  name              = "/aws/lambda/${local.report_name}"
+  retention_in_days = var.log_retention_days
+}
+
+resource "aws_iam_role" "report" {
+  count              = local.report_enabled ? 1 : 0
+  name               = local.report_name
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+}
+
+data "aws_iam_policy_document" "report" {
+  count = local.report_enabled ? 1 : 0
+  statement {
+    sid       = "WriteOwnLogs"
+    actions   = ["logs:CreateLogStream", "logs:PutLogEvents"]
+    resources = ["${aws_cloudwatch_log_group.report[0].arn}:*"]
+  }
+  statement {
+    sid       = "Tracing"
+    actions   = ["xray:PutTraceSegments", "xray:PutTelemetryRecords"]
+    resources = ["*"] # X-Ray has no resource-level permissions
+  }
+  statement {
+    sid       = "ReadTheWarehouse"
+    actions   = ["s3:GetObject"]
+    resources = ["${var.bucket_arn}/warehouse/raw/*", "${var.bucket_arn}/athena-results/*"]
+  }
+  statement {
+    sid       = "ListTheLake"
+    actions   = ["s3:ListBucket", "s3:GetBucketLocation"]
+    resources = [var.bucket_arn]
+  }
+  statement {
+    sid       = "WriteResultsAndReports"
+    actions   = ["s3:PutObject"]
+    resources = ["${var.bucket_arn}/athena-results/*", "${var.bucket_arn}/reports/weekly/*"]
+  }
+  statement {
+    sid = "RunQueries"
+    actions = ["athena:StartQueryExecution", "athena:GetQueryExecution", "athena:GetQueryResults",
+    "athena:StopQueryExecution", "athena:GetWorkGroup"]
+    resources = [aws_athena_workgroup.this.arn]
+  }
+  statement {
+    sid       = "ReadViews"
+    actions   = ["glue:GetDatabase", "glue:GetTable", "glue:GetTables", "glue:GetPartitions"]
+    resources = [local.catalog_arn, local.database_arn, local.tables_arn]
+  }
+  statement {
+    sid       = "SendFromTheStoreAddress"
+    actions   = ["ses:SendEmail"]
+    resources = [var.ses_identity_arn]
+    condition {
+      test     = "StringEquals"
+      variable = "ses:FromAddress"
+      values   = [var.report_from]
+    }
+  }
+}
+
+resource "aws_iam_role_policy" "report" {
+  count  = local.report_enabled ? 1 : 0
+  name   = "weekly-report"
+  role   = aws_iam_role.report[0].id
+  policy = data.aws_iam_policy_document.report[0].json
+}
+
+resource "aws_lambda_function" "report" {
+  # checkov:skip=CKV_AWS_117: it calls Athena and SES over public endpoints; inside the VPC it would need a NAT gateway (~$32/month)
+  # checkov:skip=CKV_AWS_116: the schedule retries twice and failures alarm on Errors
+  # checkov:skip=CKV_AWS_115: reserved concurrency fails on new accounts (10 concurrent executions); one weekly schedule invokes it
+  # checkov:skip=CKV_AWS_173: the environment holds no secrets (addresses and resource names only)
+  # checkov:skip=CKV_AWS_272: the package is built by Terraform from this reviewed repository, not uploaded by hand
+  count            = local.report_enabled ? 1 : 0
+  function_name    = local.report_name
+  description      = "Monday email of last week's results"
+  role             = aws_iam_role.report[0].arn
+  runtime          = "python3.13"
+  architectures    = ["arm64"]
+  handler          = "warehouse.report_handler.handler"
+  filename         = data.archive_file.package.output_path
+  source_code_hash = data.archive_file.package.output_base64sha256
+  memory_size      = 256
+  timeout          = 300
+
+  environment {
+    variables = {
+      DATA_BUCKET       = var.bucket
+      ATHENA_WORKGROUP  = aws_athena_workgroup.this.name
+      GLUE_DATABASE     = aws_glue_catalog_database.this.name
+      REPORT_FROM       = var.report_from
+      REPORT_RECIPIENTS = join(",", var.report_recipients)
+    }
+  }
+
+  tracing_config {
+    mode = "Active"
+  }
+
+  logging_config {
+    log_format = "Text"
+    log_group  = aws_cloudwatch_log_group.report[0].name
+  }
+
+  depends_on = [aws_iam_role_policy.report]
+}
+
+data "aws_iam_policy_document" "invoke_report" {
+  count = local.report_enabled ? 1 : 0
+  statement {
+    actions   = ["lambda:InvokeFunction"]
+    resources = [aws_lambda_function.report[0].arn]
+  }
+}
+
+resource "aws_iam_role_policy" "scheduler_report" {
+  count  = local.report_enabled ? 1 : 0
+  name   = "invoke-weekly-report"
+  role   = aws_iam_role.scheduler.id
+  policy = data.aws_iam_policy_document.invoke_report[0].json
+}
+
+resource "aws_scheduler_schedule" "report" {
+  count                        = local.report_enabled ? 1 : 0
+  name                         = local.report_name
+  description                  = "Sends the Monday email"
+  schedule_expression          = "cron(${var.report_cron})"
+  schedule_expression_timezone = var.timezone
+  flexible_time_window {
+    mode = "OFF"
+  }
+  target {
+    arn      = aws_lambda_function.report[0].arn
+    role_arn = aws_iam_role.scheduler.arn
+    input    = jsonencode({ trigger = "schedule" })
+    # One retry only: a retry after a partial failure could send the email twice
+    retry_policy {
+      maximum_retry_attempts       = 1
+      maximum_event_age_in_seconds = 3600
+    }
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "report_errors" {
+  count               = local.report_enabled ? 1 : 0
+  alarm_name          = "${local.report_name}-errors"
+  alarm_description   = "The Monday email failed (an unverified recipient while SES is in its sandbox is the usual cause)"
+  namespace           = "AWS/Lambda"
+  metric_name         = "Errors"
+  dimensions          = { FunctionName = local.report_name }
+  statistic           = "Sum"
+  period              = 3600
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
   alarm_actions       = [var.alerts_topic_arn]
   ok_actions          = [var.alerts_topic_arn]
 }

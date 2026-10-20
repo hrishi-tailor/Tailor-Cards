@@ -58,3 +58,9 @@ variable "price_pipeline_app_url" {
   type        = string
   default     = null
 }
+
+variable "enable_weekly_report" {
+  description = "Email last week's results to alert_email every Monday (docs/weekly-report.md)"
+  type        = bool
+  default     = false
+}

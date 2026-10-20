@@ -3,7 +3,7 @@
 import pytest
 
 from fixtures import clean, dirty
-from warehouse_db import build, query
+from warehouse.local import build, query
 
 UNIQUE_KEYS = {
     "dim_date": ["date_key"],
@@ -12,6 +12,9 @@ UNIQUE_KEYS = {
     "dim_channel": ["channel"],
     "fact_sales": ["sale_id"],
     "fact_price_daily": ["card_id", "date_key"],
+    "mart_weekly_pnl": ["week_start"],
+    "dash_sales": ["sale_id"],
+    "dash_prices": ["card_id", "price_date"],
 }
 
 FOREIGN_KEYS = [
