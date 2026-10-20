@@ -59,6 +59,8 @@ Tailor Cards started as a one-person business selling cards on Instagram, Facebo
 - Every submission is reviewed by a person in the admin queue.
 
 **Admin**
+- Ledger of purchases and sales: revenue, profit, margin and days to sell by kind, channel and month, plus stock on hand at cost. History imports from CSV.
+- Show mode: log card-show deals on a phone in a few taps, with an offline queue for halls with no signal.
 - Buylist queue with the transcript, prices, photos and red flags for each submission.
 - Listing generator: photos of a card become an editable product draft.
 - Product photos, card linking for official images, and editable buy rates.
@@ -116,6 +118,7 @@ flowchart LR
 src/main/java/com/tailorcards/
 ├── api/
 │   ├── buylistchat/     AI buylist: chat, intake, card resolution, pricing, scanner, email codes
+│   ├── ledger/          Purchases and sales ledger, results summary, CSV import
 │   ├── listing/         Listing generator (photos to product draft)
 │   ├── trade/           Deterministic trade pricing engine (legacy, see docs)
 │   ├── controller/      REST controllers for products, admin and buylist
@@ -229,6 +232,7 @@ Store credit is 80% of market value; played and damaged cards get their cash rat
 ## Documentation
 
 - [AI buylist and card scanner](docs/ai-buylist.md): flow, pricing sources, approval estimate, limits, configuration, evaluation
+- [Ledger and show mode](docs/ledger.md): how purchases and sales are recorded, the API, the CSV format, the offline queue and the test cases
 - [Listing generator](docs/listing-generator.md): photo-to-draft for admins
 - [AI buylist latency](docs/performance.md): where the time goes, before/after timings, the benchmark and production queries
 - [Security](docs/security.md): admin two-factor login, lockout, headers, audit log, upload checks, scanning in CI
