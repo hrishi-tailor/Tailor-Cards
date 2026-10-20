@@ -6,7 +6,7 @@ import pytest
 from moto import mock_aws
 
 import warehouse
-from warehouse import handler
+from warehouse import dashboard, handler
 
 BUCKET = "tc-lake"
 NOW = datetime(2026, 10, 20, 8, 30, tzinfo=timezone.utc)
@@ -34,6 +34,10 @@ class FakeAthena:
     def rows(self, sql):
         self.statements.append(sql)
         return self.checks
+
+    def table(self, sql):
+        self.statements.append(sql)
+        return ["sale_id", "item"], [["1", "Case, sealed"], ["2", None]]
 
 
 CLEAN = [{"check_name": "oversold_lot", "severity": "error", "failing_rows": "0", "example": None},
@@ -68,7 +72,10 @@ def test_a_run_exports_every_table_refreshes_the_views_and_reports_quality(aws, 
 
     views = [s for s in athena.statements if s.startswith("CREATE OR REPLACE VIEW")]
     assert len(views) == len(warehouse.view_files())
-    assert athena.statements[-1].startswith("SELECT check_name")
+    assert any(s.startswith("SELECT check_name") for s in athena.statements)
+    assert keys(aws["s3"], "dashboard/") == sorted(f"dashboard/{v}.csv" for v in dashboard.DASHBOARD_VIEWS)
+    sales_csv = aws["s3"].get_object(Bucket=BUCKET, Key="dashboard/dash_sales.csv")["Body"].read().decode()
+    assert sales_csv == 'sale_id,item\n1,"Case, sealed"\n2,\n'
 
     run_log = json.loads(aws["s3"].get_object(Bucket=BUCKET, Key=keys(aws["s3"], "runs/warehouse/dt=2026-10-20/")[0])["Body"].read())
     assert run_log["status"] == "succeeded" and run_log["checks"] == CLEAN
