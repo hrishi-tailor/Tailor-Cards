@@ -360,6 +360,11 @@ export function AdminBuylist() {
               <span>Product Photos</span>
             </Link>
           )}
+          {!isDemoRole() && (
+            <Link to="/admin/ledger" className="tc-admin-refresh-btn" title="What you bought and sold, with profit and margin">
+              <span>Ledger</span>
+            </Link>
+          )}
           <button
             type="button"
             className="tc-admin-refresh-btn"

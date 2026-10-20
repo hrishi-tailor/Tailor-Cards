@@ -1,0 +1,233 @@
+/* Admin: ledger of purchases and sales */
+
+.tc-ledger {
+  padding-block: 32px 96px;
+  display: grid;
+  gap: 28px;
+}
+
+.tc-ledger-head,
+.tc-ledger-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tc-ledger-head p {
+  max-width: 60ch;
+  margin-top: 8px;
+}
+
+.tc-ledger-head-actions,
+.tc-ledger-range,
+.tc-ledger-tools,
+.tc-ledger-lot-actions,
+.tc-ledger-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.tc-ledger-range label,
+.tc-ledger-form label {
+  display: grid;
+  gap: 4px;
+  font: 500 12px/1.4 var(--tc-font-mono);
+  color: var(--tc-text-secondary);
+}
+
+.tc-ledger input,
+.tc-ledger select {
+  height: 40px;
+  padding: 0 12px;
+  border: 1.5px solid var(--tc-border);
+  border-radius: var(--tc-radius);
+  background: var(--tc-field);
+  color: var(--tc-text-primary);
+  font: 15px var(--tc-font-body);
+  min-width: 0;
+}
+
+.tc-ledger-tools input[type='search'] {
+  width: min(320px, 100%);
+}
+
+.tc-ledger-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--tc-border);
+  border-radius: var(--tc-radius-lg);
+  background: var(--tc-card);
+}
+
+.tc-ledger-wide {
+  grid-column: 1 / -1;
+}
+
+.tc-ledger-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  margin: 16px 0 0;
+  border: 1px solid var(--tc-border);
+  border-radius: var(--tc-radius-lg);
+  background: var(--tc-border);
+  overflow: hidden;
+}
+
+.tc-ledger-kpis > div {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  padding: 14px 16px;
+  background: var(--tc-card);
+}
+
+.tc-ledger-kpis dt {
+  font: 500 12px/1.4 var(--tc-font-mono);
+  color: var(--tc-text-secondary);
+}
+
+.tc-ledger-kpis dd {
+  margin: 0;
+  font: 700 22px/1.2 var(--tc-font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.tc-ledger-kpis span {
+  font-size: 13px;
+  color: var(--tc-text-secondary);
+}
+
+.tc-ledger-breakdowns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.tc-ledger-breakdown {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tc-ledger-table-wrap {
+  overflow-x: auto;
+}
+
+.tc-ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tc-ledger-table th,
+.tc-ledger-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--tc-border-subtle);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tc-ledger-table th {
+  font: 500 11px/1.4 var(--tc-font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tc-text-secondary);
+}
+
+.tc-ledger .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.tc-ledger-lot-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--tc-border);
+}
+
+.tc-ledger-lot {
+  border-bottom: 1px solid var(--tc-border);
+}
+
+.tc-ledger-lot-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(3, auto);
+  gap: 18px;
+  align-items: center;
+  width: 100%;
+  padding: 14px 4px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tc-ledger-lot-row:hover {
+  background: var(--tc-card-hover);
+}
+
+.tc-ledger-lot-row:focus-visible {
+  outline: 2px solid var(--tc-accent);
+  outline-offset: -2px;
+}
+
+.tc-ledger-lot-title {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tc-ledger-lot-title span {
+  font: 500 12px/1.4 var(--tc-font-mono);
+  color: var(--tc-text-secondary);
+}
+
+.tc-ledger-lot-detail {
+  display: grid;
+  gap: 14px;
+  padding: 4px 4px 18px;
+}
+
+.is-loss {
+  color: var(--tc-danger);
+}
+
+.tc-ledger-link-button {
+  border: 0;
+  background: none;
+  color: var(--tc-danger);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.tc-ledger-muted {
+  color: var(--tc-text-secondary);
+}
+
+.tc-ledger-error {
+  margin: 0;
+  color: var(--tc-danger);
+}
+
+@media (max-width: 640px) {
+  .tc-ledger-lot-row {
+    grid-template-columns: 1fr auto;
+    gap: 4px 12px;
+  }
+
+  .tc-ledger-lot-title {
+    grid-column: 1 / -1;
+  }
+}
