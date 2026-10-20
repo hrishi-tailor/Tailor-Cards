@@ -10,6 +10,7 @@ from typing import Callable
 from . import http, signing
 
 WATCHLIST_PATH = "/api/internal/pricing/watchlist"
+EXPORT_PATH = "/api/internal/export/"
 SNAPSHOTS_PATH = "/api/internal/pricing/snapshots"
 # The app accepts up to 5,000 prices and 1 MB per request; smaller batches keep each request well inside both.
 BATCH_SIZE = 1_000
@@ -42,8 +43,16 @@ class AppClient:
             totals["duplicates"] += int(result.get("duplicates", 0))
         return totals
 
+    def export_page(self, dataset: str, after: int = 0, limit: int = 1_000) -> dict:
+        """One page of a warehouse dataset: {"rows": [...], "nextAfter": id or None}."""
+        query = urllib.parse.urlencode({"after": after, "limit": limit})
+        page = self._call("GET", f"{EXPORT_PATH}{urllib.parse.quote(dataset)}?{query}", b"").json()
+        if not isinstance(page.get("rows"), list):
+            raise ValueError(f"The app's {dataset} export has no rows list")
+        return page
+
     def _call(self, method: str, path: str, body: bytes) -> http.Response:
-        signed_path = self.base_path + path
+        signed_path = self.base_path + path  # path may carry a query string; it is signed with it
         headers = signing.signed_headers(self.secret, method, signed_path, body)
         # Signed per attempt would be stricter, but a retry within seconds stays well inside the 5-minute window
         return self.send(method, self.base_url + path, body=body if method != "GET" else None,

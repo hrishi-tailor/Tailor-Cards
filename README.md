@@ -240,6 +240,7 @@ Store credit is 80% of market value; played and damaged cards get their cash rat
 - [AI buylist and card scanner](docs/ai-buylist.md): flow, pricing sources, approval estimate, limits, configuration, evaluation
 - [Ledger and show mode](docs/ledger.md): how purchases and sales are recorded, the API, the CSV format, the offline queue and the test cases
 - [Price pipeline](docs/price-pipeline.md): the nightly AWS Lambda that prices stock from TCGdex into an S3 data lake, its signed API, alarms, runbook and test cases
+- [Warehouse](docs/warehouse.md): the nightly Glue/Athena star schema, marts, data-quality checks and their DuckDB tests
 - [Listing generator](docs/listing-generator.md): photo-to-draft for admins
 - [AI buylist latency](docs/performance.md): where the time goes, before/after timings, the benchmark and production queries
 - [Security](docs/security.md): admin two-factor login, lockout, headers, audit log, upload checks, scanning in CI

@@ -1,7 +1,8 @@
 """Request signing shared with the app (com.tailorcards.api.pipeline.PipelineSignature).
 
 The signature is ``v1=`` + hex HMAC-SHA256, keyed with the shared secret, of
-``timestamp \\n METHOD \\n path \\n sha256-hex(body)``. The app refuses a timestamp more than five minutes
+``timestamp \\n METHOD \\n path \\n sha256-hex(body)``, where path includes the query string when there
+is one (``/x?after=10``). The app refuses a timestamp more than five minutes
 from its own clock, so a captured request can't be replayed later.
 """
 

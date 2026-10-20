@@ -20,6 +20,9 @@ module "stack" {
   deletion_protection   = false
   enable_scheduler      = var.enable_scheduler
   enable_price_pipeline = var.enable_price_pipeline
-  deploy_branch         = var.deploy_branch
-  monthly_budget_usd    = "30"
+  enable_warehouse      = var.enable_warehouse
+  # The warehouse reads production's ledger: set price_pipeline_app_url in terraform.tfvars (docs/warehouse.md)
+  price_pipeline_app_url = var.price_pipeline_app_url
+  deploy_branch          = var.deploy_branch
+  monthly_budget_usd     = "30"
 }

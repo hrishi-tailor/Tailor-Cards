@@ -37,3 +37,7 @@ output "deploy_project" {
 output "price_pipeline" {
   value = module.stack.price_pipeline
 }
+
+output "warehouse" {
+  value = module.stack.warehouse
+}

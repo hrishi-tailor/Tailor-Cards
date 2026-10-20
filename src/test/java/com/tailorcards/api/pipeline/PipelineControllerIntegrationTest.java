@@ -52,8 +52,8 @@ class PipelineControllerIntegrationTest {
     private MockHttpServletRequestBuilder signed(MockHttpServletRequestBuilder request, String method, String path, String body) {
         long now = Instant.now().getEpochSecond();
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-        return request.header(PipelineController.TIMESTAMP_HEADER, String.valueOf(now))
-                .header(PipelineController.SIGNATURE_HEADER, signature.sign(method, path, bytes, now))
+        return request.header(PipelineRequestGuard.TIMESTAMP_HEADER, String.valueOf(now))
+                .header(PipelineRequestGuard.SIGNATURE_HEADER, signature.sign(method, path, bytes, now))
                 .contentType(MediaType.APPLICATION_JSON).content(bytes);
     }
 
@@ -99,6 +99,19 @@ class PipelineControllerIntegrationTest {
         mvc.perform(get(WATCHLIST).with(httpBasic("admin", "test-admin-password")))
                 .andExpect(status().isUnauthorized());
         assertThat(snapshots.count()).isZero();
+    }
+
+    @Test
+    @DisplayName("The query string is signed: changing it after signing is refused")
+    void querySigned() throws Exception {
+        long now = Instant.now().getEpochSecond();
+        String signed = signature.sign("GET", WATCHLIST + "?a=1", new byte[0], now);
+        mvc.perform(get(WATCHLIST + "?a=1").header(PipelineRequestGuard.TIMESTAMP_HEADER, String.valueOf(now))
+                        .header(PipelineRequestGuard.SIGNATURE_HEADER, signed))
+                .andExpect(status().isOk());
+        mvc.perform(get(WATCHLIST + "?a=2").header(PipelineRequestGuard.TIMESTAMP_HEADER, String.valueOf(now))
+                        .header(PipelineRequestGuard.SIGNATURE_HEADER, signed))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

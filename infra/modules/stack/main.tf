@@ -179,3 +179,17 @@ module "price_pipeline" {
   log_retention_days = var.log_retention_days
   force_destroy      = !var.deletion_protection
 }
+
+module "warehouse" {
+  count              = var.enable_price_pipeline && var.enable_warehouse ? 1 : 0
+  source             = "../warehouse"
+  name               = local.name
+  environment        = var.environment
+  app_base_url       = coalesce(var.price_pipeline_app_url, "https://${local.api_domain}")
+  source_dir         = "${path.module}/../../../pipeline"
+  bucket             = module.price_pipeline[0].bucket
+  bucket_arn         = module.price_pipeline[0].bucket_arn
+  shared_secret_arn  = module.price_pipeline[0].shared_secret_arn
+  alerts_topic_arn   = module.monitoring.alerts_topic_arn
+  log_retention_days = var.log_retention_days
+}
