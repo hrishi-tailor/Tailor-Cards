@@ -34,6 +34,10 @@ def test_sql_is_portable():
         sql = warehouse.statement(path).lower()
         found = re.search(duckdb_only, sql)
         assert found is None, f"{path.name} uses DuckDB-only {found.group(0)!r}"
+        # A view column can't be "timestamp with time zone" in Athena (Glue stores the view's columns as Hive types)
+        for found in re.finditer(r"from_iso8601_timestamp\(", sql):
+            before = sql[max(0, found.start() - 5):found.start()]
+            assert before.endswith("cast("), f"{path.name}: cast from_iso8601_timestamp(...) to timestamp or date"
         for call in re.findall(r"approx_percentile\([^)]*\)", sql):
             assert call.endswith(", 0.5)"), f"{path.name}: the DuckDB shim only covers the median"
 
