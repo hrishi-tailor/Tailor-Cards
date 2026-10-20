@@ -6,7 +6,7 @@ import pytest
 
 import warehouse
 from fixtures import TODAY, clean, day
-from warehouse_db import build, query
+from warehouse.local import build, query
 
 
 @pytest.fixture(scope="module")

@@ -3,7 +3,7 @@
 import pytest
 
 from fixtures import clean, dirty
-from warehouse_db import build, query
+from warehouse.local import build, query
 
 UNIQUE_KEYS = {
     "dim_date": ["date_key"],

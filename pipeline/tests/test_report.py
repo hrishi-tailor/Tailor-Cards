@@ -6,7 +6,7 @@ from moto import mock_aws
 
 from fixtures import clean, day
 from warehouse import report, report_handler
-from warehouse_db import build, query
+from warehouse.local import build, query
 
 
 @pytest.fixture(scope="module")

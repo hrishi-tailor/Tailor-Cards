@@ -91,7 +91,7 @@ Errors are counted in the `DataQualityErrors` metric, which has its own alarm; t
 
 The views are written in Trino SQL for Athena. The tests run them on DuckDB against synthetic data, so they run in seconds on a laptop and in CI.
 
-- `tests/warehouse_db.py` creates the raw tables from `schema.json` and loads rows into them. It then creates every view.
+- `warehouse/local.py` creates the raw tables from `schema.json` and loads rows into them. It then creates every view.
 - DuckDB lacks four Trino functions the views use: `sequence`, `day_of_week`, `approx_percentile` (median only) and `from_iso8601_timestamp`. The harness defines each one as a small macro with the same result.
 - `test_sql_is_portable` fails if a view uses a DuckDB-only function or a percentile the shim doesn't cover. This keeps a passing test meaningful for Athena.
 
