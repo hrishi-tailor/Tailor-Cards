@@ -7,7 +7,8 @@ SELECT
     CAST(price_usd AS DOUBLE)                           AS price_usd,
     CAST(price_cad AS DOUBLE)                           AS price_cad,
     source,
-    from_iso8601_timestamp(fetched_at)                  AS fetched_at,
-    CAST(from_iso8601_timestamp(fetched_at) AS DATE)    AS price_date
+    -- Athena views can't hold a time-zone type, so the UTC instant is kept as a plain timestamp
+    CAST(from_iso8601_timestamp(fetched_at) AS TIMESTAMP)  AS fetched_at,
+    CAST(from_iso8601_timestamp(fetched_at) AS DATE)       AS price_date
 FROM raw_price_snapshots
 WHERE price_cad > 0
