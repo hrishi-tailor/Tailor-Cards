@@ -352,3 +352,112 @@ export interface CreateProductPayload {
   /** The seller's own photos, shown after the stock image. */
   photoUrls?: string[];
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Ledger (admin): purchases (lots) and the sales drawn from them. Money is CAD; amounts arrive as JSON numbers.
+
+export type LedgerItemKind = 'SINGLE' | 'GRADED' | 'SEALED' | 'SEALED_CASE' | 'LOT';
+export type LedgerChannel = 'CARD_SHOW' | 'FACEBOOK_MARKETPLACE' | 'INSTAGRAM' | 'EBAY' | 'WEBSITE' | 'BUYLIST' | 'OTHER';
+export type LedgerPaymentMethod = 'CASH' | 'E_TRANSFER' | 'CARD' | 'PAYPAL' | 'TRADE' | 'OTHER';
+export type LedgerEntrySource = 'MANUAL' | 'CSV_IMPORT' | 'SHOW_MODE';
+
+export interface LedgerLotRequest {
+  title: string;
+  kind: LedgerItemKind;
+  cardRef?: string | null;
+  quantity: number;
+  /** What was paid for all units together. */
+  totalCostCad: number;
+  acquiredOn?: string | null;
+  acquiredChannel?: LedgerChannel | null;
+  listedOn?: string | null;
+  /** Asking price per unit. */
+  listedPriceCad?: number | null;
+  notes?: string | null;
+  /** Show mode: an id made on the phone so a retried sync can't add the lot twice. */
+  externalRef?: string | null;
+}
+
+export interface LedgerSaleRequest {
+  soldOn: string;
+  quantity: number;
+  /** 0 records a giveaway. */
+  unitPriceCad: number;
+  channel: LedgerChannel;
+  paymentMethod?: LedgerPaymentMethod | null;
+  notes?: string | null;
+  /** Show mode: an id made on the phone so a retried sync can't record the sale twice. */
+  clientRef?: string | null;
+}
+
+export interface LedgerSale {
+  id: number;
+  lotId: number;
+  soldOn: string;
+  quantity: number;
+  unitPriceCad: number;
+  revenueCad: number;
+  costCad: number;
+  grossProfitCad: number;
+  daysListed: number | null;
+  channel: LedgerChannel;
+  paymentMethod: LedgerPaymentMethod | null;
+  notes: string | null;
+  source: LedgerEntrySource;
+}
+
+export interface LedgerLot {
+  id: number;
+  title: string;
+  kind: LedgerItemKind;
+  cardRef: string | null;
+  quantity: number;
+  unitsSold: number;
+  unitsLeft: number;
+  totalCostCad: number;
+  unitCostCad: number;
+  acquiredOn: string | null;
+  acquiredChannel: LedgerChannel | null;
+  listedOn: string | null;
+  listedPriceCad: number | null;
+  notes: string | null;
+  source: LedgerEntrySource;
+  revenueCad: number;
+  grossProfitCad: number;
+  createdAt: string;
+  sales: LedgerSale[];
+}
+
+export interface LedgerSummaryLine {
+  key: string;
+  sales: number;
+  units: number;
+  revenueCad: number;
+  costCad: number;
+  grossProfitCad: number;
+  /** Null when there is no revenue. */
+  marginPct: number | null;
+  medianDaysListed: number | null;
+}
+
+export interface LedgerSummary {
+  from: string | null;
+  to: string | null;
+  total: LedgerSummaryLine;
+  byKind: LedgerSummaryLine[];
+  byChannel: LedgerSummaryLine[];
+  byMonth: LedgerSummaryLine[];
+  onHand: { lots: number; units: number; costCad: number };
+}
+
+export interface LedgerImportReport {
+  saved: boolean;
+  rows: number;
+  lots: number;
+  sales: number;
+  lotsAlreadyImported: number;
+  revenueCad: number;
+  costCad: number;
+  /** line counts the header as line 1. */
+  errors: { line: number; message: string }[];
+}

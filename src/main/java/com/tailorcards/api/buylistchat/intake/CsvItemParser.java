@@ -1,8 +1,8 @@
 package com.tailorcards.api.buylistchat.intake;
 
+import com.tailorcards.api.common.CsvRows;
 import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -33,11 +33,7 @@ public class CsvItemParser {
             Map.entry("grading", "grading"), Map.entry("grade", "grading"), Map.entry("slab", "grading"));
 
     public Parsed parse(byte[] content, int maxRows, ItemNormalizer normalizer) {
-        String text = new String(content, StandardCharsets.UTF_8);
-        if (text.startsWith("﻿")) {
-            text = text.substring(1);
-        }
-        List<List<String>> rows = parseRows(text);
+        List<List<String>> rows = CsvRows.parse(CsvRows.decode(content));
         rows.removeIf(r -> r.stream().allMatch(String::isBlank));
         if (rows.isEmpty()) {
             return new Parsed(List.of(), List.of(), 0);
@@ -103,48 +99,5 @@ public class CsvItemParser {
             return null;
         }
         return value.length() > max ? value.substring(0, max) : value;
-    }
-
-    /** RFC 4180-style: commas, double-quoted fields, "" escapes, CRLF or LF. */
-    static List<List<String>> parseRows(String text) {
-        List<List<String>> rows = new ArrayList<>();
-        List<String> row = new ArrayList<>();
-        StringBuilder field = new StringBuilder();
-        boolean quoted = false;
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            if (quoted) {
-                if (c == '"') {
-                    if (i + 1 < text.length() && text.charAt(i + 1) == '"') {
-                        field.append('"');
-                        i++;
-                    } else {
-                        quoted = false;
-                    }
-                } else {
-                    field.append(c);
-                }
-            } else if (c == '"') {
-                quoted = true;
-            } else if (c == ',') {
-                row.add(field.toString());
-                field.setLength(0);
-            } else if (c == '\n' || c == '\r') {
-                if (c == '\r' && i + 1 < text.length() && text.charAt(i + 1) == '\n') {
-                    i++;
-                }
-                row.add(field.toString());
-                field.setLength(0);
-                rows.add(row);
-                row = new ArrayList<>();
-            } else {
-                field.append(c);
-            }
-        }
-        if (field.length() > 0 || !row.isEmpty()) {
-            row.add(field.toString());
-            rows.add(row);
-        }
-        return rows;
     }
 }

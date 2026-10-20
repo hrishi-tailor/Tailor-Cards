@@ -10,6 +10,8 @@ import { AdminBuylist } from './components/AdminBuylist'
 import { AdminLoginPage } from './components/AdminLoginPage'
 import { ListingGenerator } from './components/ListingGenerator'
 import { AdminProducts } from './components/AdminProducts'
+import { AdminLedger } from './components/AdminLedger'
+import { ShowMode } from './components/ShowMode'
 import { SellRoute } from './components/SellRoute'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { CheckoutSuccess } from './components/CheckoutSuccess'
@@ -65,6 +67,22 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <AdminProducts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/ledger"
+            element={
+              <ProtectedRoute>
+                <AdminLedger />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/show"
+            element={
+              <ProtectedRoute>
+                <ShowMode />
               </ProtectedRoute>
             }
           />
