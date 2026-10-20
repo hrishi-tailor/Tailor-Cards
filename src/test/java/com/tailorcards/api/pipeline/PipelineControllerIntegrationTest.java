@@ -102,6 +102,19 @@ class PipelineControllerIntegrationTest {
     }
 
     @Test
+    @DisplayName("The query string is signed: changing it after signing is refused")
+    void querySigned() throws Exception {
+        long now = Instant.now().getEpochSecond();
+        String signed = signature.sign("GET", WATCHLIST + "?a=1", new byte[0], now);
+        mvc.perform(get(WATCHLIST + "?a=1").header(PipelineController.TIMESTAMP_HEADER, String.valueOf(now))
+                        .header(PipelineController.SIGNATURE_HEADER, signed))
+                .andExpect(status().isOk());
+        mvc.perform(get(WATCHLIST + "?a=2").header(PipelineController.TIMESTAMP_HEADER, String.valueOf(now))
+                        .header(PipelineController.SIGNATURE_HEADER, signed))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @DisplayName("A signed but invalid batch is a 400 that names the problem")
     void invalidBatch() throws Exception {
         String body = """

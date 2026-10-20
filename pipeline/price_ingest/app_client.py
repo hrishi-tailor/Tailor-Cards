@@ -43,7 +43,7 @@ class AppClient:
         return totals
 
     def _call(self, method: str, path: str, body: bytes) -> http.Response:
-        signed_path = self.base_path + path
+        signed_path = self.base_path + path  # path may carry a query string; it is signed with it
         headers = signing.signed_headers(self.secret, method, signed_path, body)
         # Signed per attempt would be stricter, but a retry within seconds stays well inside the 5-minute window
         return self.send(method, self.base_url + path, body=body if method != "GET" else None,

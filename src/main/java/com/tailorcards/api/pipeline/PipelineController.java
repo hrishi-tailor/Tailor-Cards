@@ -60,17 +60,23 @@ public class PipelineController {
         return result;
     }
 
-    private void authorize(HttpServletRequest request, byte[] body) {
+    void authorize(HttpServletRequest request, byte[] body) {
         if (!signature.enabled()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
-        if (!signature.verify(request.getMethod(), request.getRequestURI(), body,
+        if (!signature.verify(request.getMethod(), signedPath(request), body,
                 request.getHeader(TIMESTAMP_HEADER), request.getHeader(SIGNATURE_HEADER))) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or expired signature");
         }
     }
 
-    private static byte[] readBody(HttpServletRequest request) {
+    /** The path as signed: with its query string, so paging parameters can't be changed in transit. */
+    static String signedPath(HttpServletRequest request) {
+        String query = request.getQueryString();
+        return query == null || query.isEmpty() ? request.getRequestURI() : request.getRequestURI() + "?" + query;
+    }
+
+    static byte[] readBody(HttpServletRequest request) {
         if (request.getContentLengthLong() > MAX_BODY_BYTES) {
             throw new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE);
         }

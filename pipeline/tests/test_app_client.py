@@ -52,3 +52,14 @@ def test_signs_the_full_path_behind_a_prefix():
     ts = int(call["headers"][signing.TIMESTAMP_HEADER])
     assert call["headers"][signing.SIGNATURE_HEADER] == signing.sign(
         SECRET, "GET", "/tc" + app_client.WATCHLIST_PATH, b"", ts)
+
+
+def test_signs_the_query_string():
+    fake = FakeApp([{"cardIds": []}])
+    client = app_client.AppClient("https://example.test", SECRET, send=fake)
+    client._call("GET", "/api/internal/export/ledger_sales?after=10&limit=5", b"")
+    call = fake.calls[0]
+    ts = int(call["headers"][signing.TIMESTAMP_HEADER])
+    assert call["url"].endswith("?after=10&limit=5")
+    assert call["headers"][signing.SIGNATURE_HEADER] == signing.sign(
+        SECRET, "GET", "/api/internal/export/ledger_sales?after=10&limit=5", b"", ts)

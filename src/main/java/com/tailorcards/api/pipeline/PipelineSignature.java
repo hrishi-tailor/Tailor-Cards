@@ -17,7 +17,8 @@ import java.util.Locale;
 /**
  * Verifies requests from the price pipeline (an AWS Lambda) without any AWS credentials on the app's host. Each
  * request carries X-TC-Timestamp (Unix seconds) and X-TC-Signature: {@code v1=} + hex HMAC-SHA256, keyed with the
- * shared secret, of {@code timestamp \n METHOD \n path \n sha256-hex(body)}. A request older or newer than five
+ * shared secret, of {@code timestamp \n METHOD \n path \n sha256-hex(body)}, where path includes the query string
+ * ({@code ?a=1}) when there is one. A request older or newer than five
  * minutes is refused, so a captured request can't be replayed later. The same scheme is implemented in
  * pipeline/price_ingest/signing.py.
  */
