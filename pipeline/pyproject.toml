@@ -12,3 +12,5 @@ dev = ["pytest==8.3.4", "moto[s3,secretsmanager]==5.0.26", "boto3==1.35.90"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+# botocore's own use of datetime.utcnow, not ours
+filterwarnings = ["ignore:datetime.datetime.utcnow:DeprecationWarning:botocore"]
