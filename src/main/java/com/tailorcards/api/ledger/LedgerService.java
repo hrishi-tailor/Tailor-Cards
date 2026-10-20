@@ -132,11 +132,14 @@ public class LedgerService {
         return view(sales.save(sale));
     }
 
+    @Transactional(readOnly = true)
+    public SaleView getSale(Long id) {
+        return view(findSale(id));
+    }
+
     @Transactional
     public void deleteSale(Long id) {
-        LedgerSale sale = sales.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Ledger sale not found with id: " + id));
-        sales.delete(sale);
+        sales.delete(findSale(id));
     }
 
     /** The lot's cost shared out by units: total cost x units sold / units in the lot, to the cent. */
@@ -198,6 +201,10 @@ public class LedgerService {
 
     private LedgerLot find(Long id) {
         return lots.findById(id).orElseThrow(() -> notFound(id));
+    }
+
+    private LedgerSale findSale(Long id) {
+        return sales.findById(id).orElseThrow(() -> new ResourceNotFoundException("Ledger sale not found with id: " + id));
     }
 
     private static ResourceNotFoundException notFound(Long id) {
