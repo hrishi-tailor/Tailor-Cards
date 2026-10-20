@@ -192,4 +192,7 @@ module "warehouse" {
   shared_secret_arn  = module.price_pipeline[0].shared_secret_arn
   alerts_topic_arn   = module.monitoring.alerts_topic_arn
   log_retention_days = var.log_retention_days
+  report_recipients  = var.enable_weekly_report ? coalesce(var.report_recipients, [var.alert_email]) : []
+  report_from        = local.email_from
+  ses_identity_arn   = module.email.identity_arn
 }

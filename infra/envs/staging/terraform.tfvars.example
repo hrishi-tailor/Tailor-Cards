@@ -6,3 +6,4 @@ alert_email   = "you@example.com"
 # enable_price_pipeline = true # daily TCGdex prices into an S3 data lake (docs/price-pipeline.md)
 # enable_warehouse = true      # nightly Glue/Athena warehouse (docs/warehouse.md)
 # price_pipeline_app_url = "https://tailor-cards-api.onrender.com"  # read and price production instead of staging
+# enable_weekly_report = true  # Monday email of last week's results to alert_email (docs/weekly-report.md)
