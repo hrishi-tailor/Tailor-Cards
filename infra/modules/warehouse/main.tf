@@ -418,10 +418,15 @@ data "aws_iam_policy_document" "report" {
     actions   = ["glue:GetDatabase", "glue:GetTable", "glue:GetTables", "glue:GetPartitions"]
     resources = [local.catalog_arn, local.database_arn, local.tables_arn]
   }
+  # SES authorises a send against the sender's identity and, while the account is in the SES sandbox, the
+  # recipient's verified identity too; the condition still pins the sender to the store's address
   statement {
-    sid       = "SendFromTheStoreAddress"
-    actions   = ["ses:SendEmail"]
-    resources = [var.ses_identity_arn]
+    sid     = "SendFromTheStoreAddress"
+    actions = ["ses:SendEmail"]
+    resources = [
+      var.ses_identity_arn,
+      "arn:aws:ses:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:identity/*",
+    ]
     condition {
       test     = "StringEquals"
       variable = "ses:FromAddress"
