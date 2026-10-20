@@ -45,8 +45,8 @@ public class SecurityConfig {
                     "/swagger-ui/**",
                     "/swagger-ui.html"
                 ).permitAll()
-                // Price pipeline: no login, every request is HMAC-signed (PipelineController checks it)
-                .requestMatchers("/api/internal/pricing/**").permitAll()
+                // AWS pipelines: no login, every request is HMAC-signed (PipelineRequestGuard checks it)
+                .requestMatchers("/api/internal/**").permitAll()
                 // Public Cart & Checkout flows
                 .requestMatchers("/api/checkout/**").permitAll()
                 .requestMatchers("/api/cart/**").permitAll()
