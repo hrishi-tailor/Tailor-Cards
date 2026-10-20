@@ -1,6 +1,7 @@
 package com.tailorcards.api.ledger;
 
 import com.tailorcards.api.audit.AuditLog;
+import com.tailorcards.api.ledger.dto.ImportReport;
 import com.tailorcards.api.ledger.dto.LedgerSummary;
 import com.tailorcards.api.ledger.dto.LotRequest;
 import com.tailorcards.api.ledger.dto.LotView;
@@ -22,7 +23,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -33,13 +36,18 @@ import java.util.List;
 @SecurityRequirement(name = "basicAuth")
 public class LedgerController {
 
+    static final long MAX_IMPORT_BYTES = 2 * 1024 * 1024;
+
     private final LedgerService ledger;
     private final LedgerSummaryService summary;
+    private final LedgerCsvImporter importer;
     private final AuditLog audit;
 
-    public LedgerController(LedgerService ledger, LedgerSummaryService summary, AuditLog audit) {
+    public LedgerController(LedgerService ledger, LedgerSummaryService summary, LedgerCsvImporter importer,
+                            AuditLog audit) {
         this.ledger = ledger;
         this.summary = summary;
+        this.importer = importer;
         this.audit = audit;
     }
 
@@ -106,6 +114,25 @@ public class LedgerController {
         ledger.deleteSale(id);
         audit.record("LEDGER_SALE_DELETE", "LEDGER_SALE", id, before, null);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(path = "/import", consumes = "multipart/form-data")
+    @Operation(summary = "Import purchases and sales from a CSV file", description = "dryRun (default true) only "
+            + "checks the file. A real run saves everything or, if any row has an error, nothing (422). Format in "
+            + "docs/ledger.md.")
+    public ResponseEntity<ImportReport> importCsv(@RequestParam("file") MultipartFile file,
+                                                  @RequestParam(defaultValue = "true") boolean dryRun) throws IOException {
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("Choose a CSV file to import.");
+        }
+        if (file.getSize() > MAX_IMPORT_BYTES) {
+            throw new IllegalArgumentException("A ledger CSV can be at most 2 MB.");
+        }
+        ImportReport report = importer.importCsv(file.getBytes(), dryRun);
+        if (report.saved()) {
+            audit.record("LEDGER_IMPORT", "LEDGER_IMPORT", null, null, report);
+        }
+        return ResponseEntity.status(!dryRun && !report.ok() ? HttpStatus.UNPROCESSABLE_CONTENT : HttpStatus.OK).body(report);
     }
 
     @GetMapping("/summary")

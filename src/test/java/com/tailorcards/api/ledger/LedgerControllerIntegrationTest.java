@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
@@ -15,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -121,5 +123,31 @@ class LedgerControllerIntegrationTest {
                 .andExpect(jsonPath("$.onHand").exists());
         mvc.perform(get("/api/admin/ledger/summary").with(admin()).param("from", "2026-12-31").param("to", "2026-01-01"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("CSV import: dry run by default, 422 and nothing saved when a row is bad, audited when saved")
+    void importCsv() throws Exception {
+        String header = "lot_ref,title,kind,quantity,total_cost_cad,sold_on,sold_quantity,sale_unit_price_cad,sale_channel\n";
+        MockMultipartFile good = new MockMultipartFile("file", "ledger.csv", "text/csv",
+                (header + "IMP-1,Celebrations ETB,sealed,1,315,2026-10-17,1,450,facebook\n").getBytes());
+        MockMultipartFile bad = new MockMultipartFile("file", "ledger.csv", "text/csv",
+                (header + "IMP-2,Celebrations ETB,sealed,1,315,2026-10-17,1,450,garage sale\n").getBytes());
+
+        mvc.perform(multipart("/api/admin/ledger/import").file(good).with(admin()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.saved").value(false))
+                .andExpect(jsonPath("$.lots").value(1));
+        mvc.perform(multipart("/api/admin/ledger/import").file(bad).param("dryRun", "false").with(admin()))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errors[0].line").value(2));
+        mvc.perform(multipart("/api/admin/ledger/import").file(good).param("dryRun", "false").with(admin()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.saved").value(true));
+
+        JsonNode audit = json.readTree(mvc.perform(get("/api/admin/audit-log").with(admin())
+                .param("action", "LEDGER_IMPORT")).andReturn().getResponse().getContentAsString()).path("items");
+        assertThat(audit).isNotEmpty();
+        mvc.perform(multipart("/api/admin/ledger/import").file(good)).andExpect(status().isUnauthorized());
     }
 }
