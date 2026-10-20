@@ -107,3 +107,24 @@ def test_calendar_runs_to_today_without_gaps(db):
     assert cal["days"] == 61
     weekend = one(db, f"SELECT day_of_week, is_weekend FROM dim_date WHERE date_key = DATE '{TODAY.isoformat()}'")
     assert weekend["is_weekend"] == (TODAY.isoweekday() >= 6)
+
+
+def test_weekly_pnl_starts_weeks_on_monday_and_adds_up(db):
+    weeks = query(db, "SELECT * FROM mart_weekly_pnl")
+    assert all(w["week_start"].isoweekday() == 1 for w in weeks)
+    assert sum(w["revenue_cad"] for w in weeks) == pytest.approx(5950)
+    assert sum(w["sales"] for w in weeks) == 5
+
+
+def test_dashboard_sales_extract_is_flat_and_complete(db):
+    rows = query(db, "SELECT * FROM dash_sales ORDER BY sale_id")
+    assert [r["sale_id"] for r in rows] == [1, 2, 3, 4, 5]
+    ebay = rows[4]
+    assert (ebay["item"], ebay["kind_name"], ebay["card_name"], ebay["channel_name"]) == (
+        "Charizard ex 199 PSA 10", "Graded slab", "Charizard ex SIR", "eBay")
+    assert rows[0]["card_name"] == "Prismatic Evolutions ETB case x2", "lots without a card id use their title"
+
+
+def test_dashboard_prices_cover_held_or_listed_cards(db):
+    cards = {r["card_id"] for r in query(db, "SELECT DISTINCT card_id FROM dash_prices")}
+    assert cards == {"swsh7-215", "sv3pt5-199", "svp-001"}
