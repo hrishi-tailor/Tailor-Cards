@@ -3,3 +3,4 @@ domain        = "staging.tailorcards.com"
 bucket_suffix = "123456789012" # your AWS account id: aws sts get-caller-identity --query Account --output text
 alert_email   = "you@example.com"
 # enable_scheduler = true      # stop nights and weekends to save money
+# enable_price_pipeline = true # daily TCGdex prices into an S3 data lake (docs/price-pipeline.md)

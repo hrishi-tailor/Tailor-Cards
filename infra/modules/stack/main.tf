@@ -165,3 +165,17 @@ module "scheduler" {
   db_instance_id  = module.database.instance_id
   db_instance_arn = module.database.instance_arn
 }
+
+module "price_pipeline" {
+  count              = var.enable_price_pipeline ? 1 : 0
+  source             = "../price_pipeline"
+  name               = local.name
+  environment        = var.environment
+  app_base_url       = coalesce(var.price_pipeline_app_url, "https://${local.api_domain}")
+  source_dir         = "${path.module}/../../../pipeline"
+  bucket_suffix      = var.bucket_suffix
+  alerts_topic_arn   = module.monitoring.alerts_topic_arn
+  schedule_cron      = var.price_pipeline_schedule
+  log_retention_days = var.log_retention_days
+  force_destroy      = !var.deletion_protection
+}

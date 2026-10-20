@@ -40,3 +40,9 @@ variable "deploy_branch" {
   type        = string
   default     = "main"
 }
+
+variable "enable_price_pipeline" {
+  description = "Run the daily price pipeline against staging (see docs/price-pipeline.md)"
+  type        = bool
+  default     = false
+}
