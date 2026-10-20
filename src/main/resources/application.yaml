@@ -99,6 +99,9 @@ app:
     base-url: https://api.anthropic.com/v1
     max-tokens: 1024
     timeout-seconds: 10
+  pipeline:
+    # Shared with the AWS price pipeline to sign its requests (openssl rand -hex 32). Empty: its endpoints are off.
+    shared-secret: ${PIPELINE_SHARED_SECRET:}
   price-provider: ${PRICE_PROVIDER:pokemontcg}
   pokemontcg:
     api-key: ${POKEMONTCG_API_KEY:}
