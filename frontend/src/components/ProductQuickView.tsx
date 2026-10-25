@@ -27,7 +27,9 @@ interface QuickViewProps {
  * Render it with key={product.id} so the gallery resets for each product.
  */
 export function ProductQuickView({ product, onClose }: QuickViewProps) {
-  const images = productImages(product)
+  const [failed, setFailed] = useState<Record<string, boolean>>({})
+  // Pictures that fail to load drop out of the gallery instead of leaving an empty frame
+  const images = productImages(product).filter((src) => !failed[src])
   const [index, setIndex] = useState(0)
   const [zoom, setZoom] = useState<Zoom>('full')
   const [tab, setTab] = useState<'photo' | 'history'>('photo')
@@ -38,7 +40,7 @@ export function ProductQuickView({ product, onClose }: QuickViewProps) {
   const outOfStock = !sold && product.stock <= 0
   const hasHistory = !isGradedOrSealed(product)
   const origin = ZOOMS.find((z) => z.id === zoom)?.origin ?? '50% 50%'
-  const current = images[index]
+  const current = images[Math.min(index, images.length - 1)]
 
   const show = (next: number) => {
     setIndex((next + images.length) % images.length)
@@ -103,7 +105,8 @@ export function ProductQuickView({ product, onClose }: QuickViewProps) {
               <div className="tc-qv-photo">
                 {current ? (
                   <img key={current} src={current} alt={index === 0 ? name : `${name}, photo ${index}`}
-                    style={{ transform: zoom === 'full' ? 'none' : 'scale(2.5)', transformOrigin: origin }} />
+                    style={{ transform: zoom === 'full' ? 'none' : 'scale(2.5)', transformOrigin: origin }}
+                    onError={() => setFailed((f) => ({ ...f, [current]: true }))} />
                 ) : (
                   <span className="tc-product-noimg">Photo coming soon</span>
                 )}

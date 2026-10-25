@@ -10,9 +10,9 @@ export interface ShopCategory {
 
 /** Shop collections, in menu order. */
 export const CATEGORIES: ShopCategory[] = [
-  { slug: 'singles', label: 'Singles', blurb: 'Full arts, alt arts and rainbows' },
-  { slug: 'slabs', label: 'Graded slabs', blurb: 'PSA, BGS, CGC and more' },
-  { slug: 'sealed', label: 'Sealed', blurb: 'Booster boxes and trainer boxes' },
+  { slug: 'singles', label: 'Single cards', blurb: 'Rare and collectible cards, one at a time' },
+  { slug: 'slabs', label: 'Graded cards', blurb: 'Authenticated and sealed in a case by a grading company' },
+  { slug: 'sealed', label: 'Sealed boxes', blurb: 'Unopened booster boxes and gift sets' },
 ]
 
 export function categoryBySlug(slug: string | undefined): ShopCategory | undefined {
@@ -67,6 +67,11 @@ export function conditionLabel(p: Product): string {
 /** Default picture first (normally the official card image), then the seller's own photos. */
 export function productImages(p: Product): string[] {
   return [...new Set([p.imageUrl, ...(p.photoUrls ?? [])].filter((u): u is string => Boolean(u && u.trim())))]
+}
+
+/** Listings that sold, best first: the shop's track record for the home page. */
+export function soldListings(products: Product[]): Product[] {
+  return products.filter((p) => p.status === 'SOLD').sort((a, b) => b.price - a.price)
 }
 
 /** True for card-database images, as opposed to the seller's own photos. */

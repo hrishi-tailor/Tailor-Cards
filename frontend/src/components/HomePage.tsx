@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Product } from '../types'
-import { CATEGORIES } from '../catalog'
+import { CATEGORIES, soldListings } from '../catalog'
 import { useProducts } from '../hooks/useProducts'
 import { ProductCard } from './ProductCard'
 import { ProductQuickView } from './ProductQuickView'
@@ -23,16 +23,11 @@ const COLLECTION_IMAGES: Record<string, { src: string; product?: boolean }> = {
   sealed: { src: prismaticEtb, product: true },
 }
 
-const SETS = ['Prismatic Evolutions', '151', 'Flashfire', 'Double Crisis', 'Evolving Skies', 'Crown Zenith',
-  'Ascended Heroes', 'Base Set']
-
-const GRADERS = ['PSA', 'BGS', 'CGC', 'SGC', 'TAG']
-
 const Arrow = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
 )
 
-/** Landing page: hero, collections, new arrivals from the shop, why buy here, and the sell band. */
+/** Landing page: hero, track record, categories, stock and recent sales, why buy here, and the sell band. */
 export function HomePage() {
   const { products, loading } = useProducts()
   const [quickView, setQuickView] = useState<Product | null>(null)
@@ -42,18 +37,18 @@ export function HomePage() {
     .filter((p) => p.status !== 'SOLD' && p.stock > 0)
     .sort((a, b) => b.id - a.id)
     .slice(0, 8), [products])
+  const sold = useMemo(() => soldListings(products), [products])
 
   return (
     <div className="tc-home">
       <section className="tc-hero">
         <div className="tc-wrap tc-hero-grid">
           <div className="tc-hero-copy">
-            <span className="tc-eyebrow">Pokémon TCG · Canada</span>
-            <h1>Chase cards and graded slabs, <em>inspected up close.</em></h1>
+            <span className="tc-eyebrow">Pokémon cards · Canada</span>
+            <h1>Rare Pokémon cards, <em>inspected up close.</em></h1>
             <p className="tc-hero-lede">
-              Every listing shows the official card image and our own photos of the exact copy you'll receive, so you
-              can check the corners before you buy. Selling a collection? See our offer in minutes and get paid by
-              Interac e-Transfer.
+              We photograph the exact card you'll receive, so you can check its condition before you buy. Selling a
+              collection? Get an instant offer and get paid by Interac e-Transfer.
             </p>
             <div className="tc-hero-ctas">
               <Link to="/shop" className="tc-button tc-button-solid">Shop cards <Arrow /></Link>
@@ -79,25 +74,27 @@ export function HomePage() {
             <div className="tc-slab tc-slab-left"><img src={magmaGroudon} alt="" /></div>
             <div className="tc-slab tc-slab-right"><img src={mewtwoUpc} alt="" /></div>
             <div className="tc-slab tc-slab-center"><img src={mCharizardX} alt="" /></div>
-            <div className="tc-hero-tag tc-hero-tag-a"><small>Flashfire · Secret rare</small><strong>M Charizard EX</strong></div>
+            <div className="tc-hero-tag tc-hero-tag-a"><small>Flashfire · Ultra-rare</small><strong>M Charizard EX</strong></div>
             <div className="tc-hero-tag tc-hero-tag-b"><small>151 Ultra-Premium Collection</small><strong>Mewtwo promo</strong></div>
           </div>
         </div>
       </section>
 
-      <div className="tc-graders">
-        <div className="tc-wrap tc-graders-row">
-          <p>We buy and sell slabs from every major grader</p>
-          <ul>{GRADERS.map((g) => <li key={g}>{g}</li>)}</ul>
-        </div>
-      </div>
+      <section className="tc-stats" aria-label="Our track record">
+        <ul className="tc-wrap tc-stats-row">
+          <li><strong>Since 2024</strong><span>buying and selling cards</span></li>
+          <li><strong>{loading ? '…' : sold.length}</strong><span>cards sold, all shown in the shop</span></li>
+          <li><strong>~17 seconds</strong><span>to price a 60-card collection</span></li>
+          <li><strong>Every offer</strong><span>checked by a person before we pay</span></li>
+        </ul>
+      </section>
 
       <section className="tc-home-block" aria-labelledby="collections-heading">
         <div className="tc-wrap">
           <div className="tc-block-head">
             <div>
-              <span className="tc-eyebrow">Shop by collection</span>
-              <h2 id="collections-heading">Find your next grail</h2>
+              <span className="tc-eyebrow">Shop by category</span>
+              <h2 id="collections-heading">Find your next card</h2>
             </div>
             <Link to="/shop" className="tc-link-underline">Shop all</Link>
           </div>
@@ -116,9 +113,6 @@ export function HomePage() {
               </Link>
             ))}
           </div>
-          <nav className="tc-set-chips" aria-label="Shop by set">
-            {SETS.map((s) => <Link key={s} to={`/shop?q=${encodeURIComponent(s)}`}>{s}</Link>)}
-          </nav>
         </div>
       </section>
 
@@ -128,7 +122,7 @@ export function HomePage() {
             <div className="tc-block-head">
               <div>
                 <span className="tc-eyebrow">New arrivals</span>
-                <h2 id="arrivals-heading">Fresh in the case</h2>
+                <h2 id="arrivals-heading">In stock now</h2>
               </div>
               <Link to="/shop" className="tc-link-underline">View all</Link>
             </div>
@@ -145,6 +139,23 @@ export function HomePage() {
         </section>
       )}
 
+      {!loading && sold.length > 0 && (
+        <section className="tc-home-block tc-home-arrivals" aria-labelledby="sold-heading">
+          <div className="tc-wrap">
+            <div className="tc-block-head">
+              <div>
+                <span className="tc-eyebrow">Recently sold</span>
+                <h2 id="sold-heading">Cards that found new homes</h2>
+              </div>
+              <Link to="/shop" className="tc-link-underline">See every sale</Link>
+            </div>
+            <div className="tc-product-grid tc-arrivals-grid">
+              {sold.slice(0, 4).map((p) => <ProductCard key={p.id} product={p} onQuickView={setQuickView} />)}
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="tc-home-block tc-proof" aria-labelledby="proof-heading">
         <div className="tc-wrap tc-proof-grid">
           <div className="tc-proof-photo">
@@ -154,10 +165,10 @@ export function HomePage() {
           </div>
           <div className="tc-proof-copy">
             <span className="tc-eyebrow">Why buy from us</span>
-            <h2 id="proof-heading">See the exact copy before you buy</h2>
-            <p>Every listing starts with the official card image, followed by our own photos of the copy you'll receive, so you can judge corners, centering and surfaces for yourself.</p>
+            <h2 id="proof-heading">See the exact card before you buy</h2>
+            <p>Every listing shows the official picture of the card, then our own photos of the one you'll receive, so you can judge its condition for yourself.</p>
             <ul className="tc-checks">
-              <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4 10-10" /></svg><span><b>Photos of the exact copy</b> after the official image</span></li>
+              <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4 10-10" /></svg><span><b>Our own photos</b> of the exact card you'll get</span></li>
               <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4 10-10" /></svg><span><b>Zoom into every corner</b> from the quick view before you buy</span></li>
               <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4 10-10" /></svg><span><b>Authenticity guaranteed</b> on everything we sell</span></li>
             </ul>
@@ -171,11 +182,11 @@ export function HomePage() {
           <div>
             <span className="tc-eyebrow">Sell or trade</span>
             <h2 id="sell-heading">Turn your collection into cash or store credit</h2>
-            <p>Tell our assistant what you have, or paste a list. You'll see live market prices, our offer at our published rates, and an estimate of how likely we are to accept.</p>
+            <p>Tell our assistant what you have, paste a list, or scan cards with your phone camera. You'll see today's market prices, our offer, and how likely we are to accept it.</p>
             <ol className="tc-steps">
-              <li><strong>List your cards</strong>Chat, paste a list or upload a CSV</li>
+              <li><strong>List your cards</strong>Chat, paste a list or scan with your camera</li>
               <li><strong>See our offer</strong>Cash, store credit or both</li>
-              <li><strong>Ship and get paid</strong>Interac e-Transfer once we inspect</li>
+              <li><strong>Ship and get paid</strong>By Interac e-Transfer once we've checked the cards</li>
             </ol>
             <Link to="/sell" className="tc-button tc-button-solid tc-sell-cta">Get an estimate <Arrow /></Link>
           </div>

@@ -48,7 +48,6 @@ export function SiteHeader() {
   const shopActive = location.pathname.startsWith('/shop')
   const sellActive = location.pathname === '/sell' || location.pathname.startsWith('/sell/')
     && !location.pathname.startsWith('/sell/track')
-  const trackActive = location.pathname.startsWith('/track') || location.pathname.startsWith('/sell/track')
 
   return (
     <>
@@ -76,7 +75,7 @@ export function SiteHeader() {
               </div>
             </div>
             <NavLink to="/sell" className={() => `tc-nav-a ${sellActive ? 'active' : ''}`}>Sell to us</NavLink>
-            <NavLink to="/track" className={() => `tc-nav-a ${trackActive ? 'active' : ''}`}>Track</NavLink>
+            <NavLink to="/about" className={({ isActive }) => `tc-nav-a ${isActive ? 'active' : ''}`}>Our story</NavLink>
           </nav>
 
           <div className="tc-header-tools">
@@ -126,6 +125,8 @@ export function SiteHeader() {
               <span className="tc-eyebrow">Sell</span>
               <Link to="/sell">Sell to us</Link>
               <Link to="/track">Track a submission</Link>
+              <span className="tc-eyebrow">About</span>
+              <Link to="/about">Our story</Link>
             </nav>
             <div className="tc-drawer-foot">
               <span>Theme</span>

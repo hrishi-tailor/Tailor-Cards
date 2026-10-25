@@ -11,7 +11,7 @@ export function SiteFooter() {
         <div className="tc-footer-cols">
           <div className="tc-footer-about">
             <Link to="/" aria-label="Tailor Cards home"><BrandMark /></Link>
-            <p>Authentic Pokémon singles, graded slabs and sealed product, photographed in hand.</p>
+            <p>Authentic Pokémon cards, photographed in hand and shipped across Canada. <Link to="/about">Our story</Link></p>
           </div>
           <div>
             <h4>Shop</h4>
