@@ -1,7 +1,7 @@
 <h1 align="center">Tailor Cards</h1>
 
 <p align="center">
-  A Pokémon card store with an AI buylist: shop singles, slabs and sealed product, or sell your collection by chatting, pasting a list or scanning cards with your phone.
+  A real Pokémon card business and the website I built for it: shop photographed cards, or sell a collection by chatting, pasting a list or scanning cards with your phone.
 </p>
 
 <p align="center">
@@ -24,6 +24,18 @@
 </p>
 
 > **Status:** the store is live at [tailorcards.com](https://tailorcards.com) and takes real orders. The AI buylist is in a private beta with repeat customers.
+
+## In plain English
+
+Tailor Cards is a real Pokémon card business I've run since September 2024, first at card shows and on Facebook Marketplace, Instagram and eBay. I built this website for it, end to end:
+
+- **A shop that can't double-sell.** Most cards are one of a kind, so stock is checked twice during checkout and two people can never pay for the same card. Every listing has photos of the exact card.
+- **An offer in seconds.** People selling a collection can type, paste a list or scan cards with their phone camera. An AI assistant recognises the cards and looks up live market prices; a 60-card list is priced in about 17 seconds.
+- **Fair by design.** The AI explains, but it never sets a price. Offers come from published rates, and a person approves every deal.
+- **Run like a real business.** Market prices are collected every day, sales feed a business dashboard, and a weekly report is emailed every Monday.
+- **Built to be trusted.** Two-factor login for the admin, an audit log of every admin change, and 500+ automated tests that run before every update.
+
+The [Our story](https://tailorcards.com/about) page tells the same story for customers. Everything below is the technical detail.
 
 ## Contents
 
