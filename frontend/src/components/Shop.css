@@ -149,9 +149,10 @@
   transform: scale(1.04);
 }
 
+/* Sold cards stay in colour (they are the shop's track record); the Sold flag and a light fade mark them */
 .tc-product.is-sold .tc-product-media img {
-  filter: grayscale(0.85);
-  opacity: 0.7;
+  filter: saturate(0.75);
+  opacity: 0.85;
 }
 
 .tc-product-noimg {
