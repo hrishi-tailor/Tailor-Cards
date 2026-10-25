@@ -14,16 +14,17 @@ interface ProductCardProps {
  * seller's own photos; grade or condition badge, name, set and number, price, add to cart.
  */
 export function ProductCard({ product, onQuickView }: ProductCardProps) {
-  const images = productImages(product)
-  const [index, setIndex] = useState(0)
   const [failed, setFailed] = useState<Record<string, boolean>>({})
+  // A picture that fails to load (e.g. the card database is slow) drops out, so the seller's own photo shows instead
+  const images = productImages(product).filter((src) => !failed[src])
+  const [index, setIndex] = useState(0)
   const { add, state } = useAddToCart()
   const sold = product.status === 'SOLD'
   const outOfStock = !sold && product.stock <= 0
   const name = displayName(product)
   const meta = [product.set, product.cardNumber ? `#${product.cardNumber.replace(/^#/, '')}` : null].filter(Boolean).join(' · ')
   const featured = isSlab(product) || isSealed(product)
-  const current = images[index]
+  const current = images[Math.min(index, images.length - 1)]
   const many = images.length > 1
 
   const step = (e: React.MouseEvent, delta: number) => {
@@ -36,7 +37,7 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
       <div className="tc-product-media">
         <button type="button" className="tc-product-open" onClick={() => onQuickView(product)}
           aria-label={`Quick view: ${name}`}>
-          {current && !failed[current] ? (
+          {current ? (
             <img key={current} src={current} alt={index === 0 ? name : `${name}, photo ${index}`} loading="lazy"
               className={isOfficialImage(current) ? 'is-official' : 'is-photo'}
               onError={() => setFailed((f) => ({ ...f, [current]: true }))} />
